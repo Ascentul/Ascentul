@@ -1,17 +1,41 @@
-"use client";
+'use client';
 
-import React, { useMemo, useState } from "react";
-import { useUser } from "@clerk/nextjs";
-import { useAuth } from "@/contexts/ClerkAuthProvider";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "convex/_generated/api";
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardDescription,
-} from "@/components/ui/card";
+  BookOpen,
+  CheckCircle,
+  Download,
+  Edit,
+  Loader2,
+  Plus,
+  Trash2,
+  Upload,
+  XCircle,
+} from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -19,38 +43,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
-import {
-  BookOpen,
-  Plus,
-  Upload,
-  Download,
-  Edit,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  Loader2,
-} from "lucide-react";
+} from '@/components/ui/table';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { useToast } from '@/hooks/use-toast';
 
 export default function UniversityCoursesPage() {
   const { user, isAdmin, subscription } = useAuth();
@@ -60,16 +55,15 @@ export default function UniversityCoursesPage() {
   // Access control: Only university_admin, advisor, or super_admin can access
   // subscription.isUniversity is NOT sufficient - it includes regular students
   const canAccess =
-    !!user &&
-    (isAdmin || user.role === 'university_admin' || user.role === 'advisor');
+    !!user && (isAdmin || user.role === 'university_admin' || user.role === 'advisor');
 
   const courses = useQuery(
     api.university_admin.listCourses,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip',
   ) as any[] | undefined;
   const departments = useQuery(
     api.university_admin.listDepartments,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip',
   ) as any[] | undefined;
 
   const createCourse = useMutation(api.university_admin.createCourse);
@@ -93,7 +87,7 @@ export default function UniversityCoursesPage() {
     category?: string;
     level?: string;
     departmentId?: string;
-  }>({ title: "" });
+  }>({ title: '' });
   const [submitting, setSubmitting] = useState(false);
   const [importing, setImporting] = useState(false);
 
@@ -105,9 +99,7 @@ export default function UniversityCoursesPage() {
             <CardTitle>Unauthorized</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">
-              You do not have access to Programs Management.
-            </p>
+            <p className="text-muted-foreground">You do not have access to Programs Management.</p>
           </CardContent>
         </Card>
       </div>
@@ -125,28 +117,28 @@ export default function UniversityCoursesPage() {
   }
 
   const exportCoursesCsv = () => {
-    const headers = ["Title", "Department", "Category", "Level", "Published"];
+    const headers = ['Title', 'Department', 'Category', 'Level', 'Published'];
     const rows = (courses || []).map((c: any) =>
       [
-        `"${c.title ?? ""}"`,
-        `"${(c.department_id && deptById.get(String(c.department_id))?.name) || ""}"`,
-        `"${c.category ?? ""}"`,
-        `"${c.level ?? ""}"`,
-        c.published ? "Yes" : "No",
-      ].join(","),
+        `"${c.title ?? ''}"`,
+        `"${(c.department_id && deptById.get(String(c.department_id))?.name) || ''}"`,
+        `"${c.category ?? ''}"`,
+        `"${c.level ?? ''}"`,
+        c.published ? 'Yes' : 'No',
+      ].join(','),
     );
-    const csv = [headers.join(","), ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = "programs_export.csv";
+    a.download = 'programs_export.csv';
     a.click();
     URL.revokeObjectURL(url);
     toast({
-      title: "Exported",
-      description: "Programs exported to CSV",
-      variant: "success",
+      title: 'Exported',
+      description: 'Programs exported to CSV',
+      variant: 'success',
     });
   };
 
@@ -157,35 +149,28 @@ export default function UniversityCoursesPage() {
       const text = await file.text();
       const lines = text.split(/\r?\n/).filter(Boolean);
       if (lines.length <= 1) {
-        toast({ title: "Empty file", variant: "destructive" });
+        toast({ title: 'Empty file', variant: 'destructive' });
         return;
       }
-      const header = lines[0]
-        .split(",")
-        .map((h) => h.trim().replace(/^"|"$/g, ""));
-      const idx = (name: string) =>
-        header.findIndex((h) => h.toLowerCase() === name.toLowerCase());
-      const iTitle = idx("title");
-      const iCategory = idx("category");
-      const iLevel = idx("level");
-      const iDepartment = idx("department");
+      const header = lines[0].split(',').map((h) => h.trim().replace(/^"|"$/g, ''));
+      const idx = (name: string) => header.findIndex((h) => h.toLowerCase() === name.toLowerCase());
+      const iTitle = idx('title');
+      const iCategory = idx('category');
+      const iLevel = idx('level');
+      const iDepartment = idx('department');
 
       let imported = 0;
       for (let i = 1; i < lines.length; i++) {
         const cols =
-          lines[i]
-            .match(/\"[^\"]*\"|[^,]+/g)
-            ?.map((c) => c.replace(/^\"|\"$/g, "")) || [];
+          lines[i].match(/\"[^\"]*\"|[^,]+/g)?.map((c) => c.replace(/^\"|\"$/g, '')) || [];
         const title = cols[iTitle]?.trim();
         if (!title) continue;
 
-        const departmentName =
-          iDepartment >= 0 ? cols[iDepartment]?.trim() : "";
+        const departmentName = iDepartment >= 0 ? cols[iDepartment]?.trim() : '';
         let departmentId: string | undefined;
         if (departmentName) {
           const found = (departments || []).find(
-            (d: any) =>
-              (d.name || "").toLowerCase() === departmentName.toLowerCase(),
+            (d: any) => (d.name || '').toLowerCase() === departmentName.toLowerCase(),
           );
           if (found) departmentId = String(found._id);
         }
@@ -201,15 +186,15 @@ export default function UniversityCoursesPage() {
         imported++;
       }
       toast({
-        title: "Import Complete",
+        title: 'Import Complete',
         description: `Successfully imported ${imported} programs`,
-        variant: "success",
+        variant: 'success',
       });
     } catch (e: any) {
       toast({
-        title: "Import Failed",
+        title: 'Import Failed',
         description: e?.message || String(e),
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setImporting(false);
@@ -225,19 +210,17 @@ export default function UniversityCoursesPage() {
         title: form.title.trim(),
         category: form.category || undefined,
         level: form.level || undefined,
-        departmentId: form.departmentId
-          ? (form.departmentId as any)
-          : undefined,
+        departmentId: form.departmentId ? (form.departmentId as any) : undefined,
         published: false,
       });
-      setForm({ title: "" });
+      setForm({ title: '' });
       setCreateDialogOpen(false);
-      toast({ title: "Program Created", variant: "success" });
+      toast({ title: 'Program Created', variant: 'success' });
     } catch (e: any) {
       toast({
-        title: "Failed to create program",
+        title: 'Failed to create program',
         description: e?.message || String(e),
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setSubmitting(false);
@@ -248,9 +231,9 @@ export default function UniversityCoursesPage() {
     setEditingCourse(course);
     setForm({
       title: course.title,
-      category: course.category || "",
-      level: course.level || "",
-      departmentId: course.department_id ? String(course.department_id) : "",
+      category: course.category || '',
+      level: course.level || '',
+      departmentId: course.department_id ? String(course.department_id) : '',
     });
     setEditDialogOpen(true);
   };
@@ -266,20 +249,18 @@ export default function UniversityCoursesPage() {
           title: form.title.trim(),
           category: form.category || undefined,
           level: form.level || undefined,
-          department_id: form.departmentId
-            ? (form.departmentId as any)
-            : undefined,
+          department_id: form.departmentId ? (form.departmentId as any) : undefined,
         },
       });
       setEditDialogOpen(false);
       setEditingCourse(null);
-      setForm({ title: "" });
-      toast({ title: "Program Updated", variant: "success" });
+      setForm({ title: '' });
+      toast({ title: 'Program Updated', variant: 'success' });
     } catch (e: any) {
       toast({
-        title: "Failed to update program",
+        title: 'Failed to update program',
         description: e?.message || String(e),
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setSubmitting(false);
@@ -295,14 +276,14 @@ export default function UniversityCoursesPage() {
         patch: { published: !course.published },
       });
       toast({
-        title: course.published ? "Program Unpublished" : "Program Published",
-        variant: "success",
+        title: course.published ? 'Program Unpublished' : 'Program Published',
+        variant: 'success',
       });
     } catch (e: any) {
       toast({
-        title: "Failed to update status",
+        title: 'Failed to update status',
         description: e?.message || String(e),
-        variant: "destructive",
+        variant: 'destructive',
       });
     }
   };
@@ -322,12 +303,12 @@ export default function UniversityCoursesPage() {
       });
       setDeleteDialogOpen(false);
       setDeletingCourse(null);
-      toast({ title: "Program Deleted", variant: "success" });
+      toast({ title: 'Program Deleted', variant: 'success' });
     } catch (e: any) {
       toast({
-        title: "Failed to delete program",
+        title: 'Failed to delete program',
         description: e?.message || String(e),
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setSubmitting(false);
@@ -338,12 +319,8 @@ export default function UniversityCoursesPage() {
     <div className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">
-            Programs Management
-          </h1>
-          <p className="text-muted-foreground">
-            Create and manage academic programs and courses
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Programs Management</h1>
+          <p className="text-muted-foreground">Create and manage academic programs and courses</p>
         </div>
         <div className="flex gap-2">
           <input
@@ -352,14 +329,12 @@ export default function UniversityCoursesPage() {
             accept=".csv,text/csv"
             className="hidden"
             onChange={(e) =>
-              e.target.files &&
-              e.target.files[0] &&
-              handleImportCsv(e.target.files[0])
+              e.target.files && e.target.files[0] && handleImportCsv(e.target.files[0])
             }
           />
           <Button
             variant="outline"
-            onClick={() => document.getElementById("coursesCsv")?.click()}
+            onClick={() => document.getElementById('coursesCsv')?.click()}
             disabled={importing}
           >
             {importing ? (
@@ -384,9 +359,7 @@ export default function UniversityCoursesPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Programs
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Programs</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{courses.length}</div>
@@ -457,15 +430,13 @@ export default function UniversityCoursesPage() {
               </TableHeader>
               <TableBody>
                 {courses.map((c: any) => {
-                  const dept = c.department_id
-                    ? deptById.get(String(c.department_id))
-                    : undefined;
+                  const dept = c.department_id ? deptById.get(String(c.department_id)) : undefined;
                   return (
                     <TableRow key={String(c._id)}>
                       <TableCell className="font-medium">{c.title}</TableCell>
-                      <TableCell>{dept?.name || "—"}</TableCell>
-                      <TableCell>{c.category || "—"}</TableCell>
-                      <TableCell>{c.level || "—"}</TableCell>
+                      <TableCell>{dept?.name || '—'}</TableCell>
+                      <TableCell>{c.category || '—'}</TableCell>
+                      <TableCell>{c.level || '—'}</TableCell>
                       <TableCell>
                         {c.published ? (
                           <Badge variant="default" className="bg-green-600">
@@ -486,20 +457,12 @@ export default function UniversityCoursesPage() {
                             size="sm"
                             onClick={() => handleTogglePublished(c)}
                           >
-                            {c.published ? "Unpublish" : "Publish"}
+                            {c.published ? 'Unpublish' : 'Publish'}
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditDialog(c)}
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(c)}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openDeleteDialog(c)}
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => openDeleteDialog(c)}>
                             <Trash2 className="h-4 w-4 text-red-600" />
                           </Button>
                         </div>
@@ -518,9 +481,7 @@ export default function UniversityCoursesPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add New Program</DialogTitle>
-            <DialogDescription>
-              Create a new academic program or course
-            </DialogDescription>
+            <DialogDescription>Create a new academic program or course</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -538,10 +499,8 @@ export default function UniversityCoursesPage() {
                 <Input
                   id="create-category"
                   placeholder="e.g., Technology"
-                  value={form.category || ""}
-                  onChange={(e) =>
-                    setForm({ ...form, category: e.target.value })
-                  }
+                  value={form.category || ''}
+                  onChange={(e) => setForm({ ...form, category: e.target.value })}
                 />
               </div>
               <div>
@@ -549,7 +508,7 @@ export default function UniversityCoursesPage() {
                 <Input
                   id="create-level"
                   placeholder="e.g., Undergraduate"
-                  value={form.level || ""}
+                  value={form.level || ''}
                   onChange={(e) => setForm({ ...form, level: e.target.value })}
                 />
               </div>
@@ -557,7 +516,7 @@ export default function UniversityCoursesPage() {
             <div>
               <Label htmlFor="create-dept">Department</Label>
               <Select
-                value={form.departmentId || ""}
+                value={form.departmentId || ''}
                 onValueChange={(v) => setForm({ ...form, departmentId: v })}
               >
                 <SelectTrigger id="create-dept">
@@ -574,19 +533,11 @@ export default function UniversityCoursesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setCreateDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={!form.title.trim() || submitting}
-            >
-              {submitting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
+            <Button onClick={handleCreate} disabled={!form.title.trim() || submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Create Program
             </Button>
           </DialogFooter>
@@ -616,10 +567,8 @@ export default function UniversityCoursesPage() {
                 <Input
                   id="edit-category"
                   placeholder="e.g., Technology"
-                  value={form.category || ""}
-                  onChange={(e) =>
-                    setForm({ ...form, category: e.target.value })
-                  }
+                  value={form.category || ''}
+                  onChange={(e) => setForm({ ...form, category: e.target.value })}
                 />
               </div>
               <div>
@@ -627,7 +576,7 @@ export default function UniversityCoursesPage() {
                 <Input
                   id="edit-level"
                   placeholder="e.g., Undergraduate"
-                  value={form.level || ""}
+                  value={form.level || ''}
                   onChange={(e) => setForm({ ...form, level: e.target.value })}
                 />
               </div>
@@ -635,7 +584,7 @@ export default function UniversityCoursesPage() {
             <div>
               <Label htmlFor="edit-dept">Department</Label>
               <Select
-                value={form.departmentId || ""}
+                value={form.departmentId || ''}
                 onValueChange={(v) => setForm({ ...form, departmentId: v })}
               >
                 <SelectTrigger id="edit-dept">
@@ -655,13 +604,8 @@ export default function UniversityCoursesPage() {
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleEdit}
-              disabled={!form.title.trim() || submitting}
-            >
-              {submitting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
+            <Button onClick={handleEdit} disabled={!form.title.trim() || submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Save Changes
             </Button>
           </DialogFooter>
@@ -674,25 +618,16 @@ export default function UniversityCoursesPage() {
           <DialogHeader>
             <DialogTitle>Delete Program</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{deletingCourse?.title}"? This
-              action cannot be undone.
+              Are you sure you want to delete "{deletingCourse?.title}"? This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={submitting}
-            >
-              {submitting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
+            <Button variant="destructive" onClick={handleDelete} disabled={submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Delete Program
             </Button>
           </DialogFooter>

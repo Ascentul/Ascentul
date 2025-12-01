@@ -1,37 +1,30 @@
-"use client";
+'use client';
 
-import React, { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
-import {
-  Loader2,
-  Plus,
-  Eye,
-  Pencil,
-  Trash2,
-  Search,
-  Users,
-  Clock,
-  MessageSquare,
-  Calendar,
-  MoreVertical,
-  Mail,
-  Phone,
-  Linkedin,
-  Building2,
   Briefcase,
+  Building2,
+  Calendar,
+  Clock,
+  Eye,
+  Linkedin,
+  Loader2,
+  Mail,
+  MessageSquare,
+  MoreVertical,
+  Pencil,
+  Phone,
+  Plus,
+  Search,
+  Trash2,
   UserCircle2,
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+  Users,
+} from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+
+import { UpgradeModal } from '@/components/modals/UpgradeModal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,29 +34,33 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { UpgradeModal } from "@/components/modals/UpgradeModal";
-import { useUser } from "@clerk/nextjs";
-import { useAuth } from "@/contexts/ClerkAuthProvider";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "convex/_generated/api";
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -71,7 +68,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { useToast } from '@/hooks/use-toast';
 
 interface Contact {
   _id: string;
@@ -118,83 +119,73 @@ export default function ContactsPage() {
 
   const contactsData = useQuery(
     api.contacts.getUserContacts,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip',
   ) as Contact[] | undefined;
 
   const followupsData = useQuery(
     api.contact_interactions.getNeedFollowup,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip',
   ) as FollowUp[] | undefined;
 
   const createContactMutation = useMutation(api.contacts.createContact);
   const updateContactMutation = useMutation(api.contacts.updateContact);
   const deleteContactMutation = useMutation(api.contacts.deleteContact);
-  const logInteractionMutation = useMutation(
-    api.contact_interactions.logInteraction,
-  );
-  const createFollowupMutation = useMutation(
-    api.contact_interactions.createContactFollowup,
-  );
-  const updateFollowupMutation = useMutation(
-    api.contact_interactions.updateContactFollowup,
-  );
+  const logInteractionMutation = useMutation(api.contact_interactions.logInteraction);
+  const createFollowupMutation = useMutation(api.contact_interactions.createContactFollowup);
+  const updateFollowupMutation = useMutation(api.contact_interactions.updateContactFollowup);
 
   const [creating, setCreating] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [form, setForm] = useState({
-    full_name: "",
-    company: "",
-    position: "",
-    email: "",
-    phone: "",
-    linkedin_url: "",
-    relationship: "",
-    notes: "",
+    full_name: '',
+    company: '',
+    position: '',
+    email: '',
+    phone: '',
+    linkedin_url: '',
+    relationship: '',
+    notes: '',
   });
-  const [searchTerm, setSearchTerm] = useState("");
-  const [relationshipFilter, setRelationshipFilter] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState<"all" | "companies" | "followup">(
-    "all",
-  );
+  const [searchTerm, setSearchTerm] = useState('');
+  const [relationshipFilter, setRelationshipFilter] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'companies' | 'followup'>('all');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [expandedCompany, setExpandedCompany] = useState<string | null>(null);
 
   // Detail view state
   const [detailContact, setDetailContact] = useState<Contact | null>(null);
-  const [detailNotes, setDetailNotes] = useState("");
-  const [activeDetailTab, setActiveDetailTab] = useState("info");
+  const [detailNotes, setDetailNotes] = useState('');
+  const [activeDetailTab, setActiveDetailTab] = useState('info');
 
   // Query interactions and follow-ups for the detail contact
   const contactInteractions = useQuery(
     api.contact_interactions.getContactInteractions,
     detailContact && clerkUser?.id
       ? { clerkId: clerkUser.id, contactId: detailContact._id as any }
-      : "skip",
+      : 'skip',
   ) as Interaction[] | undefined;
 
   const contactFollowups = useQuery(
     api.contact_interactions.getContactFollowups,
     detailContact && clerkUser?.id
       ? { clerkId: clerkUser.id, contactId: detailContact._id as any }
-      : "skip",
+      : 'skip',
   ) as FollowUp[] | undefined;
 
   // Interaction logging
   const [showLogInteraction, setShowLogInteraction] = useState(false);
-  const [interactionNotes, setInteractionNotes] = useState("");
-  const [interactionContact, setInteractionContact] = useState<Contact | null>(
-    null,
-  );
+  const [interactionNotes, setInteractionNotes] = useState('');
+  const [interactionContact, setInteractionContact] = useState<Contact | null>(null);
 
   // Follow-up scheduling
   const [showScheduleFollowup, setShowScheduleFollowup] = useState(false);
   const [followupContact, setFollowupContact] = useState<Contact | null>(null);
-  const [followupType, setFollowupType] = useState("follow_up");
-  const [followupDescription, setFollowupDescription] = useState("");
-  const [followupDueDate, setFollowupDueDate] = useState("");
-  const [followupNotes, setFollowupNotes] = useState("");
+  const [followupType, setFollowupType] = useState('follow_up');
+  const [followupDescription, setFollowupDescription] = useState('');
+  const [followupDueDate, setFollowupDueDate] = useState('');
+  const [followupNotes, setFollowupNotes] = useState('');
 
   const createContact = async () => {
     if (!form.full_name.trim()) return;
@@ -224,27 +215,26 @@ export default function ContactsPage() {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       setForm({
-        full_name: "",
-        company: "",
-        position: "",
-        email: "",
-        phone: "",
-        linkedin_url: "",
-        relationship: "",
-        notes: "",
+        full_name: '',
+        company: '',
+        position: '',
+        email: '',
+        phone: '',
+        linkedin_url: '',
+        relationship: '',
+        notes: '',
       });
       setShowAdd(false);
       toast({
-        title: "Contact added",
-        description: "Your contact has been added successfully.",
-        variant: "success",
+        title: 'Contact added',
+        description: 'Your contact has been added successfully.',
+        variant: 'success',
       });
     } catch (error: any) {
       toast({
-        title: "Error",
-        description:
-          error?.message || "Failed to add contact. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: error?.message || 'Failed to add contact. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setCreating(false);
@@ -287,7 +277,7 @@ export default function ContactsPage() {
       // Update the detail view if it's showing this contact
       if (detailContact && detailContact._id === editingContact._id) {
         setDetailContact(updatedContact);
-        setDetailNotes(form.notes || "");
+        setDetailNotes(form.notes || '');
       }
 
       // Close the edit dialog
@@ -296,27 +286,26 @@ export default function ContactsPage() {
       // Clear editing state
       setEditingContact(null);
       setForm({
-        full_name: "",
-        company: "",
-        position: "",
-        email: "",
-        phone: "",
-        linkedin_url: "",
-        relationship: "",
-        notes: "",
+        full_name: '',
+        company: '',
+        position: '',
+        email: '',
+        phone: '',
+        linkedin_url: '',
+        relationship: '',
+        notes: '',
       });
 
       toast({
-        title: "Contact updated",
-        description: "Your contact has been updated successfully.",
-        variant: "success",
+        title: 'Contact updated',
+        description: 'Your contact has been updated successfully.',
+        variant: 'success',
       });
     } catch (error: any) {
       toast({
-        title: "Error",
-        description:
-          error?.message || "Failed to update contact. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: error?.message || 'Failed to update contact. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setCreating(false);
@@ -331,55 +320,54 @@ export default function ContactsPage() {
         contactId: deleteId as any,
       });
       toast({
-        title: "Contact deleted",
-        description: "Your contact has been deleted successfully.",
-        variant: "success",
+        title: 'Contact deleted',
+        description: 'Your contact has been deleted successfully.',
+        variant: 'success',
       });
       setDeleteId(null);
     } catch (error: any) {
       toast({
-        title: "Error",
-        description:
-          error?.message || "Failed to delete contact. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: error?.message || 'Failed to delete contact. Please try again.',
+        variant: 'destructive',
       });
     }
   };
 
   const openDetail = (contact: Contact) => {
     setDetailContact(contact);
-    setDetailNotes(contact.notes || "");
-    setActiveDetailTab("info");
+    setDetailNotes(contact.notes || '');
+    setActiveDetailTab('info');
   };
 
   const startEdit = (contact: Contact) => {
     setEditingContact(contact);
     setForm({
       full_name: contact.name,
-      company: contact.company || "",
-      position: contact.position || "",
-      email: contact.email || "",
-      phone: contact.phone || "",
-      linkedin_url: contact.linkedin_url || "",
-      relationship: contact.relationship || "",
-      notes: contact.notes || "",
+      company: contact.company || '',
+      position: contact.position || '',
+      email: contact.email || '',
+      phone: contact.phone || '',
+      linkedin_url: contact.linkedin_url || '',
+      relationship: contact.relationship || '',
+      notes: contact.notes || '',
     });
     setShowAdd(true);
   };
 
   const openLogInteraction = (contact: Contact) => {
     setInteractionContact(contact);
-    setInteractionNotes("");
+    setInteractionNotes('');
     setShowLogInteraction(true);
   };
 
   const logInteraction = async () => {
     if (!clerkUser?.id || !interactionContact) return;
     try {
-      const noteDate = new Intl.DateTimeFormat("en-US", {
-        month: "numeric",
-        day: "numeric",
-        year: "numeric",
+      const noteDate = new Intl.DateTimeFormat('en-US', {
+        month: 'numeric',
+        day: 'numeric',
+        year: 'numeric',
       }).format(new Date());
 
       await logInteractionMutation({
@@ -389,33 +377,33 @@ export default function ContactsPage() {
         noteDate,
       });
       toast({
-        title: "Interaction logged",
-        description: "Your interaction has been recorded.",
-        variant: "success",
+        title: 'Interaction logged',
+        description: 'Your interaction has been recorded.',
+        variant: 'success',
       });
       setShowLogInteraction(false);
       setInteractionContact(null);
-      setInteractionNotes("");
+      setInteractionNotes('');
 
       // If the detail modal is open for this contact, switch to interactions tab
       if (detailContact && detailContact._id === interactionContact._id) {
-        setActiveDetailTab("interactions");
+        setActiveDetailTab('interactions');
       }
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to log interaction.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to log interaction.',
+        variant: 'destructive',
       });
     }
   };
 
   const openScheduleFollowup = (contact: Contact) => {
     setFollowupContact(contact);
-    setFollowupType("follow_up");
-    setFollowupDescription("");
-    setFollowupDueDate("");
-    setFollowupNotes("");
+    setFollowupType('follow_up');
+    setFollowupDescription('');
+    setFollowupDueDate('');
+    setFollowupNotes('');
     setShowScheduleFollowup(true);
   };
 
@@ -431,22 +419,22 @@ export default function ContactsPage() {
         notes: followupNotes || undefined,
       });
       toast({
-        title: "Follow-up scheduled",
-        description: "Your follow-up has been scheduled successfully.",
-        variant: "success",
+        title: 'Follow-up scheduled',
+        description: 'Your follow-up has been scheduled successfully.',
+        variant: 'success',
       });
       setShowScheduleFollowup(false);
       setFollowupContact(null);
 
       // If the detail modal is open for this contact, switch to follow-ups tab
       if (detailContact && detailContact._id === followupContact._id) {
-        setActiveDetailTab("followups");
+        setActiveDetailTab('followups');
       }
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to schedule follow-up.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to schedule follow-up.',
+        variant: 'destructive',
       });
     }
   };
@@ -460,15 +448,15 @@ export default function ContactsPage() {
         updates: { status: 'done' },
       });
       toast({
-        title: "Follow-up completed",
-        description: "The follow-up has been marked as completed.",
-        variant: "success",
+        title: 'Follow-up completed',
+        description: 'The follow-up has been marked as completed.',
+        variant: 'success',
       });
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to complete follow-up.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to complete follow-up.',
+        variant: 'destructive',
       });
     }
   };
@@ -483,13 +471,13 @@ export default function ContactsPage() {
           notes: detailNotes,
         },
       });
-      toast({ title: "Notes saved", variant: "success" });
+      toast({ title: 'Notes saved', variant: 'success' });
       setDetailContact({ ...detailContact, notes: detailNotes });
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to save notes.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to save notes.',
+        variant: 'destructive',
       });
     }
   };
@@ -499,7 +487,7 @@ export default function ContactsPage() {
     let filtered = contactsData || [];
 
     // Filter by relationship
-    if (relationshipFilter && relationshipFilter !== "all") {
+    if (relationshipFilter && relationshipFilter !== 'all') {
       filtered = filtered.filter((c) => c.relationship === relationshipFilter);
     }
 
@@ -521,7 +509,7 @@ export default function ContactsPage() {
   const companiesData = useMemo(() => {
     const companies: Record<string, Contact[]> = {};
     filteredContacts.forEach((contact) => {
-      const companyName = contact.company || "No Company";
+      const companyName = contact.company || 'No Company';
       if (!companies[companyName]) {
         companies[companyName] = [];
       }
@@ -546,17 +534,15 @@ export default function ContactsPage() {
       }
     });
 
-    return followupContacts.sort(
-      (a, b) => (a.followup.due_at || 0) - (b.followup.due_at || 0),
-    );
+    return followupContacts.sort((a, b) => (a.followup.due_at || 0) - (b.followup.due_at || 0));
   }, [followupsData, contactsData]);
 
   const formatDate = (timestamp?: number) => {
-    if (!timestamp) return "Never";
-    return new Date(timestamp).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
+    if (!timestamp) return 'Never';
+    return new Date(timestamp).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
     });
   };
 
@@ -565,12 +551,9 @@ export default function ContactsPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-              Network Hub
-            </h1>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Network Hub</h1>
             <p className="text-muted-foreground">
-              Manage your professional network and foster strategic
-              relationships
+              Manage your professional network and foster strategic relationships
             </p>
           </div>
           <Button
@@ -583,14 +566,14 @@ export default function ContactsPage() {
               setEditingContact(null);
               setShowAdd(true);
               setForm({
-                full_name: "",
-                company: "",
-                position: "",
-                email: "",
-                phone: "",
-                linkedin_url: "",
-                relationship: "",
-                notes: "",
+                full_name: '',
+                company: '',
+                position: '',
+                email: '',
+                phone: '',
+                linkedin_url: '',
+                relationship: '',
+                notes: '',
               });
             }}
             disabled={creating}
@@ -612,10 +595,7 @@ export default function ContactsPage() {
               />
             </div>
             <div className="w-full md:w-64">
-              <Select
-                value={relationshipFilter}
-                onValueChange={setRelationshipFilter}
-              >
+              <Select value={relationshipFilter} onValueChange={setRelationshipFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Filter by relationship" />
                 </SelectTrigger>
@@ -636,9 +616,9 @@ export default function ContactsPage() {
         {/* Toggles */}
         <div className="flex gap-2 mb-6">
           <Button
-            variant={activeTab === "all" ? "default" : "outline"}
+            variant={activeTab === 'all' ? 'default' : 'outline'}
             onClick={() => {
-              setActiveTab("all");
+              setActiveTab('all');
               setExpandedCompany(null);
             }}
             className="flex items-center gap-2"
@@ -647,9 +627,9 @@ export default function ContactsPage() {
             All Contacts
           </Button>
           <Button
-            variant={activeTab === "companies" ? "default" : "outline"}
+            variant={activeTab === 'companies' ? 'default' : 'outline'}
             onClick={() => {
-              setActiveTab("companies");
+              setActiveTab('companies');
               setExpandedCompany(null);
             }}
             className="flex items-center gap-2"
@@ -658,9 +638,9 @@ export default function ContactsPage() {
             Companies
           </Button>
           <Button
-            variant={activeTab === "followup" ? "default" : "outline"}
+            variant={activeTab === 'followup' ? 'default' : 'outline'}
             onClick={() => {
-              setActiveTab("followup");
+              setActiveTab('followup');
               setExpandedCompany(null);
             }}
             className="flex items-center gap-2"
@@ -688,9 +668,7 @@ export default function ContactsPage() {
       >
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>
-              {editingContact ? "Edit Contact" : "Add Contact"}
-            </DialogTitle>
+            <DialogTitle>{editingContact ? 'Edit Contact' : 'Add Contact'}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
@@ -699,9 +677,7 @@ export default function ContactsPage() {
                 <Input
                   id="full_name"
                   value={form.full_name}
-                  onChange={(e) =>
-                    setForm({ ...form, full_name: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, full_name: e.target.value })}
                   placeholder="Jane Smith"
                 />
               </div>
@@ -709,9 +685,7 @@ export default function ContactsPage() {
                 <Label htmlFor="relationship">Relationship</Label>
                 <Select
                   value={form.relationship}
-                  onValueChange={(value) =>
-                    setForm({ ...form, relationship: value })
-                  }
+                  onValueChange={(value) => setForm({ ...form, relationship: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select relationship" />
@@ -733,9 +707,7 @@ export default function ContactsPage() {
                 <Input
                   id="company"
                   value={form.company}
-                  onChange={(e) =>
-                    setForm({ ...form, company: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, company: e.target.value })}
                   placeholder="Acme Corp"
                 />
               </div>
@@ -744,9 +716,7 @@ export default function ContactsPage() {
                 <Input
                   id="position"
                   value={form.position}
-                  onChange={(e) =>
-                    setForm({ ...form, position: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, position: e.target.value })}
                   placeholder="Software Engineer"
                 />
               </div>
@@ -777,9 +747,7 @@ export default function ContactsPage() {
               <Input
                 id="linkedin_url"
                 value={form.linkedin_url}
-                onChange={(e) =>
-                  setForm({ ...form, linkedin_url: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })}
                 placeholder="https://linkedin.com/in/username"
               />
             </div>
@@ -802,20 +770,15 @@ export default function ContactsPage() {
               onClick={editingContact ? updateContact : createContact}
               disabled={creating || !form.full_name.trim()}
             >
-              {creating ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              {editingContact ? "Update Contact" : "Add Contact"}
+              {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {editingContact ? 'Update Contact' : 'Add Contact'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Contact Detail Dialog */}
-      <Dialog
-        open={!!detailContact}
-        onOpenChange={(open) => !open && setDetailContact(null)}
-      >
+      <Dialog open={!!detailContact} onOpenChange={(open) => !open && setDetailContact(null)}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-3">
@@ -823,9 +786,7 @@ export default function ContactsPage() {
                 {detailContact?.name.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1">
-                <DialogTitle className="text-xl">
-                  {detailContact?.name}
-                </DialogTitle>
+                <DialogTitle className="text-xl">{detailContact?.name}</DialogTitle>
                 {detailContact?.position && detailContact?.company && (
                   <p className="text-sm text-muted-foreground">
                     {detailContact.position} @ {detailContact.company}
@@ -857,9 +818,7 @@ export default function ContactsPage() {
 
             <TabsContent value="info" className="space-y-4 mt-4">
               <div className="space-y-3">
-                <div className="text-sm font-medium text-muted-foreground">
-                  Contact Information
-                </div>
+                <div className="text-sm font-medium text-muted-foreground">Contact Information</div>
 
                 {detailContact?.email && (
                   <div className="flex items-center gap-2">
@@ -897,12 +856,8 @@ export default function ContactsPage() {
 
               {detailContact?.relationship && (
                 <div className="pt-4 border-t">
-                  <div className="text-sm font-medium text-muted-foreground mb-2">
-                    Relationship
-                  </div>
-                  <Badge variant="secondary">
-                    {detailContact.relationship}
-                  </Badge>
+                  <div className="text-sm font-medium text-muted-foreground mb-2">Relationship</div>
+                  <Badge variant="secondary">{detailContact.relationship}</Badge>
                 </div>
               )}
 
@@ -914,9 +869,7 @@ export default function ContactsPage() {
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium">Last Contact:</span>
                   <span>
-                    {detailContact?.last_contact
-                      ? formatDate(detailContact.last_contact)
-                      : "Never"}
+                    {detailContact?.last_contact ? formatDate(detailContact.last_contact) : 'Never'}
                   </span>
                 </div>
                 {detailContact?.last_contact && (
@@ -924,9 +877,7 @@ export default function ContactsPage() {
                     variant="link"
                     size="sm"
                     className="px-0 h-auto mt-2 text-red-600"
-                    onClick={() =>
-                      detailContact && openScheduleFollowup(detailContact)
-                    }
+                    onClick={() => detailContact && openScheduleFollowup(detailContact)}
                   >
                     Needs follow-up
                   </Button>
@@ -935,18 +886,14 @@ export default function ContactsPage() {
 
               <div className="flex gap-2 pt-4 border-t">
                 <Button
-                  onClick={() =>
-                    detailContact && openLogInteraction(detailContact)
-                  }
+                  onClick={() => detailContact && openLogInteraction(detailContact)}
                   className="flex-1"
                 >
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Log Interaction
                 </Button>
                 <Button
-                  onClick={() =>
-                    detailContact && openScheduleFollowup(detailContact)
-                  }
+                  onClick={() => detailContact && openScheduleFollowup(detailContact)}
                   variant="outline"
                   className="flex-1"
                 >
@@ -974,12 +921,12 @@ export default function ContactsPage() {
                           <div className="flex items-center gap-2 mb-2">
                             <MessageSquare className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm font-medium">
-                              {new Date(interaction.interaction_date).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                                hour: "numeric",
-                                minute: "2-digit",
+                              {new Date(interaction.interaction_date).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
                               })}
                             </span>
                           </div>
@@ -1014,21 +961,19 @@ export default function ContactsPage() {
                           <div className="flex items-center gap-2 mb-2">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
                             <Badge variant="outline" className="capitalize">
-                              {followup.type.replace("_", " ")}
+                              {followup.type.replace('_', ' ')}
                             </Badge>
                             <span className="text-sm text-muted-foreground">
                               Due: {formatDate(followup.due_at)}
                             </span>
-                            {followup.status === "done" && (
+                            {followup.status === 'done' && (
                               <Badge variant="secondary" className="text-xs">
                                 Completed
                               </Badge>
                             )}
                           </div>
                           {followup.description && (
-                            <p className="text-sm font-medium mb-1">
-                              {followup.description}
-                            </p>
+                            <p className="text-sm font-medium mb-1">{followup.description}</p>
                           )}
                           {followup.notes && (
                             <p className="text-sm text-muted-foreground whitespace-pre-wrap">
@@ -1036,7 +981,7 @@ export default function ContactsPage() {
                             </p>
                           )}
                         </div>
-                        {followup.status !== "done" && (
+                        {followup.status !== 'done' && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -1082,9 +1027,7 @@ export default function ContactsPage() {
           <div className="space-y-4">
             <div>
               <Label>Contact</Label>
-              <p className="text-sm font-medium mt-1">
-                {interactionContact?.name}
-              </p>
+              <p className="text-sm font-medium mt-1">{interactionContact?.name}</p>
             </div>
             <div>
               <Label htmlFor="interaction_notes">Notes</Label>
@@ -1107,10 +1050,7 @@ export default function ContactsPage() {
       </Dialog>
 
       {/* Schedule Follow-up Dialog */}
-      <Dialog
-        open={showScheduleFollowup}
-        onOpenChange={setShowScheduleFollowup}
-      >
+      <Dialog open={showScheduleFollowup} onOpenChange={setShowScheduleFollowup}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Schedule Follow-up</DialogTitle>
@@ -1118,9 +1058,7 @@ export default function ContactsPage() {
           <div className="space-y-4">
             <div>
               <Label>Contact</Label>
-              <p className="text-sm font-medium mt-1">
-                {followupContact?.name}
-              </p>
+              <p className="text-sm font-medium mt-1">{followupContact?.name}</p>
             </div>
             <div>
               <Label htmlFor="followup_type">Type</Label>
@@ -1177,24 +1115,17 @@ export default function ContactsPage() {
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog
-        open={!!deleteId}
-        onOpenChange={(open) => !open && setDeleteId(null)}
-      >
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Contact</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this contact? This action cannot
-              be undone.
+              Are you sure you want to delete this contact? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={deleteContact}
-              className="bg-red-600 hover:bg-red-700"
-            >
+            <AlertDialogAction onClick={deleteContact} className="bg-red-600 hover:bg-red-700">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1209,14 +1140,14 @@ export default function ContactsPage() {
       ) : (
         <>
           {/* All Contacts Tab */}
-          {activeTab === "all" && (
+          {activeTab === 'all' && (
             <>
               {filteredContacts.length === 0 ? (
                 <Card className="p-8 text-center">
                   <p className="text-muted-foreground mb-4">
                     {contactsData?.length === 0
-                      ? "No contacts yet. Add your first contact to start building your network."
-                      : "No contacts found matching your search."}
+                      ? 'No contacts yet. Add your first contact to start building your network.'
+                      : 'No contacts found matching your search.'}
                   </p>
                   {contactsData?.length === 0 && (
                     <Button onClick={() => setShowAdd(true)}>
@@ -1267,34 +1198,28 @@ export default function ContactsPage() {
                           <TableCell>
                             {contact.company && contact.position ? (
                               <div>
-                                <div className="font-medium">
-                                  {contact.position}
-                                </div>
+                                <div className="font-medium">{contact.position}</div>
                                 <div className="text-sm text-muted-foreground flex items-center gap-1">
                                   <Building2 className="h-3 w-3" />
                                   {contact.company}
                                 </div>
                               </div>
                             ) : contact.position ? (
-                              <div className="font-medium">
-                                {contact.position}
-                              </div>
+                              <div className="font-medium">{contact.position}</div>
                             ) : contact.company ? (
                               <div className="text-sm text-muted-foreground flex items-center gap-1">
                                 <Building2 className="h-3 w-3" />
                                 {contact.company}
                               </div>
                             ) : (
-                              "—"
+                              '—'
                             )}
                           </TableCell>
                           <TableCell>
                             {contact.relationship ? (
-                              <Badge variant="secondary">
-                                {contact.relationship}
-                              </Badge>
+                              <Badge variant="secondary">{contact.relationship}</Badge>
                             ) : (
-                              "—"
+                              '—'
                             )}
                           </TableCell>
                           <TableCell className="text-sm">
@@ -1303,10 +1228,7 @@ export default function ContactsPage() {
                               {formatDate(contact.last_contact)}
                             </div>
                           </TableCell>
-                          <TableCell
-                            className="text-right"
-                            onClick={(e) => e.stopPropagation()}
-                          >
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button size="sm" variant="ghost">
@@ -1314,27 +1236,19 @@ export default function ContactsPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => openDetail(contact)}
-                                >
+                                <DropdownMenuItem onClick={() => openDetail(contact)}>
                                   <Eye className="h-4 w-4 mr-2" />
                                   View Contact
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => startEdit(contact)}
-                                >
+                                <DropdownMenuItem onClick={() => startEdit(contact)}>
                                   <Pencil className="h-4 w-4 mr-2" />
                                   Edit Contact
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => openLogInteraction(contact)}
-                                >
+                                <DropdownMenuItem onClick={() => openLogInteraction(contact)}>
                                   <MessageSquare className="h-4 w-4 mr-2" />
                                   Log Interaction
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => openScheduleFollowup(contact)}
-                                >
+                                <DropdownMenuItem onClick={() => openScheduleFollowup(contact)}>
                                   <Calendar className="h-4 w-4 mr-2" />
                                   Schedule Follow-up
                                 </DropdownMenuItem>
@@ -1358,214 +1272,192 @@ export default function ContactsPage() {
           )}
 
           {/* Companies Tab */}
-          {activeTab === "companies" && (
+          {activeTab === 'companies' && (
             <>
               {companiesData.length === 0 ? (
                 <Card className="p-8 text-center">
                   <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">
-                    No companies found
-                  </h3>
+                  <h3 className="text-lg font-semibold mb-2">No companies found</h3>
                   <p className="text-muted-foreground">
-                    Add contacts with company information to see them organized
-                    here.
+                    Add contacts with company information to see them organized here.
                   </p>
                 </Card>
               ) : (
                 <div className="space-y-4">
                   {companiesData.map(([company, contacts]) => {
-                const isExpanded = expandedCompany === company;
-                return (
-                  <Card key={company} className="overflow-hidden">
-                    <div
-                      className="p-4 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between"
-                      onClick={() =>
-                        setExpandedCompany(isExpanded ? null : company)
-                      }
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                          <Building2 className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-lg">{company}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {contacts.length}{" "}
-                            {contacts.length === 1 ? "contact" : "contacts"}
-                          </p>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="icon">
-                        {isExpanded ? (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <polyline points="18 15 12 9 6 15"></polyline>
-                          </svg>
-                        ) : (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                          </svg>
-                        )}
-                      </Button>
-                    </div>
-
-                    {isExpanded && (
-                      <div className="border-t bg-muted/20">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Contact</TableHead>
-                              <TableHead>Position</TableHead>
-                              <TableHead>Relationship</TableHead>
-                              <TableHead>Last Contact</TableHead>
-                              <TableHead className="text-right">
-                                Actions
-                              </TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {contacts.map((contact) => (
-                              <TableRow
-                                key={contact._id}
-                                className="cursor-pointer hover:bg-muted/50"
-                                onClick={() => openDetail(contact)}
+                    const isExpanded = expandedCompany === company;
+                    return (
+                      <Card key={company} className="overflow-hidden">
+                        <div
+                          className="p-4 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between"
+                          onClick={() => setExpandedCompany(isExpanded ? null : company)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                              <Building2 className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-lg">{company}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {contacts.length} {contacts.length === 1 ? 'contact' : 'contacts'}
+                              </p>
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="icon">
+                            {isExpanded ? (
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
                               >
-                                <TableCell>
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-primary-500 text-white flex items-center justify-center font-semibold">
-                                      {contact.name.charAt(0).toUpperCase()}
-                                    </div>
-                                    <div>
-                                      <div className="font-medium text-blue-600 hover:underline">
-                                        {contact.name}
+                                <polyline points="18 15 12 9 6 15"></polyline>
+                              </svg>
+                            ) : (
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                              </svg>
+                            )}
+                          </Button>
+                        </div>
+
+                        {isExpanded && (
+                          <div className="border-t bg-muted/20">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Contact</TableHead>
+                                  <TableHead>Position</TableHead>
+                                  <TableHead>Relationship</TableHead>
+                                  <TableHead>Last Contact</TableHead>
+                                  <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {contacts.map((contact) => (
+                                  <TableRow
+                                    key={contact._id}
+                                    className="cursor-pointer hover:bg-muted/50"
+                                    onClick={() => openDetail(contact)}
+                                  >
+                                    <TableCell>
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-primary-500 text-white flex items-center justify-center font-semibold">
+                                          {contact.name.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div>
+                                          <div className="font-medium text-blue-600 hover:underline">
+                                            {contact.name}
+                                          </div>
+                                          <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                            {contact.email && (
+                                              <span className="flex items-center gap-1">
+                                                <Mail className="h-3 w-3" />
+                                                {contact.email}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
                                       </div>
-                                      <div className="text-sm text-muted-foreground flex items-center gap-1">
-                                        {contact.email && (
-                                          <span className="flex items-center gap-1">
-                                            <Mail className="h-3 w-3" />
-                                            {contact.email}
-                                          </span>
-                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                      {contact.position ? (
+                                        <div className="font-medium">{contact.position}</div>
+                                      ) : (
+                                        '—'
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      {contact.relationship ? (
+                                        <Badge variant="secondary">{contact.relationship}</Badge>
+                                      ) : (
+                                        '—'
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-sm">
+                                      <div className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3 text-muted-foreground" />
+                                        {formatDate(contact.last_contact)}
                                       </div>
-                                    </div>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  {contact.position ? (
-                                    <div className="font-medium">
-                                      {contact.position}
-                                    </div>
-                                  ) : (
-                                    "—"
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  {contact.relationship ? (
-                                    <Badge variant="secondary">
-                                      {contact.relationship}
-                                    </Badge>
-                                  ) : (
-                                    "—"
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-sm">
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="h-3 w-3 text-muted-foreground" />
-                                    {formatDate(contact.last_contact)}
-                                  </div>
-                                </TableCell>
-                                <TableCell
-                                  className="text-right"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button size="sm" variant="ghost">
-                                        <MoreVertical className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem
-                                        onClick={() => openDetail(contact)}
-                                      >
-                                        <Eye className="h-4 w-4 mr-2" />
-                                        View Contact
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => startEdit(contact)}
-                                      >
-                                        <Pencil className="h-4 w-4 mr-2" />
-                                        Edit Contact
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          openLogInteraction(contact)
-                                        }
-                                      >
-                                        <MessageSquare className="h-4 w-4 mr-2" />
-                                        Log Interaction
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          openScheduleFollowup(contact)
-                                        }
-                                      >
-                                        <Calendar className="h-4 w-4 mr-2" />
-                                        Schedule Follow-up
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => setDeleteId(contact._id)}
-                                        className="text-red-600"
-                                      >
-                                        <Trash2 className="h-4 w-4 mr-2" />
-                                        Delete
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
-                  </Card>
-                );
-              })}
+                                    </TableCell>
+                                    <TableCell
+                                      className="text-right"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button size="sm" variant="ghost">
+                                            <MoreVertical className="h-4 w-4" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                          <DropdownMenuItem onClick={() => openDetail(contact)}>
+                                            <Eye className="h-4 w-4 mr-2" />
+                                            View Contact
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => startEdit(contact)}>
+                                            <Pencil className="h-4 w-4 mr-2" />
+                                            Edit Contact
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() => openLogInteraction(contact)}
+                                          >
+                                            <MessageSquare className="h-4 w-4 mr-2" />
+                                            Log Interaction
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() => openScheduleFollowup(contact)}
+                                          >
+                                            <Calendar className="h-4 w-4 mr-2" />
+                                            Schedule Follow-up
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() => setDeleteId(contact._id)}
+                                            className="text-red-600"
+                                          >
+                                            <Trash2 className="h-4 w-4 mr-2" />
+                                            Delete
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        )}
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </>
           )}
 
           {/* Need Follow-up Tab */}
-          {activeTab === "followup" && (
+          {activeTab === 'followup' && (
             <>
               {contactsNeedingFollowup.length === 0 ? (
                 <Card className="p-8 text-center">
                   <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">All caught up!</h3>
-                  <p className="text-muted-foreground">
-                    No pending follow-ups at the moment.
-                  </p>
+                  <p className="text-muted-foreground">No pending follow-ups at the moment.</p>
                 </Card>
               ) : (
                 <Card>
@@ -1589,23 +1481,19 @@ export default function ContactsPage() {
                             {item.name}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">
-                              {item.followup.type}
-                            </Badge>
+                            <Badge variant="outline">{item.followup.type}</Badge>
                           </TableCell>
                           <TableCell className="text-sm">
                             {formatDate(item.followup.due_at)}
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
-                            {item.followup.description || "—"}
+                            {item.followup.description || '—'}
                           </TableCell>
                           <TableCell className="text-right">
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() =>
-                                completeFollowup(item.followup._id)
-                              }
+                              onClick={() => completeFollowup(item.followup._id)}
                             >
                               Complete
                             </Button>
@@ -1622,11 +1510,7 @@ export default function ContactsPage() {
       )}
 
       {/* Upgrade Modal for Free User Limits */}
-      <UpgradeModal
-        open={showUpgradeModal}
-        onOpenChange={setShowUpgradeModal}
-        feature="contact"
-      />
+      <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} feature="contact" />
     </div>
   );
 }

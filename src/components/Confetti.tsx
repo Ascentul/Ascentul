@@ -1,28 +1,30 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
 
 interface ConfettiProps {
-  active: boolean
-  duration?: number
-  targetRef?: React.RefObject<HTMLElement>
+  active: boolean;
+  duration?: number;
+  targetRef?: React.RefObject<HTMLElement>;
 }
 
 export default function Confetti({ active, duration = 2000, targetRef }: ConfettiProps) {
-  const [particles, setParticles] = useState<Array<{
-    id: number
-    x: number
-    y: number
-    vx: number
-    vy: number
-    color: string
-    size: number
-  }>>([])
+  const [particles, setParticles] = useState<
+    Array<{
+      id: number;
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      color: string;
+      size: number;
+    }>
+  >([]);
 
   useEffect(() => {
-    if (!active) return
+    if (!active) return;
 
-    const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff']
+    const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff'];
     const newParticles = Array.from({ length: 50 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
@@ -30,19 +32,19 @@ export default function Confetti({ active, duration = 2000, targetRef }: Confett
       vx: (Math.random() - 0.5) * 4,
       vy: (Math.random() - 0.5) * 4,
       color: colors[Math.floor(Math.random() * colors.length)],
-      size: Math.random() * 6 + 2
-    }))
+      size: Math.random() * 6 + 2,
+    }));
 
-    setParticles(newParticles)
+    setParticles(newParticles);
 
     const timer = setTimeout(() => {
-      setParticles([])
-    }, duration)
+      setParticles([]);
+    }, duration);
 
-    return () => clearTimeout(timer)
-  }, [active, duration])
+    return () => clearTimeout(timer);
+  }, [active, duration]);
 
-  if (!active || particles.length === 0) return null
+  if (!active || particles.length === 0) return null;
 
   return (
     <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
@@ -58,10 +60,10 @@ export default function Confetti({ active, duration = 2000, targetRef }: Confett
             height: `${particle.size}px`,
             borderRadius: '50%',
             animationDuration: '1s',
-            animationDelay: `${Math.random() * 0.5}s`
+            animationDelay: `${Math.random() * 0.5}s`,
           }}
         />
       ))}
     </div>
-  )
+  );
 }

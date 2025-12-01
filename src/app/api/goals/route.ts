@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { api } from 'convex/_generated/api'
-import { convexServer } from '@/lib/convex-server';
+import { auth } from '@clerk/nextjs/server';
+import { api } from 'convex/_generated/api';
+import { NextRequest, NextResponse } from 'next/server';
+
 import { isValidGoalStatus, VALID_GOAL_STATUSES } from '@/lib/constants/roles';
+import { convexServer } from '@/lib/convex-server';
 
 const mapGoal = (doc: any) => ({
   id: doc._id,
@@ -15,46 +16,49 @@ const mapGoal = (doc: any) => ({
   created_at: doc.created_at,
   updated_at: doc.updated_at,
   completedAt: doc.completed_at ? new Date(doc.completed_at).toISOString() : undefined,
-})
+});
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId, getToken } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const token = await getToken({ template: 'convex' })
-    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
-    const goals = await convexServer.query(api.goals.getUserGoals, { clerkId: userId }, token)
-    return NextResponse.json({ goals: goals.map(mapGoal) })
+    const { userId, getToken } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const token = await getToken({ template: 'convex' });
+    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 });
+    const goals = await convexServer.query(api.goals.getUserGoals, { clerkId: userId }, token);
+    return NextResponse.json({ goals: goals.map(mapGoal) });
   } catch (error: any) {
-    console.error('GET /api/goals error:', error)
-    const msg = error?.message || 'Internal server error'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    console.error('GET /api/goals error:', error);
+    const msg = error?.message || 'Internal server error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, getToken } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const token = await getToken({ template: 'convex' })
-    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
+    const { userId, getToken } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const token = await getToken({ template: 'convex' });
+    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 });
 
-    let body
+    let body;
     try {
-      body = await request.json()
+      body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
-    if (!body?.title) return NextResponse.json({ error: 'Title is required' }, { status: 400 })
+    if (!body?.title) return NextResponse.json({ error: 'Title is required' }, { status: 400 });
 
     // Validate status if provided
     if (body.status && !isValidGoalStatus(body.status)) {
-      return NextResponse.json({
-        error: `Invalid status: ${body.status}. Valid values: ${VALID_GOAL_STATUSES.join(', ')}`
-      }, { status: 400 })
+      return NextResponse.json(
+        {
+          error: `Invalid status: ${body.status}. Valid values: ${VALID_GOAL_STATUSES.join(', ')}`,
+        },
+        { status: 400 },
+      );
     }
 
     const args = {
@@ -66,12 +70,12 @@ export async function POST(request: NextRequest) {
       progress: typeof body.progress === 'number' ? body.progress : 0,
       checklist: Array.isArray(body.checklist) ? body.checklist : undefined,
       category: body.category ? String(body.category) : undefined,
-    }
-    const id = await convexServer.mutation(api.goals.createGoal, args, token)
-    return NextResponse.json({ id }, { status: 201 })
+    };
+    const id = await convexServer.mutation(api.goals.createGoal, args, token);
+    return NextResponse.json({ id }, { status: 201 });
   } catch (error: any) {
-    console.error('POST /api/goals error:', error)
-    const msg = error?.message || 'Internal server error'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    console.error('POST /api/goals error:', error);
+    const msg = error?.message || 'Internal server error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

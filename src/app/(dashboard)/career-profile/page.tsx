@@ -1,30 +1,56 @@
-'use client'
+'use client';
 
-import React, { useState, useEffect } from 'react'
-import { useUser } from '@clerk/nextjs'
-import { useAuth } from '@/contexts/ClerkAuthProvider'
-import { useToast } from '@/hooks/use-toast'
-import { useForm, useFieldArray } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { useMutation, useQuery } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { v4 as uuid } from 'uuid'
-
-// Import UI components
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Separator } from '@/components/ui/separator'
+import { useUser } from '@clerk/nextjs';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import {
-  User, Briefcase, Calendar, Edit, CheckCircle2, Loader2, GraduationCap, Plus, Trash2, Linkedin, Award, FolderKanban
-} from 'lucide-react'
+  Award,
+  Briefcase,
+  Calendar,
+  CheckCircle2,
+  Edit,
+  FolderKanban,
+  GraduationCap,
+  Linkedin,
+  Loader2,
+  Plus,
+  Trash2,
+  User,
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useFieldArray, useForm } from 'react-hook-form';
+import { v4 as uuid } from 'uuid';
+import { z } from 'zod';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+// Import UI components
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { useToast } from '@/hooks/use-toast';
 
 // Career profile form schema
 const educationEntrySchema = z.object({
@@ -36,7 +62,7 @@ const educationEntrySchema = z.object({
   endYear: z.string().optional(),
   isCurrent: z.boolean().optional(),
   description: z.string().optional(),
-})
+});
 
 const workEntrySchema = z.object({
   id: z.string(),
@@ -47,7 +73,7 @@ const workEntrySchema = z.object({
   endDate: z.string().optional(),
   isCurrent: z.boolean().optional(),
   summary: z.string().optional(),
-})
+});
 
 const achievementEntrySchema = z.object({
   id: z.string(),
@@ -55,7 +81,7 @@ const achievementEntrySchema = z.object({
   description: z.string().optional(),
   date: z.string().optional(),
   organization: z.string().optional(),
-})
+});
 
 const careerProfileFormSchema = z.object({
   currentPosition: z.string().optional(),
@@ -63,16 +89,16 @@ const careerProfileFormSchema = z.object({
   location: z.string().optional(),
   industry: z.string().optional(),
   experienceLevel: z.enum(['entry', 'mid', 'senior', 'executive']).optional(),
-  bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
-  linkedinUrl: z.string().url("Enter a valid URL").optional().or(z.literal("")),
+  bio: z.string().max(500, 'Bio must be less than 500 characters').optional(),
+  linkedinUrl: z.string().url('Enter a valid URL').optional().or(z.literal('')),
   skills: z.string().optional(),
   education: z.array(educationEntrySchema),
   workHistory: z.array(workEntrySchema),
   achievements: z.array(achievementEntrySchema),
-  careerGoals: z.string().max(300, "Career goals must be less than 300 characters").optional(),
-})
+  careerGoals: z.string().max(300, 'Career goals must be less than 300 characters').optional(),
+});
 
-type CareerProfileFormValues = z.infer<typeof careerProfileFormSchema>
+type CareerProfileFormValues = z.infer<typeof careerProfileFormSchema>;
 
 const createEmptyEducationEntry = () => ({
   id: uuid(),
@@ -83,7 +109,7 @@ const createEmptyEducationEntry = () => ({
   endYear: '',
   isCurrent: false,
   description: '',
-})
+});
 
 const createEmptyWorkEntry = () => ({
   id: uuid(),
@@ -94,7 +120,7 @@ const createEmptyWorkEntry = () => ({
   endDate: '',
   isCurrent: false,
   summary: '',
-})
+});
 
 const createEmptyAchievementEntry = () => ({
   id: uuid(),
@@ -102,13 +128,13 @@ const createEmptyAchievementEntry = () => ({
   description: '',
   date: '',
   organization: '',
-})
+});
 
 const normalizeString = (value?: string | null) => {
-  if (!value) return undefined
-  const trimmed = value.trim()
-  return trimmed.length ? trimmed : undefined
-}
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : undefined;
+};
 
 const hasEducationContent = (entry: z.infer<typeof educationEntrySchema>) =>
   !!(
@@ -118,7 +144,7 @@ const hasEducationContent = (entry: z.infer<typeof educationEntrySchema>) =>
     normalizeString(entry.startYear) ||
     normalizeString(entry.endYear) ||
     normalizeString(entry.description)
-  )
+  );
 
 const hasWorkContent = (entry: z.infer<typeof workEntrySchema>) =>
   !!(
@@ -128,7 +154,7 @@ const hasWorkContent = (entry: z.infer<typeof workEntrySchema>) =>
     normalizeString(entry.startDate) ||
     normalizeString(entry.endDate) ||
     normalizeString(entry.summary)
-  )
+  );
 
 const hasAchievementContent = (entry: z.infer<typeof achievementEntrySchema>) =>
   !!(
@@ -136,23 +162,23 @@ const hasAchievementContent = (entry: z.infer<typeof achievementEntrySchema>) =>
     normalizeString(entry.description) ||
     normalizeString(entry.date) ||
     normalizeString(entry.organization)
-  )
+  );
 
 export default function CareerProfilePage() {
-  const { user: clerkUser } = useUser()
-  const { user: userProfile, subscription } = useAuth()
-  const { toast } = useToast()
-  const updateUser = useMutation(api.users.updateUser)
+  const { user: clerkUser } = useUser();
+  const { user: userProfile, subscription } = useAuth();
+  const { toast } = useToast();
+  const updateUser = useMutation(api.users.updateUser);
 
   // Fetch user projects
   const userProjects = useQuery(
     api.projects.getUserProjects,
-    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
-  )
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip',
+  );
 
   // State for editing
-  const [isEditingProfile, setIsEditingProfile] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Career profile form
   const careerProfileForm = useForm<CareerProfileFormValues>({
@@ -171,27 +197,27 @@ export default function CareerProfilePage() {
       achievements: [createEmptyAchievementEntry()],
       careerGoals: '',
     },
-  })
+  });
 
   const educationFieldArray = useFieldArray({
     control: careerProfileForm.control,
     name: 'education',
-  })
+  });
 
   const workHistoryFieldArray = useFieldArray({
     control: careerProfileForm.control,
     name: 'workHistory',
-  })
+  });
 
   const achievementsFieldArray = useFieldArray({
     control: careerProfileForm.control,
     name: 'achievements',
-  })
+  });
 
   // Load user data into form when available
   useEffect(() => {
     if (userProfile) {
-      const profile = userProfile as any
+      const profile = userProfile as any;
       const educationEntries = Array.isArray(profile.education_history)
         ? profile.education_history.map((item: any) => ({
             id: item.id || uuid(),
@@ -203,7 +229,7 @@ export default function CareerProfilePage() {
             isCurrent: !!item.is_current,
             description: item.description || '',
           }))
-        : []
+        : [];
 
       const workEntries = Array.isArray(profile.work_history)
         ? profile.work_history.map((item: any) => ({
@@ -216,7 +242,7 @@ export default function CareerProfilePage() {
             isCurrent: !!item.is_current,
             summary: item.summary || '',
           }))
-        : []
+        : [];
 
       const achievementEntries = Array.isArray(profile.achievements_history)
         ? profile.achievements_history.map((item: any) => ({
@@ -226,18 +252,18 @@ export default function CareerProfilePage() {
             date: item.date || '',
             organization: item.organization || '',
           }))
-        : []
+        : [];
 
       if (educationEntries.length === 0) {
-        educationEntries.push(createEmptyEducationEntry())
+        educationEntries.push(createEmptyEducationEntry());
       }
 
       if (workEntries.length === 0) {
-        workEntries.push(createEmptyWorkEntry())
+        workEntries.push(createEmptyWorkEntry());
       }
 
       if (achievementEntries.length === 0) {
-        achievementEntries.push(createEmptyAchievementEntry())
+        achievementEntries.push(createEmptyAchievementEntry());
       }
 
       careerProfileForm.reset({
@@ -254,14 +280,14 @@ export default function CareerProfilePage() {
         workHistory: workEntries,
         achievements: achievementEntries,
         careerGoals: profile.career_goals || '',
-      })
+      });
     }
-  }, [userProfile, careerProfileForm])
+  }, [userProfile, careerProfileForm]);
 
   const handleProfileUpdate = async (data: CareerProfileFormValues) => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      if (!clerkUser) throw new Error('No user found')
+      if (!clerkUser) throw new Error('No user found');
 
       const educationUpdates = (data.education ?? [])
         .filter((entry) => hasEducationContent(entry))
@@ -274,7 +300,7 @@ export default function CareerProfilePage() {
           end_year: entry.isCurrent ? undefined : normalizeString(entry.endYear),
           is_current: !!entry.isCurrent,
           description: normalizeString(entry.description),
-        }))
+        }));
 
       const workUpdates = (data.workHistory ?? [])
         .filter((entry) => hasWorkContent(entry))
@@ -287,7 +313,7 @@ export default function CareerProfilePage() {
           end_date: entry.isCurrent ? undefined : normalizeString(entry.endDate),
           is_current: !!entry.isCurrent,
           summary: normalizeString(entry.summary),
-        }))
+        }));
 
       const achievementUpdates = (data.achievements ?? [])
         .filter((entry) => hasAchievementContent(entry))
@@ -297,7 +323,7 @@ export default function CareerProfilePage() {
           description: normalizeString(entry.description),
           date: normalizeString(entry.date),
           organization: normalizeString(entry.organization),
-        }))
+        }));
 
       await updateUser({
         clerkId: clerkUser.id,
@@ -315,32 +341,33 @@ export default function CareerProfilePage() {
           achievements_history: achievementUpdates.length > 0 ? achievementUpdates : undefined,
           career_goals: normalizeString(data.careerGoals),
         } as any,
-      })
+      });
 
       toast({
         title: 'Career Profile updated',
         description: 'Your career profile has been updated successfully.',
         variant: 'success',
-      })
-      setIsEditingProfile(false)
+      });
+      setIsEditingProfile(false);
     } catch (error: any) {
-      console.error('Profile update error:', error)
+      console.error('Profile update error:', error);
       toast({
         title: 'Error',
-        description: error?.errors?.[0]?.message || 'Failed to update career profile. Please try again.',
+        description:
+          error?.errors?.[0]?.message || 'Failed to update career profile. Please try again.',
         variant: 'destructive',
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
-    )
+    );
   }
 
   if (!clerkUser || !userProfile) {
@@ -351,18 +378,18 @@ export default function CareerProfilePage() {
           <Loader2 className="h-6 w-6 animate-spin mx-auto mb-4" />
         </div>
       </div>
-    )
+    );
   }
 
   const educationHistory = Array.isArray((userProfile as any).education_history)
     ? (userProfile as any).education_history
-    : []
+    : [];
   const workHistory = Array.isArray((userProfile as any).work_history)
     ? (userProfile as any).work_history
-    : []
+    : [];
   const achievementsHistory = Array.isArray((userProfile as any).achievements_history)
     ? (userProfile as any).achievements_history
-    : []
+    : [];
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -387,9 +414,7 @@ export default function CareerProfilePage() {
                 <User className="h-5 w-5" />
                 Profile Overview
               </CardTitle>
-              <CardDescription>
-                Your professional summary and key information
-              </CardDescription>
+              <CardDescription>Your professional summary and key information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -477,13 +502,11 @@ export default function CareerProfilePage() {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
-                  {(userProfile as any).skills
-                    .split(',')
-                    .map((skill: string, idx: number) => (
-                      <Badge key={idx} variant="secondary">
-                        {skill.trim()}
-                      </Badge>
-                    ))}
+                  {(userProfile as any).skills.split(',').map((skill: string, idx: number) => (
+                    <Badge key={idx} variant="secondary">
+                      {skill.trim()}
+                    </Badge>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -503,20 +526,18 @@ export default function CareerProfilePage() {
               {educationHistory.length > 0 ? (
                 <div className="space-y-4">
                   {educationHistory.map((entry: any, index: number) => {
-                    const hasTimeline = entry.start_year || entry.end_year
+                    const hasTimeline = entry.start_year || entry.end_year;
                     const timeline = hasTimeline
                       ? `${entry.start_year || 'Start'} – ${
                           entry.is_current ? 'Present' : entry.end_year || 'End'
                         }`
-                      : null
+                      : null;
                     return (
                       <div
                         key={entry.id || `${entry.school || 'education'}-${index}`}
                         className="space-y-1 border-b pb-3 last:border-none last:pb-0"
                       >
-                        <p className="font-medium">
-                          {entry.school || 'Education'}
-                        </p>
+                        <p className="font-medium">{entry.school || 'Education'}</p>
                         <div className="text-sm text-muted-foreground space-y-1">
                           {entry.degree && <p>{entry.degree}</p>}
                           {entry.field_of_study && <p>{entry.field_of_study}</p>}
@@ -526,12 +547,13 @@ export default function CareerProfilePage() {
                           )}
                         </div>
                       </div>
-                    )
+                    );
                   })}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  No education history added yet. Use the editor to document your studies or training.
+                  No education history added yet. Use the editor to document your studies or
+                  training.
                 </p>
               )}
             </CardContent>
@@ -549,20 +571,18 @@ export default function CareerProfilePage() {
               {workHistory.length > 0 ? (
                 <div className="space-y-4">
                   {workHistory.map((entry: any, index: number) => {
-                    const hasTimeline = entry.start_date || entry.end_date
+                    const hasTimeline = entry.start_date || entry.end_date;
                     const timeline = hasTimeline
                       ? `${entry.start_date || 'Start'} – ${
                           entry.is_current ? 'Present' : entry.end_date || 'End'
                         }`
-                      : null
+                      : null;
                     return (
                       <div
                         key={entry.id || `${entry.role || 'role'}-${index}`}
                         className="space-y-1 border-b pb-3 last:border-none last:pb-0"
                       >
-                        <p className="font-medium">
-                          {entry.role || 'Role'}
-                        </p>
+                        <p className="font-medium">{entry.role || 'Role'}</p>
                         <div className="text-sm text-muted-foreground space-y-1">
                           {entry.company && <p>{entry.company}</p>}
                           {entry.location && <p>{entry.location}</p>}
@@ -572,12 +592,13 @@ export default function CareerProfilePage() {
                           )}
                         </div>
                       </div>
-                    )
+                    );
                   })}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  No work history recorded. Add roles, internships, or freelance projects to showcase your experience.
+                  No work history recorded. Add roles, internships, or freelance projects to
+                  showcase your experience.
                 </p>
               )}
             </CardContent>
@@ -599,9 +620,7 @@ export default function CareerProfilePage() {
                       key={entry.id || `achievement-${index}`}
                       className="space-y-1 border-b pb-3 last:border-none last:pb-0"
                     >
-                      <p className="font-medium">
-                        {entry.title || 'Achievement'}
-                      </p>
+                      <p className="font-medium">{entry.title || 'Achievement'}</p>
                       <div className="text-sm text-muted-foreground space-y-1">
                         {entry.organization && <p>{entry.organization}</p>}
                         {entry.date && <p>{entry.date}</p>}
@@ -635,12 +654,18 @@ export default function CareerProfilePage() {
                 <div className="space-y-4">
                   {userProjects.map((project: any, index: number) => {
                     const startDate = project.start_date
-                      ? new Date(project.start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-                      : null
+                      ? new Date(project.start_date).toLocaleDateString('en-US', {
+                          month: 'short',
+                          year: 'numeric',
+                        })
+                      : null;
                     const endDate = project.end_date
-                      ? new Date(project.end_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-                      : 'Present'
-                    const timeline = startDate ? `${startDate} - ${endDate}` : null
+                      ? new Date(project.end_date).toLocaleDateString('en-US', {
+                          month: 'short',
+                          year: 'numeric',
+                        })
+                      : 'Present';
+                    const timeline = startDate ? `${startDate} - ${endDate}` : null;
 
                     return (
                       <div
@@ -657,9 +682,7 @@ export default function CareerProfilePage() {
                               <p className="text-sm text-muted-foreground">{project.company}</p>
                             )}
                           </div>
-                          {timeline && (
-                            <p className="text-xs text-muted-foreground">{timeline}</p>
-                          )}
+                          {timeline && <p className="text-xs text-muted-foreground">{timeline}</p>}
                         </div>
                         {project.description && (
                           <p className="text-sm text-muted-foreground leading-relaxed">
@@ -700,7 +723,7 @@ export default function CareerProfilePage() {
                           </div>
                         )}
                       </div>
-                    )
+                    );
                   })}
                 </div>
               </CardContent>
@@ -731,9 +754,7 @@ export default function CareerProfilePage() {
                 <Calendar className="h-5 w-5" />
                 Account Information
               </CardTitle>
-              <CardDescription>
-                Account creation and role information
-              </CardDescription>
+              <CardDescription>Account creation and role information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -754,7 +775,9 @@ export default function CareerProfilePage() {
                 <div>
                   <label className="text-sm font-medium">Last Updated</label>
                   <p className="text-sm text-muted-foreground">
-                    {userProfile.updated_at ? new Date(userProfile.updated_at).toLocaleDateString() : 'Never'}
+                    {userProfile.updated_at
+                      ? new Date(userProfile.updated_at).toLocaleDateString()
+                      : 'Never'}
                   </p>
                 </div>
               </div>
@@ -781,7 +804,8 @@ export default function CareerProfilePage() {
                 <div>
                   <h3 className="text-lg font-semibold">Professional Overview</h3>
                   <p className="text-sm text-muted-foreground">
-                    Share your current role, headline details, and a short summary that introduces you.
+                    Share your current role, headline details, and a short summary that introduces
+                    you.
                   </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -846,10 +870,7 @@ export default function CareerProfilePage() {
                     <FormItem>
                       <FormLabel>Experience Level</FormLabel>
                       <FormControl>
-                        <select
-                          {...field}
-                          className="w-full px-3 py-2 text-sm border rounded-md"
-                        >
+                        <select {...field} className="w-full px-3 py-2 text-sm border rounded-md">
                           <option value="entry">Entry Level</option>
                           <option value="mid">Mid Level</option>
                           <option value="senior">Senior Level</option>
@@ -889,13 +910,11 @@ export default function CareerProfilePage() {
                     <FormItem>
                       <FormLabel>LinkedIn Profile</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="https://linkedin.com/in/yourprofile"
-                          {...field}
-                        />
+                        <Input placeholder="https://linkedin.com/in/yourprofile" {...field} />
                       </FormControl>
                       <FormDescription>
-                        Paste the URL to your LinkedIn profile so advisors and employers can learn more.
+                        Paste the URL to your LinkedIn profile so advisors and employers can learn
+                        more.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1095,7 +1114,8 @@ export default function CareerProfilePage() {
                 <div>
                   <h3 className="text-lg font-semibold">Work History</h3>
                   <p className="text-sm text-muted-foreground">
-                    Document key roles, internships, or freelance engagements so mentors understand your experience.
+                    Document key roles, internships, or freelance engagements so mentors understand
+                    your experience.
                   </p>
                 </div>
                 <div className="space-y-4">
@@ -1239,7 +1259,8 @@ export default function CareerProfilePage() {
                 <div>
                   <h3 className="text-lg font-semibold">Achievements & Awards</h3>
                   <p className="text-sm text-muted-foreground">
-                    Highlight certifications, awards, publications, or notable professional accomplishments.
+                    Highlight certifications, awards, publications, or notable professional
+                    accomplishments.
                   </p>
                 </div>
                 <div className="space-y-4">
@@ -1350,5 +1371,5 @@ export default function CareerProfilePage() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

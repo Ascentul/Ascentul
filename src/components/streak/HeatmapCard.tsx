@@ -1,20 +1,22 @@
-'use client'
+'use client';
 
-import { useMemo } from 'react'
-import { useQuery } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { Heatmap } from './Heatmap'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2 } from 'lucide-react'
+import { api } from 'convex/_generated/api';
+import { useQuery } from 'convex/react';
+import { Loader2 } from 'lucide-react';
+import { useMemo } from 'react';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+import { Heatmap } from './Heatmap';
 
 export function HeatmapCard() {
-  const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, [])
+  const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
 
   const activityData = useQuery(api.activity.getActivityYear, {
     timezone,
-  })
+  });
 
-  const isLoading = activityData === undefined
+  const isLoading = activityData === undefined;
 
   if (isLoading) {
     return (
@@ -28,7 +30,7 @@ export function HeatmapCard() {
           </div>
         </div>
       </section>
-    )
+    );
   }
 
   // Handle empty or error state
@@ -44,7 +46,7 @@ export function HeatmapCard() {
           </div>
         </div>
       </section>
-    )
+    );
   }
 
   return (
@@ -56,5 +58,5 @@ export function HeatmapCard() {
         <Heatmap data={activityData} startOnMonday={true} />
       </div>
     </section>
-  )
+  );
 }

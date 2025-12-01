@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * Enhanced Application Table Component
@@ -22,12 +22,42 @@
  * - No explicit aria-label needed when text content provides the accessible name
  */
 
-import { useState, useCallback, useEffect } from "react";
-import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+import { api } from 'convex/_generated/api';
+import { Id } from 'convex/_generated/dataModel';
+import { useMutation } from 'convex/react';
+import { format, formatDistanceToNow } from 'date-fns';
+import {
+  Activity,
+  AlertCircle,
+  Building2,
+  Calendar,
+  Check,
+  Clock,
+  Edit2,
+  ExternalLink,
+  Loader2,
+  MoreHorizontal,
+  Plus,
+  User,
+  X,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+
+import { UseApplicationSelectionResult } from '@/app/(dashboard)/advisor/applications/hooks/useApplicationSelection';
+import { EnrichedApplication } from '@/app/(dashboard)/advisor/applications/types';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -35,37 +65,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Building2,
-  User,
-  Calendar,
-  ExternalLink,
-  AlertCircle,
-  MoreHorizontal,
-  Edit2,
-  Check,
-  X,
-  Clock,
-  Plus,
-  Activity,
-  Loader2,
-} from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
-import Link from "next/link";
-import { useMutation } from "convex/react";
-import { api } from "convex/_generated/api";
-import { Id } from "convex/_generated/dataModel";
-import { EnrichedApplication } from "@/app/(dashboard)/advisor/applications/types";
-import { UseApplicationSelectionResult } from "@/app/(dashboard)/advisor/applications/hooks/useApplicationSelection";
-import { cn, isValidHttpUrl } from "@/lib/utils";
+} from '@/components/ui/table';
+import { cn, isValidHttpUrl } from '@/lib/utils';
 
 // ============================================================================
 // Types
@@ -78,15 +79,15 @@ interface ApplicationTableEnhancedProps {
   selectionHook: UseApplicationSelectionResult;
 }
 
-const STAGE_BADGE_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  Prospect: "outline",
-  Applied: "default",
-  Interview: "secondary",
-  Offer: "default",
-  Accepted: "default",
-  Rejected: "destructive",
-  Withdrawn: "secondary",
-  Archived: "outline",
+const STAGE_BADGE_VARIANTS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  Prospect: 'outline',
+  Applied: 'default',
+  Interview: 'secondary',
+  Offer: 'default',
+  Accepted: 'default',
+  Rejected: 'destructive',
+  Withdrawn: 'secondary',
+  Archived: 'outline',
 };
 
 // ============================================================================
@@ -100,8 +101,8 @@ export function ApplicationTableEnhanced({
   selectionHook,
 }: ApplicationTableEnhancedProps) {
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
-  const [editNextStep, setEditNextStep] = useState("");
-  const [editDueDate, setEditDueDate] = useState("");
+  const [editNextStep, setEditNextStep] = useState('');
+  const [editDueDate, setEditDueDate] = useState('');
   // Track which row is currently being saved to prevent double-clicks
   const [savingRowId, setSavingRowId] = useState<string | null>(null);
   // Track last selected ID explicitly for shift-click range selection
@@ -130,7 +131,7 @@ export function ApplicationTableEnhanced({
         setLastSelectedId(id);
       }
     },
-    [applications, selectionHook, lastSelectedId]
+    [applications, selectionHook, lastSelectedId],
   );
 
   // ============================================================================
@@ -139,18 +140,14 @@ export function ApplicationTableEnhanced({
 
   const handleStartEdit = useCallback((app: EnrichedApplication) => {
     setEditingRowId(app._id.toString());
-    setEditNextStep(app.next_step || "");
-    setEditDueDate(
-      app.next_step_date
-        ? format(new Date(app.next_step_date), "yyyy-MM-dd")
-        : ""
-    );
+    setEditNextStep(app.next_step || '');
+    setEditDueDate(app.next_step_date ? format(new Date(app.next_step_date), 'yyyy-MM-dd') : '');
   }, []);
 
   const handleSaveEdit = useCallback(
     async (appId: Id<'applications'>) => {
       if (!clerkId) {
-        toast.error("Authentication required");
+        toast.error('Authentication required');
         return;
       }
 
@@ -166,8 +163,8 @@ export function ApplicationTableEnhanced({
           const [year, month, day] = editDueDate.split('-').map(Number);
           const parsedDate = new Date(year, month - 1, day);
           if (isNaN(parsedDate.getTime())) {
-            console.error("Invalid date format");
-            toast.error("Invalid date format");
+            console.error('Invalid date format');
+            toast.error('Invalid date format');
             setSavingRowId(null);
             return;
           }
@@ -182,34 +179,34 @@ export function ApplicationTableEnhanced({
         });
 
         setEditingRowId(null);
-        setEditNextStep("");
-        setEditDueDate("");
+        setEditNextStep('');
+        setEditDueDate('');
       } catch (error) {
-        console.error("Failed to update next step:", error);
-        toast.error(error instanceof Error ? error.message : "Failed to update next step");
+        console.error('Failed to update next step:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to update next step');
       } finally {
         setSavingRowId(null);
       }
     },
-    [clerkId, editNextStep, editDueDate, updateNextStepMutation, savingRowId]
+    [clerkId, editNextStep, editDueDate, updateNextStepMutation, savingRowId],
   );
 
   const handleCancelEdit = useCallback(() => {
     setEditingRowId(null);
-    setEditNextStep("");
-    setEditDueDate("");
+    setEditNextStep('');
+    setEditDueDate('');
   }, []);
 
   // Keyboard shortcut: Escape to cancel editing
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && editingRowId) {
+      if (e.key === 'Escape' && editingRowId) {
         handleCancelEdit();
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [editingRowId, handleCancelEdit]);
 
   // ============================================================================
@@ -247,7 +244,7 @@ export function ApplicationTableEnhanced({
             {/* Select All Checkbox */}
             <TableHead className="w-12">
               <Checkbox
-                checked={someSelected ? "indeterminate" : allSelected}
+                checked={someSelected ? 'indeterminate' : allSelected}
                 onCheckedChange={handleSelectAll}
                 aria-label="Select all applications"
               />
@@ -271,8 +268,8 @@ export function ApplicationTableEnhanced({
               <TableRow
                 key={app._id}
                 className={`
-                  ${app.needsAction ? "bg-orange-50/50" : ""}
-                  ${isSelected ? "bg-blue-50" : ""}
+                  ${app.needsAction ? 'bg-orange-50/50' : ''}
+                  ${isSelected ? 'bg-blue-50' : ''}
                   hover:bg-gray-50 transition-colors
                 `}
               >
@@ -299,11 +296,12 @@ export function ApplicationTableEnhanced({
                 {/* Student */}
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
+                    <User
+                      className="h-4 w-4 text-muted-foreground flex-shrink-0"
+                      aria-hidden="true"
+                    />
                     <div className="min-w-0">
-                      <div className="text-sm font-medium truncate">
-                        {app.student_name}
-                      </div>
+                      <div className="text-sm font-medium truncate">{app.student_name}</div>
                       {app.student_graduation_year && (
                         <div className="text-xs text-muted-foreground">
                           Class of {app.student_graduation_year}
@@ -316,29 +314,30 @@ export function ApplicationTableEnhanced({
                 {/* Company */}
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
+                    <Building2
+                      className="h-4 w-4 text-muted-foreground flex-shrink-0"
+                      aria-hidden="true"
+                    />
                     <span className="font-medium truncate">{app.company_name}</span>
                   </div>
                 </TableCell>
 
                 {/* Position */}
                 <TableCell>
-                  <div className="max-w-xs truncate text-sm">
-                    {app.position_title}
-                  </div>
+                  <div className="max-w-xs truncate text-sm">{app.position_title}</div>
                 </TableCell>
 
                 {/* Stage */}
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Badge variant={STAGE_BADGE_VARIANTS[app.stage] || "outline"}>
+                    <Badge variant={STAGE_BADGE_VARIANTS[app.stage] || 'outline'}>
                       {app.stage}
                     </Badge>
                     {app.needsAction && (
                       <div className="flex items-center gap-1 text-xs text-orange-600">
                         <AlertCircle className="h-3 w-3" aria-hidden="true" />
                         <span className="hidden xl:inline">
-                          {app.isOverdue ? "Overdue" : app.isDueSoon ? "Due soon" : "Needs action"}
+                          {app.isOverdue ? 'Overdue' : app.isDueSoon ? 'Due soon' : 'Needs action'}
                         </span>
                       </div>
                     )}
@@ -355,7 +354,7 @@ export function ApplicationTableEnhanced({
                       className="h-8 text-sm"
                       autoFocus
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") {
+                        if (e.key === 'Enter') {
                           handleSaveEdit(app._id);
                         }
                       }}
@@ -366,7 +365,8 @@ export function ApplicationTableEnhanced({
                         <div className="text-sm truncate" title={app.next_step}>
                           {app.next_step}
                         </div>
-                      ) : app.needsAction && (app.needActionReasons?.includes('no_next_step') ?? false) ? (
+                      ) : app.needsAction &&
+                        (app.needActionReasons?.includes('no_next_step') ?? false) ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -399,31 +399,43 @@ export function ApplicationTableEnhanced({
                           <div className="flex items-center gap-1.5">
                             <Clock
                               className={cn(
-                                "h-3 w-3",
-                                app.isOverdue ? "text-red-500" :
-                                app.isDueSoon ? "text-orange-500" :
-                                "text-muted-foreground"
+                                'h-3 w-3',
+                                app.isOverdue
+                                  ? 'text-red-500'
+                                  : app.isDueSoon
+                                    ? 'text-orange-500'
+                                    : 'text-muted-foreground',
                               )}
                               aria-hidden="true"
                             />
                             <span
                               className={cn(
-                                "text-sm font-medium",
-                                app.isOverdue ? "text-red-600" :
-                                app.isDueSoon ? "text-orange-600" :
-                                "text-muted-foreground"
+                                'text-sm font-medium',
+                                app.isOverdue
+                                  ? 'text-red-600'
+                                  : app.isDueSoon
+                                    ? 'text-orange-600'
+                                    : 'text-muted-foreground',
                               )}
                             >
-                              {format(new Date(app.next_step_date), "MMM d")}
+                              {format(new Date(app.next_step_date), 'MMM d')}
                             </span>
                           </div>
-                          <span className={cn(
-                            "text-xs",
-                            app.isOverdue ? "text-red-500" :
-                            app.isDueSoon ? "text-orange-500" :
-                            "text-muted-foreground"
-                          )}>
-                            {app.isOverdue ? "Overdue" : formatDistanceToNow(new Date(app.next_step_date), { addSuffix: true })}
+                          <span
+                            className={cn(
+                              'text-xs',
+                              app.isOverdue
+                                ? 'text-red-500'
+                                : app.isDueSoon
+                                  ? 'text-orange-500'
+                                  : 'text-muted-foreground',
+                            )}
+                          >
+                            {app.isOverdue
+                              ? 'Overdue'
+                              : formatDistanceToNow(new Date(app.next_step_date), {
+                                  addSuffix: true,
+                                })}
                           </span>
                         </div>
                       ) : (
@@ -438,23 +450,25 @@ export function ApplicationTableEnhanced({
                   <div className="flex items-center gap-1.5">
                     <Activity
                       className={cn(
-                        "h-3 w-3",
-                        app.isStale ? "text-gray-400" : "text-muted-foreground"
+                        'h-3 w-3',
+                        app.isStale ? 'text-gray-400' : 'text-muted-foreground',
                       )}
                       aria-hidden="true"
                     />
                     <div className="flex flex-col gap-0.5">
-                      <span className={cn(
-                        "text-sm",
-                        app.isStale ? "text-gray-500 font-medium" : "text-muted-foreground"
-                      )}>
-                        {app.daysSinceUpdate === 0 ? "Today" :
-                         app.daysSinceUpdate === 1 ? "Yesterday" :
-                         `${app.daysSinceUpdate}d ago`}
+                      <span
+                        className={cn(
+                          'text-sm',
+                          app.isStale ? 'text-gray-500 font-medium' : 'text-muted-foreground',
+                        )}
+                      >
+                        {app.daysSinceUpdate === 0
+                          ? 'Today'
+                          : app.daysSinceUpdate === 1
+                            ? 'Yesterday'
+                            : `${app.daysSinceUpdate}d ago`}
                       </span>
-                      {app.isStale && (
-                        <span className="text-xs text-gray-400">Stale</span>
-                      )}
+                      {app.isStale && <span className="text-xs text-gray-400">Stale</span>}
                     </div>
                   </div>
                 </TableCell>
@@ -471,11 +485,16 @@ export function ApplicationTableEnhanced({
                         className="h-7 px-2"
                       >
                         {savingRowId === app._id.toString() ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-green-600" aria-hidden="true" />
+                          <Loader2
+                            className="h-4 w-4 animate-spin text-green-600"
+                            aria-hidden="true"
+                          />
                         ) : (
                           <Check className="h-4 w-4 text-green-600" aria-hidden="true" />
                         )}
-                        <span className="sr-only">{savingRowId === app._id.toString() ? 'Saving...' : 'Save'}</span>
+                        <span className="sr-only">
+                          {savingRowId === app._id.toString() ? 'Saving...' : 'Save'}
+                        </span>
                       </Button>
                       <Button
                         size="sm"
@@ -509,11 +528,7 @@ export function ApplicationTableEnhanced({
                         </DropdownMenuItem>
                         {app.application_url && isValidHttpUrl(app.application_url) && (
                           <DropdownMenuItem asChild>
-                            <a
-                              href={app.application_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
+                            <a href={app.application_url} target="_blank" rel="noopener noreferrer">
                               <ExternalLink className="h-4 w-4 mr-2" aria-hidden="true" />
                               Open Application
                             </a>

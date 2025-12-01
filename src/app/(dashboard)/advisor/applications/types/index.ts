@@ -6,6 +6,7 @@
  */
 
 import { Id } from 'convex/_generated/dataModel';
+
 import type { ApplicationStage } from '@/lib/advisor/stages';
 
 // ============================================================================
@@ -17,10 +18,10 @@ import type { ApplicationStage } from '@/lib/advisor/stages';
  * These drive the "Need Action" metric and visual indicators
  */
 export type NeedActionReason =
-  | 'no_next_step'   // No next step has been defined
-  | 'overdue'        // Due date is in the past
-  | 'due_soon'       // Due date is within 3 days
-  | 'stale';         // No activity in 14+ days
+  | 'no_next_step' // No next step has been defined
+  | 'overdue' // Due date is in the past
+  | 'due_soon' // Due date is within 3 days
+  | 'stale'; // No activity in 14+ days
 
 /**
  * Human-readable labels for need action reasons (for UI display)
@@ -95,7 +96,7 @@ export interface BaseEnrichedApplication {
 
   // Advisor workflow
   next_step?: string;
-  next_step_date?: number;  // Due date
+  next_step_date?: number; // Due date
   notes?: string;
   assigned_advisor_id?: Id<'users'>;
 }
@@ -203,7 +204,7 @@ export const INBOX_MODE_FILTERS: ApplicationFilters = {
   search: '',
   stages: [],
   cohorts: [],
-  needsAction: true,  // Show only items needing action
+  needsAction: true, // Show only items needing action
   activeOnly: false,
   timeWindow: 'all',
 };
@@ -281,7 +282,7 @@ export const EMPTY_SELECTION: Readonly<ApplicationSelection> = Object.freeze({
 export interface ApplicationStats {
   // Total counts
   total: number;
-  active: number;  // In Prospect, Applied, or Interview stage
+  active: number; // In Prospect, Applied, or Interview stage
 
   // Stage-specific counts
   offers: number;
@@ -296,7 +297,7 @@ export interface ApplicationStats {
   needActionBreakdown: Record<NeedActionReason, number>;
 
   // Success metrics
-  conversionRate: number;  // (offers + accepted) / active * 100
+  conversionRate: number; // (offers + accepted) / active * 100
 }
 
 // ============================================================================
@@ -315,11 +316,7 @@ export interface BulkOperationResult {
 /**
  * Bulk action types
  */
-export type BulkActionType =
-  | 'change_stage'
-  | 'archive'
-  | 'assign_advisor'
-  | 'mark_reviewed';
+export type BulkActionType = 'change_stage' | 'archive' | 'assign_advisor' | 'mark_reviewed';
 
 // ============================================================================
 // View State
@@ -334,9 +331,9 @@ export type ApplicationViewMode = 'kanban' | 'table';
  * Scope selector (filter by advisor ownership)
  */
 export type ApplicationScope =
-  | 'my-students'      // Only students I own (default for advisors)
-  | 'all'              // All students in university (university_admin only)
-  | 'assigned-to-me';  // Applications assigned to me (via assigned_advisor_id)
+  | 'my-students' // Only students I own (default for advisors)
+  | 'all' // All students in university (university_admin only)
+  | 'assigned-to-me'; // Applications assigned to me (via assigned_advisor_id)
 
 // ============================================================================
 // Empty State Types
@@ -346,8 +343,8 @@ export type ApplicationScope =
  * Types of empty states we might encounter
  */
 export type EmptyStateType =
-  | 'no-apps'           // No applications exist yet
-  | 'no-results'        // Filters returned no results
+  | 'no-apps' // No applications exist yet
+  | 'no-results' // Filters returned no results
   | 'no-action-needed'; // No applications need action (good state!)
 
 // ============================================================================

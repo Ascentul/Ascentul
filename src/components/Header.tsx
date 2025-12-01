@@ -1,25 +1,26 @@
-'use client'
+'use client';
 
-import { Menu, GraduationCap } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useAuth } from '@/contexts/ClerkAuthProvider'
-import { hasUniversityAdminAccess } from '@/lib/constants/roles'
-import Link from 'next/link'
+import { GraduationCap, Menu } from 'lucide-react';
+import Link from 'next/link';
+
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { hasUniversityAdminAccess } from '@/lib/constants/roles';
 
 interface HeaderProps {
-  onMenuToggle: () => void
+  onMenuToggle: () => void;
 }
 
 export default function Header({ onMenuToggle }: HeaderProps) {
-  const { user, subscription } = useAuth()
-  const isUniversityUser = hasUniversityAdminAccess(user?.role) || subscription.isUniversity
+  const { user, subscription } = useAuth();
+  const isUniversityUser = hasUniversityAdminAccess(user?.role) || subscription.isUniversity;
 
   return (
     <header className="bg-white shadow-sm z-10">
       <div className="flex items-center justify-between h-16 px-4">
         <div className="flex items-center">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="md:hidden mr-2 text-neutral-700 p-2"
             onClick={onMenuToggle}
           >
@@ -41,5 +42,5 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         </div>
       </div>
     </header>
-  )
+  );
 }

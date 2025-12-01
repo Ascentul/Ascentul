@@ -1,107 +1,101 @@
-'use client'
+'use client';
 
-import { useMemo } from 'react'
-import { motion } from 'framer-motion'
-import Link from 'next/link'
-import {
-  Calendar,
-  CheckCircle,
-  ExternalLink,
-  Clock,
-  Loader2
-} from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { StatusBadge } from '@/components/ui/status-badge'
-import { useQuery } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { useAuth } from '@/contexts/ClerkAuthProvider'
-import { format } from 'date-fns'
-import { cn } from '@/lib/utils'
+import { api } from 'convex/_generated/api';
+import { useQuery } from 'convex/react';
+import { format } from 'date-fns';
+import { motion } from 'framer-motion';
+import { Calendar, CheckCircle, Clock, ExternalLink, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { useMemo } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { cn } from '@/lib/utils';
 
 type FollowupAction = {
-  _id: string
-  description?: string
-  due_date?: number
-  notes?: string
-  type?: string
-  completed: boolean
+  _id: string;
+  description?: string;
+  due_date?: number;
+  notes?: string;
+  type?: string;
+  completed: boolean;
   application?: {
-    _id: string
-    company: string
-    job_title: string
-    status: 'saved' | 'applied' | 'interview' | 'offer' | 'rejected'
-  } | null
+    _id: string;
+    company: string;
+    job_title: string;
+    status: 'saved' | 'applied' | 'interview' | 'offer' | 'rejected';
+  } | null;
   contact?: {
-    _id: string
-    name?: string
-    company?: string
-  } | null
-  created_at: number
-  updated_at: number
-}
+    _id: string;
+    name?: string;
+    company?: string;
+  } | null;
+  created_at: number;
+  updated_at: number;
+};
 
 export function FollowupActionsSummary() {
-  const { user } = useAuth()
+  const { user } = useAuth();
   // SECURITY: Query uses authenticated user from JWT, no clerkId needed
-  const followupActions = useQuery(
-    api.followups.getUserFollowups,
-    user?.clerkId ? {} : 'skip'
-  ) as FollowupAction[] | undefined
+  const followupActions = useQuery(api.followups.getUserFollowups, user?.clerkId ? {} : 'skip') as
+    | FollowupAction[]
+    | undefined;
 
-  const isLoading = followupActions === undefined
+  const isLoading = followupActions === undefined;
 
   // Memoize fallback array to prevent dependency changes on every render
-  const actionsArray = useMemo(() => followupActions ?? [], [followupActions])
+  const actionsArray = useMemo(() => followupActions ?? [], [followupActions]);
 
   const activeActions = useMemo(() => {
-    const now = Date.now()
+    const now = Date.now();
 
     return actionsArray
       .filter((action) => {
-        if (action.completed) return false
-        if (!action.application) return true
-        return action.application.status !== 'offer' && action.application.status !== 'rejected'
+        if (action.completed) return false;
+        if (!action.application) return true;
+        return action.application.status !== 'offer' && action.application.status !== 'rejected';
       })
       .sort((a, b) => {
-        const aDue = a.due_date
-        const bDue = b.due_date
-        const aOverdue = !!aDue && aDue < now
-        const bOverdue = !!bDue && bDue < now
+        const aDue = a.due_date;
+        const bDue = b.due_date;
+        const aOverdue = !!aDue && aDue < now;
+        const bOverdue = !!bDue && bDue < now;
 
         if (aOverdue !== bOverdue) {
-          return aOverdue ? -1 : 1
+          return aOverdue ? -1 : 1;
         }
 
         if (aDue && bDue) {
-          return aDue - bDue
+          return aDue - bDue;
         }
 
         if (aDue || bDue) {
-          return aDue ? -1 : 1
+          return aDue ? -1 : 1;
         }
 
-        return b.updated_at - a.updated_at
-      })
-  }, [actionsArray])
+        return b.updated_at - a.updated_at;
+      });
+  }, [actionsArray]);
 
-  const totalTracked = actionsArray.length
-  const totalActive = activeActions.length
+  const totalTracked = actionsArray.length;
+  const totalActive = activeActions.length;
   const overdueActions = activeActions.filter((action) => {
-    return !!action.due_date && action.due_date < Date.now()
-  }).length
+    return !!action.due_date && action.due_date < Date.now();
+  }).length;
 
   const getStatusConfig = (completed: boolean, dueDate?: number) => {
     if (completed) {
-      return { text: 'Done', tone: 'success' as const }
+      return { text: 'Done', tone: 'success' as const };
     }
 
     if (dueDate && dueDate < Date.now()) {
-      return { text: 'Overdue', tone: 'danger' as const }
+      return { text: 'Overdue', tone: 'danger' as const };
     }
 
-    return { text: 'Pending', tone: 'neutral' as const }
-  }
+    return { text: 'Pending', tone: 'neutral' as const };
+  };
 
   return (
     <motion.div
@@ -109,22 +103,26 @@ export function FollowupActionsSummary() {
       animate="visible"
       variants={{
         hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
+        visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
       }}
       className="mb-6 h-full"
     >
-      <Card
-        className="h-full flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-0 shadow-sm"
-      >
+      <Card className="h-full flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-0 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 px-5 py-3">
           <div>
-            <CardTitle className="text-sm font-semibold text-slate-900">Follow-up Actions</CardTitle>
+            <CardTitle className="text-sm font-semibold text-slate-900">
+              Follow-up Actions
+            </CardTitle>
             <p className="text-xs text-slate-500">
               {totalActive} active • {overdueActions} overdue
             </p>
           </div>
           <Link href="/applications">
-            <Button variant="outline" size="sm" className="h-8 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            >
               <ExternalLink className="mr-2 h-4 w-4" />
               View All
             </Button>
@@ -150,22 +148,27 @@ export function FollowupActionsSummary() {
           ) : (
             <div className="divide-y divide-slate-200">
               {activeActions.map((action, idx) => {
-                const status = getStatusConfig(action.completed, action.due_date)
+                const status = getStatusConfig(action.completed, action.due_date);
                 return (
-                <div key={action._id} className={cn("py-3", idx === 0 ? "pt-0" : "", idx === activeActions.length - 1 ? "pb-0" : "")}>
-                  <div className="flex min-h-[90px] flex-col rounded-lg bg-white border border-slate-200 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.04)]">
-                    <div className="min-w-0 max-w-full flex-1 overflow-hidden">
-                      <div className="mb-1 flex items-start justify-between gap-2">
-                        <h3 className="text-sm font-semibold text-slate-900 truncate flex-1 min-w-0">
-                          {action.description || action.notes || 'Follow-up action'}
-                        </h3>
-                        <StatusBadge tone={status.tone}>
-                          {status.text}
-                        </StatusBadge>
+                  <div
+                    key={action._id}
+                    className={cn(
+                      'py-3',
+                      idx === 0 ? 'pt-0' : '',
+                      idx === activeActions.length - 1 ? 'pb-0' : '',
+                    )}
+                  >
+                    <div className="flex min-h-[90px] flex-col rounded-lg bg-white border border-slate-200 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.04)]">
+                      <div className="min-w-0 max-w-full flex-1 overflow-hidden">
+                        <div className="mb-1 flex items-start justify-between gap-2">
+                          <h3 className="text-sm font-semibold text-slate-900 truncate flex-1 min-w-0">
+                            {action.description || action.notes || 'Follow-up action'}
+                          </h3>
+                          <StatusBadge tone={status.tone}>{status.text}</StatusBadge>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="mt-auto flex flex-col gap-1 pt-1 text-xs text-slate-500">
+                      <div className="mt-auto flex flex-col gap-1 pt-1 text-xs text-slate-500">
                         <div className="flex flex-wrap items-center gap-3">
                           {action.due_date && (
                             <div className="flex flex-shrink-0 items-center gap-1">
@@ -196,14 +199,15 @@ export function FollowupActionsSummary() {
                             Contact: {action.contact.name}
                           </div>
                         )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )})}
+                );
+              })}
             </div>
           )}
         </CardContent>
       </Card>
     </motion.div>
-  )
+  );
 }

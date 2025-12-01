@@ -16,21 +16,22 @@
 
 'use client';
 
-import React from 'react';
 import {
-  LayoutGrid,
-  Table as TableIcon,
-  TrendingUp,
-  CheckCircle,
   AlertCircle,
-  Target,
-  Users,
   Building2,
+  CheckCircle,
   Filter,
+  LayoutGrid,
   Search,
+  Table as TableIcon,
+  Target,
+  TrendingUp,
+  Users,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React from 'react';
+
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -39,15 +40,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
-  ApplicationStats,
   ApplicationScope,
+  ApplicationStats,
   ApplicationViewMode,
   NeedActionReason,
 } from '../types';
@@ -114,14 +111,15 @@ export function ApplicationsHeader({
         <div className="flex items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Applications</h1>
-            <p className="text-muted-foreground mt-1">
-              Track student application pipelines
-            </p>
+            <p className="text-muted-foreground mt-1">Track student application pipelines</p>
           </div>
 
           {/* Scope Selector */}
           {canViewAllStudents && (
-            <Select value={scope} onValueChange={(value) => onScopeChange(value as ApplicationScope)}>
+            <Select
+              value={scope}
+              onValueChange={(value) => onScopeChange(value as ApplicationScope)}
+            >
               <SelectTrigger className="w-48" aria-label="Select student scope">
                 <SelectValue />
               </SelectTrigger>
@@ -176,7 +174,10 @@ export function ApplicationsHeader({
       <div className="flex gap-3">
         {/* Search */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Search
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
           <Input
             type="search"
             placeholder="Search by company, position, or student name..."
@@ -296,7 +297,8 @@ function MetricCard({
   const cardProps = isInteractive
     ? {
         onClick,
-        className: 'cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98]',
+        className:
+          'cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98]',
         role: 'button',
         tabIndex: 0,
         'aria-label': `Filter by ${title.toLowerCase()}`,
@@ -309,12 +311,16 @@ function MetricCard({
         <TooltipTrigger asChild>
           <Card
             {...cardProps}
-            onKeyDown={isInteractive ? (e: React.KeyboardEvent) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onClick();
-              }
-            } : undefined}
+            onKeyDown={
+              isInteractive
+                ? (e: React.KeyboardEvent) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onClick();
+                    }
+                  }
+                : undefined
+            }
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{title}</CardTitle>
@@ -398,7 +404,9 @@ function NeedActionMetric({ value, breakdown, onClick, onClickReason }: NeedActi
               </div>
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${hasIssues ? 'text-orange-600' : ''}`}>{value}</div>
+              <div className={`text-2xl font-bold ${hasIssues ? 'text-orange-600' : ''}`}>
+                {value}
+              </div>
               {breakdown && hasIssues && (
                 <div className="mt-2 space-y-1 text-xs">
                   {breakdown.overdue > 0 && (
@@ -459,7 +467,9 @@ function NeedActionMetric({ value, breakdown, onClick, onClickReason }: NeedActi
             <li>• No activity in 14+ days</li>
           </ul>
           <p className="text-xs text-muted-foreground mt-2">
-            {onClickReason ? 'Click total to filter all, or click individual reasons' : 'Click to filter and triage'}
+            {onClickReason
+              ? 'Click total to filter all, or click individual reasons'
+              : 'Click to filter and triage'}
           </p>
         </TooltipContent>
       </Tooltip>

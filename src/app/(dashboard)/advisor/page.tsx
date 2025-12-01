@@ -17,25 +17,24 @@
  * - Upcoming & Reviews section (Upcoming Items, Review Queue)
  */
 
-import { AdvisorGate } from '@/components/advisor/AdvisorGate';
 import { useUser } from '@clerk/nextjs';
-import { useQuery } from 'convex/react';
 import { api } from 'convex/_generated/api';
+import { useQuery } from 'convex/react';
 
-// New action-oriented dashboard components
-import {
-  NeedsAttentionStrip,
-  RiskOverviewPanel,
-  CaseloadGapsCard,
-  CapacityCard,
-  ProgressOutcomesCard,
-  QuickActionsBar,
-} from '@/components/advisor/dashboard';
-
+import { AdvisorGate } from '@/components/advisor/AdvisorGate';
 // Existing analytics components (reused)
 import { ActivityChart } from '@/components/advisor/analytics/ActivityChart';
-import { UpcomingItems } from '@/components/advisor/analytics/UpcomingItems';
 import { ReviewQueueSnapshot } from '@/components/advisor/analytics/ReviewQueueSnapshot';
+import { UpcomingItems } from '@/components/advisor/analytics/UpcomingItems';
+// New action-oriented dashboard components
+import {
+  CapacityCard,
+  CaseloadGapsCard,
+  NeedsAttentionStrip,
+  ProgressOutcomesCard,
+  QuickActionsBar,
+  RiskOverviewPanel,
+} from '@/components/advisor/dashboard';
 
 export default function AdvisorDashboardPage() {
   const { user } = useUser();
@@ -44,53 +43,50 @@ export default function AdvisorDashboardPage() {
   // New V2 dashboard queries for action-oriented metrics
   const needsAttention = useQuery(
     api.advisor_dashboard_v2.getNeedsAttentionToday,
-    clerkId ? { clerkId } : "skip"
+    clerkId ? { clerkId } : 'skip',
   );
 
   const riskOverview = useQuery(
     api.advisor_dashboard_v2.getRiskOverview,
-    clerkId ? { clerkId } : "skip"
+    clerkId ? { clerkId } : 'skip',
   );
 
   const caseloadGaps = useQuery(
     api.advisor_dashboard_v2.getCaseloadGaps,
-    clerkId ? { clerkId } : "skip"
+    clerkId ? { clerkId } : 'skip',
   );
 
   const capacitySchedule = useQuery(
     api.advisor_dashboard_v2.getCapacityAndSchedule,
-    clerkId ? { clerkId } : "skip"
+    clerkId ? { clerkId } : 'skip',
   );
 
   const progressOutcomes = useQuery(
     api.advisor_dashboard_v2.getProgressAndOutcomes,
-    clerkId ? { clerkId } : "skip"
+    clerkId ? { clerkId } : 'skip',
   );
 
   // Existing queries for compatibility with current components
   const upcomingItems = useQuery(
     api.advisor_dashboard.getUpcomingItems,
-    clerkId ? { clerkId } : "skip"
+    clerkId ? { clerkId } : 'skip',
   );
 
   const activityChart = useQuery(
     api.advisor_dashboard.getActivityChart,
-    clerkId ? { clerkId } : "skip"
+    clerkId ? { clerkId } : 'skip',
   );
 
   const reviewQueue = useQuery(
     api.advisor_dashboard.getReviewQueueSnapshot,
-    clerkId ? { clerkId } : "skip"
+    clerkId ? { clerkId } : 'skip',
   );
 
   return (
     <AdvisorGate>
       <div className="min-h-screen bg-slate-50/50">
         {/* Needs Attention Today - Top Strip */}
-        <NeedsAttentionStrip
-          data={needsAttention}
-          isLoading={needsAttention === undefined}
-        />
+        <NeedsAttentionStrip data={needsAttention} isLoading={needsAttention === undefined} />
 
         <div className="container mx-auto p-6 space-y-6">
           {/* Header with Quick Actions */}
@@ -111,16 +107,10 @@ export default function AdvisorDashboardPage() {
             <h2 className="sr-only">Caseload and Risk</h2>
             <div className="grid gap-4 md:grid-cols-2">
               {/* My Caseload with Readiness Gaps */}
-              <CaseloadGapsCard
-                data={caseloadGaps}
-                isLoading={caseloadGaps === undefined}
-              />
+              <CaseloadGapsCard data={caseloadGaps} isLoading={caseloadGaps === undefined} />
 
               {/* Risk Overview Panel (replaces single At-Risk card) */}
-              <RiskOverviewPanel
-                data={riskOverview}
-                isLoading={riskOverview === undefined}
-              />
+              <RiskOverviewPanel data={riskOverview} isLoading={riskOverview === undefined} />
             </div>
           </section>
 
@@ -129,16 +119,10 @@ export default function AdvisorDashboardPage() {
             <h2 className="sr-only">Activity and Capacity</h2>
             <div className="grid gap-4 md:grid-cols-2">
               {/* Schedule & Capacity with visual meter */}
-              <CapacityCard
-                data={capacitySchedule}
-                isLoading={capacitySchedule === undefined}
-              />
+              <CapacityCard data={capacitySchedule} isLoading={capacitySchedule === undefined} />
 
               {/* Session Activity Chart (existing) */}
-              <ActivityChart
-                data={activityChart || []}
-                isLoading={activityChart === undefined}
-              />
+              <ActivityChart data={activityChart || []} isLoading={activityChart === undefined} />
             </div>
           </section>
 
@@ -156,10 +140,7 @@ export default function AdvisorDashboardPage() {
             <h2 className="sr-only">Upcoming and Reviews</h2>
             <div className="grid gap-4 md:grid-cols-2">
               {/* Upcoming Sessions & Follow-ups (existing) */}
-              <UpcomingItems
-                items={upcomingItems || []}
-                isLoading={upcomingItems === undefined}
-              />
+              <UpcomingItems items={upcomingItems || []} isLoading={upcomingItems === undefined} />
 
               {/* Review Queue Snapshot (existing) */}
               <ReviewQueueSnapshot

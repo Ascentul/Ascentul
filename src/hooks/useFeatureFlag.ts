@@ -6,6 +6,7 @@
  */
 
 import { useQuery } from 'convex/react';
+
 import { api } from '../../convex/_generated/api';
 
 /**
@@ -41,9 +42,9 @@ export function useFeatureFlags(flags: string[]): Record<string, boolean> | unde
   const result = useQuery(api.feature_flags.getFeatureFlags, { flags });
   if (!result) return undefined;
   // Create defaults map to ensure all requested flags are present
-  const defaults = Object.fromEntries(flags.map(flag => [flag, false]));
+  const defaults = Object.fromEntries(flags.map((flag) => [flag, false]));
   if (process.env.NODE_ENV === 'development') {
-    const missingFlags = flags.filter(flag => !(flag in result));
+    const missingFlags = flags.filter((flag) => !(flag in result));
     if (missingFlags.length > 0) {
       console.warn('Feature flags not found in API response:', missingFlags);
     }
@@ -63,34 +64,36 @@ export function useFeatureFlags(flags: string[]): Record<string, boolean> | unde
  *   // Show advisor dashboard
  * }
  */
-export function useAdvisorFeatureFlags(): {
-  dashboard: boolean;
-  students: boolean;
-  advising: boolean;
-  reviews: boolean;
-  applications: boolean;
-  analytics: boolean;
-  support: boolean;
-} | undefined {
+export function useAdvisorFeatureFlags():
+  | {
+      dashboard: boolean;
+      students: boolean;
+      advising: boolean;
+      reviews: boolean;
+      applications: boolean;
+      analytics: boolean;
+      support: boolean;
+    }
+  | undefined {
   const flags = useFeatureFlags([
-    "advisor.dashboard",
-    "advisor.students",
-    "advisor.advising",
-    "advisor.reviews",
-    "advisor.applications",
-    "advisor.analytics",
-    "advisor.support",
+    'advisor.dashboard',
+    'advisor.students',
+    'advisor.advising',
+    'advisor.reviews',
+    'advisor.applications',
+    'advisor.analytics',
+    'advisor.support',
   ]);
 
   if (!flags) return undefined;
 
   return {
-    dashboard: flags["advisor.dashboard"],
-    students: flags["advisor.students"],
-    advising: flags["advisor.advising"],
-    reviews: flags["advisor.reviews"],
-    applications: flags["advisor.applications"],
-    analytics: flags["advisor.analytics"],
-    support: flags["advisor.support"],
+    dashboard: flags['advisor.dashboard'],
+    students: flags['advisor.students'],
+    advising: flags['advisor.advising'],
+    reviews: flags['advisor.reviews'],
+    applications: flags['advisor.applications'],
+    analytics: flags['advisor.analytics'],
+    support: flags['advisor.support'],
   };
 }

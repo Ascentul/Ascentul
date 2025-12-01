@@ -1,27 +1,28 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { api } from "./_generated/api";
-import { requireMembership } from "./lib/roles";
+import { v } from 'convex/values';
+
+import { api } from './_generated/api';
+import { mutation, query } from './_generated/server';
+import { requireMembership } from './lib/roles';
 
 // List contacts for the current user by Clerk ID
 export const getUserContacts = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     // Note: We don't require membership for read queries - users can always view their own contacts
     // Membership is only used for write operations and tenant isolation
 
     // OPTIMIZED: Add limit to prevent bandwidth issues
     const contacts = await ctx.db
-      .query("networking_contacts")
-      .withIndex("by_user", (q) => q.eq("user_id", user._id))
-      .order("desc")
+      .query('networking_contacts')
+      .withIndex('by_user', (q) => q.eq('user_id', user._id))
+      .order('desc')
       .take(200); // Limit to 200 most recent contacts
 
     return contacts;
@@ -34,19 +35,19 @@ export const getUserContacts = query({
 export const getContactById = query({
   args: {
     clerkId: v.string(),
-    contactId: v.id("networking_contacts"),
+    contactId: v.id('networking_contacts'),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     const contact = await ctx.db.get(args.contactId);
     if (!contact || contact.user_id !== user._id) {
-      throw new Error("Contact not found or unauthorized");
+      throw new Error('Contact not found or unauthorized');
     }
 
     return contact;
@@ -69,15 +70,16 @@ export const createContact = mutation({
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    const membership =
+      user.role === 'student'
+        ? (await requireMembership(ctx, { role: 'student' })).membership
+        : null;
 
     // ARCHITECTURE NOTE: Free plan limits are enforced at the FRONTEND layer
     // - Clerk Billing (publicMetadata) is the source of truth for subscriptions
@@ -97,7 +99,7 @@ export const createContact = mutation({
     // }
 
     const now = Date.now();
-    const id = await ctx.db.insert("networking_contacts", {
+    const id = await ctx.db.insert('networking_contacts', {
       user_id: user._id,
       university_id: membership?.university_id ?? user.university_id,
       name: args.name,
@@ -125,7 +127,7 @@ export const createContact = mutation({
 export const updateContact = mutation({
   args: {
     clerkId: v.string(),
-    contactId: v.id("networking_contacts"),
+    contactId: v.id('networking_contacts'),
     updates: v.object({
       name: v.optional(v.string()),
       company: v.optional(v.string()),
@@ -142,23 +144,24 @@ export const updateContact = mutation({
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    const membership =
+      user.role === 'student'
+        ? (await requireMembership(ctx, { role: 'student' })).membership
+        : null;
 
     const contact = await ctx.db.get(args.contactId);
     if (!contact || contact.user_id !== user._id) {
-      throw new Error("Contact not found or unauthorized");
+      throw new Error('Contact not found or unauthorized');
     }
 
     if (contact.university_id && membership && contact.university_id !== membership.university_id) {
-      throw new Error("Unauthorized: Contact belongs to another university");
+      throw new Error('Unauthorized: Contact belongs to another university');
     }
 
     await ctx.db.patch(args.contactId, {
@@ -169,7 +172,7 @@ export const updateContact = mutation({
     // Return the updated contact document
     const updatedContact = await ctx.db.get(args.contactId);
     if (!updatedContact) {
-      throw new Error("Failed to retrieve updated contact");
+      throw new Error('Failed to retrieve updated contact');
     }
     return updatedContact;
   },
@@ -179,27 +182,28 @@ export const updateContact = mutation({
 export const deleteContact = mutation({
   args: {
     clerkId: v.string(),
-    contactId: v.id("networking_contacts"),
+    contactId: v.id('networking_contacts'),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
-    const membership = user.role === "student"
-      ? (await requireMembership(ctx, { role: "student" })).membership
-      : null;
+    const membership =
+      user.role === 'student'
+        ? (await requireMembership(ctx, { role: 'student' })).membership
+        : null;
 
     const contact = await ctx.db.get(args.contactId);
     if (!contact || contact.user_id !== user._id) {
-      throw new Error("Contact not found or unauthorized");
+      throw new Error('Contact not found or unauthorized');
     }
 
     if (contact.university_id && membership && contact.university_id !== membership.university_id) {
-      throw new Error("Unauthorized: Contact belongs to another university");
+      throw new Error('Unauthorized: Contact belongs to another university');
     }
 
     await ctx.db.delete(args.contactId);

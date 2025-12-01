@@ -1,46 +1,47 @@
-'use client'
+'use client';
 
-import { useAuth } from '@/contexts/ClerkAuthProvider'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { Button } from '@/components/ui/button'
-import { CheckCircle2, Circle, Sparkles, Loader2, X } from 'lucide-react'
-import Link from 'next/link'
-import { useState } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
+import { CheckCircle2, Circle, Loader2, Sparkles, X } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { useToast } from '@/hooks/use-toast';
 
 interface UsageProgressCardProps {
   dashboardData?: {
     usageData?: {
-      usage: any
-      stepsCompleted: number
-      totalSteps: number
-      subscriptionPlan: string
-    }
-  }
+      usage: any;
+      stepsCompleted: number;
+      totalSteps: number;
+      subscriptionPlan: string;
+    };
+  };
 }
 
 export function UsageProgressCard({ dashboardData }: UsageProgressCardProps = {}) {
-  const { user } = useAuth()
-  const { toast } = useToast()
-  const [isHiding, setIsHiding] = useState(false)
-  const toggleHideProgressCard = useMutation(api.users.toggleHideProgressCard)
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [isHiding, setIsHiding] = useState(false);
+  const toggleHideProgressCard = useMutation(api.users.toggleHideProgressCard);
 
   // Use prop data if available (from dashboard), otherwise fetch independently
   const fetchedUsageData = useQuery(
     api.usage.getUserUsage,
-    !dashboardData && user?.clerkId ? { clerkId: user.clerkId } : 'skip'
-  )
+    !dashboardData && user?.clerkId ? { clerkId: user.clerkId } : 'skip',
+  );
 
   // Fetch user data to check hide preference
   const userData = useQuery(
     api.users.getUserByClerkId,
-    user?.clerkId ? { clerkId: user.clerkId } : 'skip'
-  )
+    user?.clerkId ? { clerkId: user.clerkId } : 'skip',
+  );
 
-  const usageData = dashboardData?.usageData || fetchedUsageData
+  const usageData = dashboardData?.usageData || fetchedUsageData;
 
   if (!user || !usageData || !userData) {
     return (
@@ -54,49 +55,49 @@ export function UsageProgressCard({ dashboardData }: UsageProgressCardProps = {}
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
-    )
+    );
   }
 
-  const { usage, stepsCompleted, totalSteps, subscriptionPlan } = usageData
-  const progressPercentage = (stepsCompleted / totalSteps) * 100
+  const { usage, stepsCompleted, totalSteps, subscriptionPlan } = usageData;
+  const progressPercentage = (stepsCompleted / totalSteps) * 100;
 
   // Only show for free users
   if (subscriptionPlan !== 'free') {
-    return null
+    return null;
   }
 
   // Check if user has hidden the progress card
   if (userData.hide_progress_card) {
-    return null
+    return null;
   }
 
   // Optimistic UI: Hide immediately when dismissing
   if (isHiding) {
-    return null
+    return null;
   }
 
   // Handle dismiss action
   const handleDismiss = async () => {
     if (!user?.clerkId) {
-      return
+      return;
     }
 
-    setIsHiding(true)
+    setIsHiding(true);
     try {
       await toggleHideProgressCard({
         clerkId: user.clerkId,
         hide: true,
-      })
+      });
     } catch (error) {
-      console.error('Failed to hide progress card:', error)
+      console.error('Failed to hide progress card:', error);
       toast({
         title: 'Error',
         description: 'Failed to hide progress card. Please try again.',
         variant: 'destructive',
-      })
-      setIsHiding(false)
+      });
+      setIsHiding(false);
     }
-  }
+  };
 
   return (
     <Card className="h-full p-0 shadow-sm flex flex-col">
@@ -165,12 +166,8 @@ export function UsageProgressCard({ dashboardData }: UsageProgressCardProps = {}
         </div>
 
         <div className="border-t border-slate-100 pt-2">
-          <p className="mb-2 text-xs text-slate-500">
-            ✓ Resume Studio (unlimited)
-          </p>
-          <p className="text-xs text-slate-500">
-            ✓ Cover Letter Studio (unlimited)
-          </p>
+          <p className="mb-2 text-xs text-slate-500">✓ Resume Studio (unlimited)</p>
+          <p className="text-xs text-slate-500">✓ Cover Letter Studio (unlimited)</p>
         </div>
 
         {stepsCompleted >= totalSteps && (
@@ -183,12 +180,11 @@ export function UsageProgressCard({ dashboardData }: UsageProgressCardProps = {}
                     Ready for unlimited access?
                   </h4>
                   <p className="mb-3 text-xs text-slate-600">
-                    Unlock unlimited applications, goals, contacts, career paths, and more with Premium.
+                    Unlock unlimited applications, goals, contacts, career paths, and more with
+                    Premium.
                   </p>
                   <Button size="sm" asChild>
-                    <Link href="/pricing">
-                      Upgrade to Premium
-                    </Link>
+                    <Link href="/pricing">Upgrade to Premium</Link>
                   </Button>
                 </div>
               </div>
@@ -197,33 +193,27 @@ export function UsageProgressCard({ dashboardData }: UsageProgressCardProps = {}
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 interface FeatureItemProps {
-  icon: React.ElementType
-  label: string
-  count: number
-  limit: number
-  used: boolean
+  icon: React.ElementType;
+  label: string;
+  count: number;
+  limit: number;
+  used: boolean;
 }
 
 function FeatureItem({ icon: Icon, label, count, limit, used }: FeatureItemProps) {
   return (
     <div className="flex items-center gap-3">
-      <Icon
-        className={`h-4 w-4 flex-shrink-0 ${
-          used ? 'text-[#16A34A]' : 'text-slate-400'
-        }`}
-      />
+      <Icon className={`h-4 w-4 flex-shrink-0 ${used ? 'text-[#16A34A]' : 'text-slate-400'}`} />
       <div className="flex-1 min-w-0">
-        <p className={`text-sm ${used ? 'text-slate-800' : 'text-slate-600'}`}>
-          {label}
-        </p>
+        <p className={`text-sm ${used ? 'text-slate-800' : 'text-slate-600'}`}>{label}</p>
       </div>
       <span className="text-xs text-slate-500">
         {count}/{limit}
       </span>
     </div>
-  )
+  );
 }

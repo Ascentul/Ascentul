@@ -7,17 +7,18 @@
  * Documentation: https://docs.convex.dev/scheduling/cron-jobs
  */
 
-import { cronJobs } from "convex/server";
-import { internal } from "./_generated/api";
+import { cronJobs } from 'convex/server';
+
+import { internal } from './_generated/api';
 
 const crons = cronJobs();
 
 // Daily audit log retention (7-year window)
 // TODO: Adjust schedule as needed via Convex dashboard
 crons.daily(
-  "audit log retention",
+  'audit log retention',
   { hourUTC: 3, minuteUTC: 0 },
-  internal.audit_logs.deleteExpiredAuditLogs
+  internal.audit_logs.deleteExpiredAuditLogs,
 );
 
 /**
@@ -39,9 +40,9 @@ crons.daily(
  * 3. Consider investigating root cause (unusual traffic spike, bug, etc.)
  */
 crons.daily(
-  "monitor duplicate profiles",
+  'monitor duplicate profiles',
   { hourUTC: 2, minuteUTC: 0 },
-  internal.students.monitorDuplicateProfiles
+  internal.students.monitorDuplicateProfiles,
 );
 
 /**
@@ -60,10 +61,6 @@ crons.daily(
  * This prevents students from accepting stale invites and keeps the
  * invite table clean for admin views.
  */
-crons.hourly(
-  "expire old invites",
-  { minuteUTC: 0 },
-  internal.students.expireOldInvites
-);
+crons.hourly('expire old invites', { minuteUTC: 0 }, internal.students.expireOldInvites);
 
 export default crons;

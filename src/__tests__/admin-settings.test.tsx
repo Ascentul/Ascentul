@@ -1,41 +1,42 @@
 // @ts-nocheck
-import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { useUser } from '@clerk/nextjs'
-import { useAuth } from '@/contexts/ClerkAuthProvider'
-import { useMutation, useQuery } from 'convex/react'
-import AdminSettingsPage from '@/app/(dashboard)/admin/settings/page'
+import { useUser } from '@clerk/nextjs';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useMutation, useQuery } from 'convex/react';
+import React from 'react';
+
+import AdminSettingsPage from '@/app/(dashboard)/admin/settings/page';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
 
 jest.mock('@clerk/nextjs', () => ({
   useUser: jest.fn(),
-}))
+}));
 jest.mock('@/contexts/ClerkAuthProvider', () => ({
   useAuth: jest.fn(),
-}))
+}));
 jest.mock('convex/react', () => ({
   useQuery: jest.fn(),
   useMutation: jest.fn(),
-}))
-const toastSpy = jest.fn()
+}));
+const toastSpy = jest.fn();
 jest.mock('@/hooks/use-toast', () => ({
   useToast: () => ({
     toast: toastSpy,
   }),
-}))
+}));
 
-const mockUseUser = useUser as jest.MockedFunction<typeof useUser>
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
-const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>
-const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>
+const mockUseUser = useUser as jest.MockedFunction<typeof useUser>;
+const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
+const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>;
+const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
 
 // TODO: Update these tests to match current UI implementation
 // Tests are skipped because UI components have changed significantly
 // Core API functionality is tested in ai-coach-api.test.ts
 describe.skip('AdminSettingsPage - Settings Persistence', () => {
-  const mockUpdatePlatformSettings = jest.fn()
+  const mockUpdatePlatformSettings = jest.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    jest.clearAllMocks();
 
     mockUseUser.mockReturnValue({
       user: {
@@ -43,7 +44,7 @@ describe.skip('AdminSettingsPage - Settings Persistence', () => {
       } as any,
       isLoaded: true,
       isSignedIn: true,
-    } as any)
+    } as any);
 
     mockUseAuth.mockReturnValue({
       user: {
@@ -61,9 +62,9 @@ describe.skip('AdminSettingsPage - Settings Persistence', () => {
       isSignedIn: true,
       signOut: jest.fn(),
       isAdmin: true,
-    })
+    });
 
-    mockUseMutation.mockReturnValue(mockUpdatePlatformSettings)
+    mockUseMutation.mockReturnValue(mockUpdatePlatformSettings);
     mockUseQuery.mockReturnValue({
       openai_model: 'gpt-4o-mini',
       openai_temperature: 0.7,
@@ -71,8 +72,8 @@ describe.skip('AdminSettingsPage - Settings Persistence', () => {
       maintenance_mode: false,
       allow_signups: true,
       default_user_role: 'user',
-    })
-  })
+    });
+  });
 
   test('should call updatePlatformSettings mutation when saving AI settings', async () => {
     mockUpdatePlatformSettings.mockResolvedValue({
@@ -82,24 +83,24 @@ describe.skip('AdminSettingsPage - Settings Persistence', () => {
         openai_temperature: 0.8,
         openai_max_tokens: 5000,
       },
-    })
+    });
 
-    render(<AdminSettingsPage />)
+    render(<AdminSettingsPage />);
 
     // Navigate to AI tab
-    const aiTab = screen.getByRole('tab', { name: /ai/i })
-    fireEvent.click(aiTab)
+    const aiTab = screen.getByRole('tab', { name: /ai/i });
+    fireEvent.click(aiTab);
 
     // Change AI settings
-    const modelSelect = screen.getByLabelText(/model/i)
-    fireEvent.change(modelSelect, { target: { value: 'gpt-4o' } })
+    const modelSelect = screen.getByLabelText(/model/i);
+    fireEvent.change(modelSelect, { target: { value: 'gpt-4o' } });
 
-    const temperatureInput = screen.getByLabelText(/temperature/i)
-    fireEvent.change(temperatureInput, { target: { value: '0.8' } })
+    const temperatureInput = screen.getByLabelText(/temperature/i);
+    fireEvent.change(temperatureInput, { target: { value: '0.8' } });
 
     // Save settings
-    const saveButton = screen.getByText(/save.*ai/i)
-    fireEvent.click(saveButton)
+    const saveButton = screen.getByText(/save.*ai/i);
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
       expect(mockUpdatePlatformSettings).toHaveBeenCalledWith({
@@ -108,9 +109,9 @@ describe.skip('AdminSettingsPage - Settings Persistence', () => {
           openai_model: 'gpt-4o',
           openai_temperature: 0.8,
         }),
-      })
-    })
-  })
+      });
+    });
+  });
 
   test('should call updatePlatformSettings mutation when saving general/system settings', async () => {
     mockUpdatePlatformSettings.mockResolvedValue({
@@ -119,25 +120,25 @@ describe.skip('AdminSettingsPage - Settings Persistence', () => {
         maintenance_mode: true,
         allow_signups: false,
       },
-    })
+    });
 
-    render(<AdminSettingsPage />)
+    render(<AdminSettingsPage />);
 
     // Navigate to General tab
-    const generalTab = screen.getByRole('tab', { name: /general/i })
-    fireEvent.click(generalTab)
+    const generalTab = screen.getByRole('tab', { name: /general/i });
+    fireEvent.click(generalTab);
 
     // Toggle maintenance mode
-    const maintenanceToggle = screen.getByRole('switch', { name: /maintenance mode/i })
-    fireEvent.click(maintenanceToggle)
+    const maintenanceToggle = screen.getByRole('switch', { name: /maintenance mode/i });
+    fireEvent.click(maintenanceToggle);
 
     // Toggle signups
-    const signupsToggle = screen.getByRole('switch', { name: /registration enabled/i })
-    fireEvent.click(signupsToggle)
+    const signupsToggle = screen.getByRole('switch', { name: /registration enabled/i });
+    fireEvent.click(signupsToggle);
 
     // Save settings
-    const saveButton = screen.getByText(/save general settings/i)
-    fireEvent.click(saveButton)
+    const saveButton = screen.getByText(/save general settings/i);
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
       expect(mockUpdatePlatformSettings).toHaveBeenCalledWith({
@@ -146,25 +147,25 @@ describe.skip('AdminSettingsPage - Settings Persistence', () => {
           maintenance_mode: true,
           allow_signups: false,
         }),
-      })
-    })
-  })
+      });
+    });
+  });
 
   test('should NOT use setTimeout fake implementation', async () => {
-    mockUpdatePlatformSettings.mockResolvedValue({ success: true, settings: {} })
+    mockUpdatePlatformSettings.mockResolvedValue({ success: true, settings: {} });
 
-    render(<AdminSettingsPage />)
+    render(<AdminSettingsPage />);
 
-    const aiTab = screen.getByRole('tab', { name: /ai/i })
-    fireEvent.click(aiTab)
+    const aiTab = screen.getByRole('tab', { name: /ai/i });
+    fireEvent.click(aiTab);
 
-    const saveButton = screen.getByText(/save ai settings/i)
-    fireEvent.click(saveButton)
+    const saveButton = screen.getByText(/save ai settings/i);
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(mockUpdatePlatformSettings).toHaveBeenCalled()
-    })
-  })
+      expect(mockUpdatePlatformSettings).toHaveBeenCalled();
+    });
+  });
 
   test('should load existing settings from database', () => {
     mockUseQuery.mockReturnValue({
@@ -174,17 +175,17 @@ describe.skip('AdminSettingsPage - Settings Persistence', () => {
       maintenance_mode: true,
       allow_signups: false,
       default_user_role: 'user',
-    })
+    });
 
-    render(<AdminSettingsPage />)
+    render(<AdminSettingsPage />);
 
     // Verify loaded values are displayed
-    const aiTab = screen.getByRole('tab', { name: /ai/i })
-    fireEvent.click(aiTab)
+    const aiTab = screen.getByRole('tab', { name: /ai/i });
+    fireEvent.click(aiTab);
 
-    const modelSelect = screen.getByDisplayValue(/gpt-4-turbo/i)
-    expect(modelSelect).toBeInTheDocument()
-  })
+    const modelSelect = screen.getByDisplayValue(/gpt-4-turbo/i);
+    expect(modelSelect).toBeInTheDocument();
+  });
 
   test('should only allow admin and super_admin access', () => {
     mockUseAuth.mockReturnValue({
@@ -203,32 +204,32 @@ describe.skip('AdminSettingsPage - Settings Persistence', () => {
       isSignedIn: true,
       signOut: jest.fn(),
       isAdmin: false,
-    })
+    });
 
-    render(<AdminSettingsPage />)
+    render(<AdminSettingsPage />);
 
-    expect(screen.getByText(/unauthorized/i)).toBeInTheDocument()
-    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
-  })
+    expect(screen.getByText(/unauthorized/i)).toBeInTheDocument();
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+  });
 
   test('should handle save errors gracefully', async () => {
-    mockUpdatePlatformSettings.mockRejectedValue(new Error('Database error'))
+    mockUpdatePlatformSettings.mockRejectedValue(new Error('Database error'));
 
-    render(<AdminSettingsPage />)
+    render(<AdminSettingsPage />);
 
-    const aiTab = screen.getByRole('tab', { name: /ai/i })
-    fireEvent.click(aiTab)
+    const aiTab = screen.getByRole('tab', { name: /ai/i });
+    fireEvent.click(aiTab);
 
-    const saveButton = screen.getByText(/save ai settings/i)
-    fireEvent.click(saveButton)
+    const saveButton = screen.getByText(/save ai settings/i);
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
       expect(toastSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Error',
           variant: 'destructive',
-        })
-      )
-    })
-  })
-})
+        }),
+      );
+    });
+  });
+});

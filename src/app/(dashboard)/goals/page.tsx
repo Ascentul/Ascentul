@@ -1,51 +1,56 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiRequest } from '@/lib/queryClient'
-import { Plus, Target, Filter, ArrowUpDown, CheckCircle, RefreshCw, LayoutList, GanttChartSquare } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
+import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog'
+  ArrowUpDown,
+  CheckCircle,
+  Filter,
+  GanttChartSquare,
+  LayoutList,
+  Plus,
+  RefreshCw,
+  Target,
+} from 'lucide-react';
+import { useState } from 'react';
+
+import GoalCard from '@/components/GoalCard';
+import GoalForm from '@/components/GoalForm';
+import { goalTemplates } from '@/components/goals/GoalTemplates';
+import { GoalTemplatesStrip } from '@/components/goals/GoalTemplatesStrip';
+import GoalTimeline from '@/components/goals/GoalTimeline';
+import { UpgradeModal } from '@/components/modals/UpgradeModal';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import GoalCard from '@/components/GoalCard'
-import GoalForm from '@/components/GoalForm'
-import GoalTimeline from '@/components/goals/GoalTimeline'
-import { GoalTemplatesStrip } from '@/components/goals/GoalTemplatesStrip'
-import { goalTemplates } from '@/components/goals/GoalTemplates'
-import { UpgradeModal } from '@/components/modals/UpgradeModal'
-import { useToast } from '@/hooks/use-toast'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useAuth } from '@/contexts/ClerkAuthProvider'
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 export default function Goals() {
-  const { user, hasPremium } = useAuth()
-  const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string | null>(null)
-  const [sortOption, setSortOption] = useState<string>('dueDate-asc')
-  const [isAddGoalOpen, setIsAddGoalOpen] = useState(false)
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [selectedGoal, setSelectedGoal] = useState<any>(null)
-  const [hiddenGoalIds, setHiddenGoalIds] = useState<number[]>([])
-  const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list')
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-  const isFreeUser = !hasPremium // Use Clerk Billing subscription check
+  const { user, hasPremium } = useAuth();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [sortOption, setSortOption] = useState<string>('dueDate-asc');
+  const [isAddGoalOpen, setIsAddGoalOpen] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [selectedGoal, setSelectedGoal] = useState<any>(null);
+  const [hiddenGoalIds, setHiddenGoalIds] = useState<number[]>([]);
+  const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const isFreeUser = !hasPremium; // Use Clerk Billing subscription check
 
   // Fetch goals
   const { data: goals = [], isLoading } = useQuery<any[]>({
@@ -53,188 +58,183 @@ export default function Goals() {
     // Fetch goals from our API and return the array directly
     queryFn: async () => {
       try {
-        const res = await apiRequest('GET', '/api/goals')
-        const data = await res.json().catch(() => ({ goals: [] }))
-        return Array.isArray(data?.goals) ? data.goals : []
+        const res = await apiRequest('GET', '/api/goals');
+        const data = await res.json().catch(() => ({ goals: [] }));
+        return Array.isArray(data?.goals) ? data.goals : [];
       } catch (_) {
         // Fail safe: return empty list on error
-        return []
+        return [];
       }
     },
     placeholderData: [],
-  })
+  });
 
   const deleteGoalMutation = useMutation({
     mutationFn: async (goalId: string | number) => {
-      return apiRequest('DELETE', `/api/goals/${goalId}`)
+      return apiRequest('DELETE', `/api/goals/${goalId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/goals'] })
-      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] })
+      queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
       toast({
         title: 'Goal Deleted',
         description: 'Your goal has been deleted successfully',
         variant: 'success',
-      })
+      });
     },
     onError: (error: any) => {
       toast({
         title: 'Error',
         description: `Failed to delete goal: ${error.message}`,
         variant: 'destructive',
-      })
+      });
     },
-  })
+  });
 
   const handleEditGoal = (goalId: string | number) => {
-    const goal = goals.find((g: any) => g.id === goalId)
+    const goal = goals.find((g: any) => g.id === goalId);
     if (goal) {
-      setSelectedGoal(goal)
-      setIsAddGoalOpen(true)
+      setSelectedGoal(goal);
+      setIsAddGoalOpen(true);
     }
-  }
+  };
 
   const handleDeleteGoal = (goalId: string | number) => {
     if (confirm('Are you sure you want to delete this goal?')) {
-      deleteGoalMutation.mutate(goalId)
+      deleteGoalMutation.mutate(goalId);
     }
-  }
-  
+  };
+
   const handleReopenGoal = (goalId: string | number) => {
-    const goal = goals.find((g: any) => g.id === goalId)
+    const goal = goals.find((g: any) => g.id === goalId);
     if (goal) {
       // Only send the specific fields needed for updating
       apiRequest('PUT', `/api/goals/${goalId}`, {
         status: 'active',
         completed: false,
-        completedAt: null
+        completedAt: null,
       })
-      .then(() => {
-        queryClient.invalidateQueries({ queryKey: ['/api/goals'] })
-        queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] })
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
 
-        toast({
-          title: "Goal Reopened",
-          description: "The goal has been moved back to active goals.",
-          variant: 'success',
+          toast({
+            title: 'Goal Reopened',
+            description: 'The goal has been moved back to active goals.',
+            variant: 'success',
+          });
         })
-      })
-      .catch((error) => {
-        console.error('Error reopening goal:', error)
+        .catch((error) => {
+          console.error('Error reopening goal:', error);
 
-        toast({
-          title: "Error",
-          description: "Failed to reopen goal. Please try again.",
-          variant: "destructive",
-        })
-      })
+          toast({
+            title: 'Error',
+            description: 'Failed to reopen goal. Please try again.',
+            variant: 'destructive',
+          });
+        });
     }
-  }
-  
+  };
+
   const handleGoalComplete = (goalId: string | number) => {
-    const goal = goals.find((g: any) => g.id === goalId)
+    const goal = goals.find((g: any) => g.id === goalId);
     if (goal) {
-      apiRequest('PUT', `/api/goals/${goalId}`, { 
-        ...goal, 
+      apiRequest('PUT', `/api/goals/${goalId}`, {
+        ...goal,
         status: 'completed',
         progress: 100,
         completed: true,
-        completedAt: new Date().toISOString()
+        completedAt: new Date().toISOString(),
       })
-      .then(() => {
-        queryClient.invalidateQueries({ queryKey: ['/api/goals'] })
-        queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] })
-        
-        toast({
-          title: "Goal Saved as Completed",
-          description: "Your goal has been moved to the completed section.",
-          variant: 'success',
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
+
+          toast({
+            title: 'Goal Saved as Completed',
+            description: 'Your goal has been moved to the completed section.',
+            variant: 'success',
+          });
         })
-      })
-      .catch((error) => {
-        console.error('Error updating goal:', error)
-        
-        toast({
-          title: "Error",
-          description: "Failed to save completed goal. Please try again.",
-          variant: "destructive",
-        })
-      })
+        .catch((error) => {
+          console.error('Error updating goal:', error);
+
+          toast({
+            title: 'Error',
+            description: 'Failed to save completed goal. Please try again.',
+            variant: 'destructive',
+          });
+        });
     }
-  }
+  };
 
   const sortedAndFilteredGoals = () => {
-    if (!goals || !Array.isArray(goals)) return []
-    
-    let filteredGoals = [...goals]
-    
+    if (!goals || !Array.isArray(goals)) return [];
+
+    let filteredGoals = [...goals];
+
     if (searchQuery) {
-      const query = searchQuery.toLowerCase()
+      const query = searchQuery.toLowerCase();
       filteredGoals = filteredGoals.filter(
-        (goal: any) => 
-          goal.title.toLowerCase().includes(query) || 
-          (goal.description && goal.description.toLowerCase().includes(query))
-      )
+        (goal: any) =>
+          goal.title.toLowerCase().includes(query) ||
+          (goal.description && goal.description.toLowerCase().includes(query)),
+      );
     }
-    
+
     if (statusFilter) {
-      filteredGoals = filteredGoals.filter((goal: any) => goal.status === statusFilter)
+      filteredGoals = filteredGoals.filter((goal: any) => goal.status === statusFilter);
     }
-    
-    const [sortField, sortDirection] = sortOption.split('-')
+
+    const [sortField, sortDirection] = sortOption.split('-');
     filteredGoals.sort((a: any, b: any) => {
       if (sortField === 'dueDate') {
-        const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER
-        const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER
-        return sortDirection === 'asc' ? dateA - dateB : dateB - dateA
+        const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+        const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+        return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
       } else if (sortField === 'progress') {
-        return sortDirection === 'asc' ? a.progress - b.progress : b.progress - a.progress
+        return sortDirection === 'asc' ? a.progress - b.progress : b.progress - a.progress;
       } else if (sortField === 'title') {
-        return sortDirection === 'asc' 
-          ? a.title.localeCompare(b.title) 
-          : b.title.localeCompare(a.title)
+        return sortDirection === 'asc'
+          ? a.title.localeCompare(b.title)
+          : b.title.localeCompare(a.title);
       }
-      return 0
-    })
-    
-    return filteredGoals
-  }
+      return 0;
+    });
+
+    return filteredGoals;
+  };
 
   const fadeIn = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.4 } }
-  }
-  
+    visible: { opacity: 1, transition: { duration: 0.4 } },
+  };
+
   const subtleUp = {
     hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
-  }
-  
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+  };
+
   const listContainer = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
         staggerChildren: 0.05,
-        when: "beforeChildren"
-      }
-    }
-  }
-  
+        when: 'beforeChildren',
+      },
+    },
+  };
+
   const listItem = {
     hidden: { opacity: 0, y: 5 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.2 } }
-  }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+  };
 
   return (
-    <motion.div
-        className="space-y-4 min-w-0"
-        initial="hidden"
-        animate="visible"
-        variants={fadeIn}
-      >
-        <div className="w-full min-w-0 rounded-3xl bg-white p-5 shadow-sm space-y-6">
-        <motion.div 
+    <motion.div className="space-y-4 min-w-0" initial="hidden" animate="visible" variants={fadeIn}>
+      <div className="w-full min-w-0 rounded-3xl bg-white p-5 shadow-sm space-y-6">
+        <motion.div
           className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4"
           variants={subtleUp}
         >
@@ -247,11 +247,11 @@ export default function Goals() {
             onClick={() => {
               // Check free user limit (1 goal max)
               if (isFreeUser && goals.length >= 1) {
-                setShowUpgradeModal(true)
-                return
+                setShowUpgradeModal(true);
+                return;
               }
-              setSelectedGoal(null)
-              setIsAddGoalOpen(true)
+              setSelectedGoal(null);
+              setIsAddGoalOpen(true);
             }}
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -265,39 +265,37 @@ export default function Goals() {
             onSelectTemplate={(templateId) => {
               // Check free user limit (1 goal max)
               if (isFreeUser && goals.length >= 1) {
-                setShowUpgradeModal(true)
-                return
+                setShowUpgradeModal(true);
+                return;
               }
-              setSelectedTemplate(templateId)
-              setIsAddGoalOpen(true)
+              setSelectedTemplate(templateId);
+              setIsAddGoalOpen(true);
             }}
           />
         </motion.div>
-        
+
         {/* Active Goals Section */}
         <motion.div className="mb-8 min-w-0" variants={subtleUp}>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm min-w-0">
             <div className="flex justify-between items-center mb-2">
               <h2 className="text-base font-semibold text-slate-900">Active Goals</h2>
             </div>
-            
+
             {isLoading ? (
               <div className="flex justify-center items-center py-6">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
               </div>
-            ) : goals && Array.isArray(goals) && goals.filter((g: any) => g.status !== 'completed').length > 0 ? (
+            ) : goals &&
+              Array.isArray(goals) &&
+              goals.filter((g: any) => g.status !== 'completed').length > 0 ? (
               <motion.div
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 min-w-0"
                 variants={listContainer}
               >
                 {sortedAndFilteredGoals()
-                  .filter(goal => goal.status !== 'completed')
+                  .filter((goal) => goal.status !== 'completed')
                   .map((goal: any) => (
-                    <motion.div 
-                      key={goal.id} 
-                      className="relative"
-                      variants={listItem}
-                    >
+                    <motion.div key={goal.id} className="relative" variants={listItem}>
                       <GoalCard
                         id={goal.id}
                         title={goal.title}
@@ -313,7 +311,7 @@ export default function Goals() {
                   ))}
               </motion.div>
             ) : (
-              <motion.div 
+              <motion.div
                 className="text-center py-6 bg-white border border-slate-200 shadow-sm rounded-xl"
                 variants={subtleUp}
               >
@@ -322,17 +320,18 @@ export default function Goals() {
                 </div>
                 <h3 className="text-lg font-medium mb-1 text-slate-900">No Active Goals</h3>
                 <p className="text-sm text-neutral-500 mb-4 max-w-md mx-auto">
-                  Start by creating your first career goal to track your progress toward professional success
+                  Start by creating your first career goal to track your progress toward
+                  professional success
                 </p>
                 <Button
                   onClick={() => {
                     // Check free user limit (1 goal max)
                     if (isFreeUser && goals.length >= 1) {
-                      setShowUpgradeModal(true)
-                      return
+                      setShowUpgradeModal(true);
+                      return;
                     }
-                    setSelectedGoal(null)
-                    setIsAddGoalOpen(true)
+                    setSelectedGoal(null);
+                    setIsAddGoalOpen(true);
                   }}
                   className="px-5 py-2 shadow-sm hover:shadow transition-all"
                 >
@@ -343,7 +342,7 @@ export default function Goals() {
             )}
           </div>
         </motion.div>
-        
+
         {/* Completed Goals Section */}
         <motion.div variants={subtleUp}>
           <div className="flex justify-between items-center mb-3">
@@ -370,30 +369,39 @@ export default function Goals() {
               </Button>
             </div>
           </div>
-          
+
           {isLoading ? (
             <div className="flex justify-center items-center py-6">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
             </div>
-          ) : goals && Array.isArray(goals) && goals.filter((g: any) => g.status === 'completed' && !hiddenGoalIds.includes(g.id)).length > 0 ? (
+          ) : goals &&
+            Array.isArray(goals) &&
+            goals.filter((g: any) => g.status === 'completed' && !hiddenGoalIds.includes(g.id))
+              .length > 0 ? (
             <>
               {viewMode === 'timeline' && (
                 <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
                   <CardContent className="p-4">
-                    <GoalTimeline 
-                      goals={goals.filter((goal: any) => goal.status === 'completed' && !hiddenGoalIds.includes(goal.id))} 
+                    <GoalTimeline
+                      goals={goals.filter(
+                        (goal: any) =>
+                          goal.status === 'completed' && !hiddenGoalIds.includes(goal.id),
+                      )}
                     />
                   </CardContent>
                 </Card>
               )}
-              
+
               {viewMode === 'list' && (
                 <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
                   <CardContent className="p-4">
                     <div className="space-y-3">
                       <AnimatePresence mode="sync">
                         {goals
-                          .filter((goal: any) => goal.status === 'completed' && !hiddenGoalIds.includes(goal.id))
+                          .filter(
+                            (goal: any) =>
+                              goal.status === 'completed' && !hiddenGoalIds.includes(goal.id),
+                          )
                           .map((goal: any) => (
                             <motion.div
                               key={goal.id}
@@ -406,17 +414,21 @@ export default function Goals() {
                                 <div className="flex items-start justify-between">
                                   <div className="flex-1">
                                     <div className="flex items-center">
-                                      <h3 className="font-medium text-sm line-through text-neutral-500">{goal.title}</h3>
+                                      <h3 className="font-medium text-sm line-through text-neutral-500">
+                                        {goal.title}
+                                      </h3>
                                       <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
                                         Completed
                                       </span>
                                     </div>
                                     {goal.description && (
-                                      <p className="text-xs text-neutral-500 mt-1 line-through">{goal.description}</p>
+                                      <p className="text-xs text-neutral-500 mt-1 line-through">
+                                        {goal.description}
+                                      </p>
                                     )}
                                   </div>
-                                  <Button 
-                                    variant="ghost" 
+                                  <Button
+                                    variant="ghost"
                                     size="sm"
                                     className="text-xs h-8 rounded-full hover:bg-gray-100"
                                     onClick={() => handleReopenGoal(goal.id)}
@@ -444,48 +456,53 @@ export default function Goals() {
               <CardContent className="p-6">
                 <div className="text-center py-6">
                   <CheckCircle className="mx-auto h-16 w-16 text-gray-300 mb-3" />
-                  <p className="text-sm text-gray-500">🎯 You're on your way! Complete a goal to start building momentum.</p>
+                  <p className="text-sm text-gray-500">
+                    🎯 You're on your way! Complete a goal to start building momentum.
+                  </p>
                 </div>
               </CardContent>
             </Card>
           )}
         </motion.div>
         {/* Add/Edit Goal Dialog */}
-        <Dialog open={isAddGoalOpen} onOpenChange={(isOpen) => {
-            setIsAddGoalOpen(isOpen)
+        <Dialog
+          open={isAddGoalOpen}
+          onOpenChange={(isOpen) => {
+            setIsAddGoalOpen(isOpen);
             if (!isOpen) {
-              setSelectedTemplate(null)
+              setSelectedTemplate(null);
             }
-          }}>
+          }}
+        >
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>
-                {selectedGoal ? 'Edit Goal' : (selectedTemplate ? 'Create Goal from Template' : 'Create New Goal')}
+                {selectedGoal
+                  ? 'Edit Goal'
+                  : selectedTemplate
+                    ? 'Create Goal from Template'
+                    : 'Create New Goal'}
               </DialogTitle>
               {selectedTemplate && (
                 <p className="text-sm text-muted-foreground mt-1">
-                  Using {goalTemplates.find(t => t.id === selectedTemplate)?.title} template
+                  Using {goalTemplates.find((t) => t.id === selectedTemplate)?.title} template
                 </p>
               )}
             </DialogHeader>
-            <GoalForm 
-              goal={selectedGoal} 
+            <GoalForm
+              goal={selectedGoal}
               templateId={selectedTemplate}
               onSuccess={() => {
-                setIsAddGoalOpen(false)
-                setSelectedTemplate(null)
+                setIsAddGoalOpen(false);
+                setSelectedTemplate(null);
               }}
             />
           </DialogContent>
         </Dialog>
 
         {/* Upgrade Modal for Free User Limits */}
-        <UpgradeModal
-          open={showUpgradeModal}
-          onOpenChange={setShowUpgradeModal}
-          feature="goal"
-        />
-        </div>
-      </motion.div>
-    )
+        <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} feature="goal" />
+      </div>
+    </motion.div>
+  );
 }

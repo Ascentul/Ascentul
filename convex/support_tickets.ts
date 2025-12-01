@@ -1,16 +1,17 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { api } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
-import { requireMembership } from "./lib/roles";
+import { v } from 'convex/values';
+
+import { api } from './_generated/api';
+import type { Id } from './_generated/dataModel';
+import { mutation, query } from './_generated/server';
+import { requireMembership } from './lib/roles';
 
 async function getMembershipForUser(ctx: any, user: any) {
-  if (!["student", "advisor", "university_admin"].includes(user.role)) {
+  if (!['student', 'advisor', 'university_admin'].includes(user.role)) {
     return null;
   }
   return await ctx.db
-    .query("memberships")
-    .withIndex("by_user_role", (q: any) => q.eq("user_id", user._id).eq("role", user.role))
+    .query('memberships')
+    .withIndex('by_user_role', (q: any) => q.eq('user_id', user._id).eq('role', user.role))
     .first();
 }
 
@@ -20,15 +21,15 @@ async function getMembershipForUser(ctx: any, user: any) {
  */
 async function getUniversityScopedUserIds(
   ctx: any,
-  universityId: Id<"universities"> | undefined
-): Promise<Id<"users">[]> {
+  universityId: Id<'universities'> | undefined,
+): Promise<Id<'users'>[]> {
   if (!universityId) {
     return [];
   }
 
   const universityUsers = await ctx.db
-    .query("users")
-    .withIndex("by_university", (q: any) => q.eq("university_id", universityId))
+    .query('users')
+    .withIndex('by_university', (q: any) => q.eq('university_id', universityId))
     .collect();
 
   return universityUsers.map((u: any) => u._id);
@@ -41,20 +42,14 @@ async function getUniversityScopedUserIds(
  * - User is university_admin/advisor and ticket is from their university
  * - User is the ticket owner
  */
-async function canAccessTicket(
-  ctx: any,
-  currentUser: any,
-  ticket: any
-): Promise<boolean> {
+async function canAccessTicket(ctx: any, currentUser: any, ticket: any): Promise<boolean> {
   // Super admins can access everything
-  if (currentUser.role === "super_admin") {
+  if (currentUser.role === 'super_admin') {
     return true;
   }
 
   // University-scoped admins can only access tickets from their university
-  const isUniversityScopedAdmin = ["university_admin", "advisor"].includes(
-    currentUser.role
-  );
+  const isUniversityScopedAdmin = ['university_admin', 'advisor'].includes(currentUser.role);
 
   if (isUniversityScopedAdmin) {
     // University admins have university_id directly on their user record
@@ -82,7 +77,7 @@ async function canAccessTicket(
   }
 
   // If ticket is scoped to a university, ensure student membership matches
-  if (ticket.university_id && currentUser.role === "student") {
+  if (ticket.university_id && currentUser.role === 'student') {
     const membership = await getMembershipForUser(ctx, currentUser);
     if (!membership || membership.university_id !== ticket.university_id) {
       return false;
@@ -97,27 +92,22 @@ export const listTickets = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
     const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
-    if (!currentUser) throw new Error("User not found");
+    if (!currentUser) throw new Error('User not found');
 
     // Note: We don't require membership for read queries - students can view their own tickets
     // even without an active membership
 
     const membership = await getMembershipForUser(ctx, currentUser);
 
-    const isSuperAdmin = currentUser.role === "super_admin";
-    const isUniversityScopedAdmin = ["university_admin", "advisor"].includes(
-      currentUser.role
-    );
+    const isSuperAdmin = currentUser.role === 'super_admin';
+    const isUniversityScopedAdmin = ['university_admin', 'advisor'].includes(currentUser.role);
 
     // Super admins see all tickets
     if (isSuperAdmin) {
-      const all = await ctx.db
-        .query("support_tickets")
-        .order("desc")
-        .collect();
+      const all = await ctx.db.query('support_tickets').order('desc').collect();
       return all;
     }
 
@@ -127,23 +117,20 @@ export const listTickets = query({
       const universityId = currentUser.university_id;
 
       if (!universityId) {
-        throw new Error("University admin must be associated with a university");
+        throw new Error('University admin must be associated with a university');
       }
 
       // Get all tickets and filter to university scope
-      const allTickets = await ctx.db
-        .query("support_tickets")
-        .order("desc")
-        .collect();
+      const allTickets = await ctx.db.query('support_tickets').order('desc').collect();
 
       return allTickets.filter((ticket) => ticket.university_id === universityId);
     }
 
     // Regular users see only their own tickets
     const mine = await ctx.db
-      .query("support_tickets")
-      .withIndex("by_user", (q) => q.eq("user_id", currentUser._id))
-      .order("desc")
+      .query('support_tickets')
+      .withIndex('by_user', (q) => q.eq('user_id', currentUser._id))
+      .order('desc')
       .collect();
     return mine;
   },
@@ -164,45 +151,43 @@ export const listTicketsWithFilters = query({
   },
   handler: async (ctx, args) => {
     const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
-    if (!currentUser) throw new Error("User not found");
+    if (!currentUser) throw new Error('User not found');
 
     // Note: We don't require membership for read queries - students can view their own tickets
     // even without an active membership
 
-    const isSuperAdmin = currentUser.role === "super_admin";
-    const isUniversityScopedAdmin = ["university_admin", "advisor"].includes(
-      currentUser.role
-    );
+    const isSuperAdmin = currentUser.role === 'super_admin';
+    const isUniversityScopedAdmin = ['university_admin', 'advisor'].includes(currentUser.role);
     const isAdmin = isSuperAdmin || isUniversityScopedAdmin;
 
-    if (!isAdmin) throw new Error("Unauthorized");
+    if (!isAdmin) throw new Error('Unauthorized');
 
     const membership = await getMembershipForUser(ctx, currentUser);
 
-    let query = ctx.db.query("support_tickets");
+    let query = ctx.db.query('support_tickets');
 
     // Apply filters
-    if (args.status && args.status !== "all") {
-      query = query.filter((q) => q.eq(q.field("status"), args.status));
+    if (args.status && args.status !== 'all') {
+      query = query.filter((q) => q.eq(q.field('status'), args.status));
     }
 
-    if (args.priority && args.priority !== "all") {
-      query = query.filter((q) => q.eq(q.field("priority"), args.priority));
+    if (args.priority && args.priority !== 'all') {
+      query = query.filter((q) => q.eq(q.field('priority'), args.priority));
     }
 
-    if (args.assignedTo && args.assignedTo !== "all") {
-      if (args.assignedTo === "unassigned") {
-        query = query.filter((q) => q.neq(q.field("assigned_to"), null));
+    if (args.assignedTo && args.assignedTo !== 'all') {
+      if (args.assignedTo === 'unassigned') {
+        query = query.filter((q) => q.neq(q.field('assigned_to'), null));
       } else {
         // This would need to be handled differently if we want to filter by specific assignee
         // For now, we'll skip this filter
       }
     }
 
-    const tickets = await query.order("desc").collect();
+    const tickets = await query.order('desc').collect();
 
     // SECURITY: Filter tickets by university scope for university admins/advisors
     let filteredTickets = tickets;
@@ -211,40 +196,35 @@ export const listTicketsWithFilters = query({
       const universityId = currentUser.university_id;
 
       if (!universityId) {
-        throw new Error("University admin must be associated with a university");
+        throw new Error('University admin must be associated with a university');
       }
 
-      filteredTickets = filteredTickets.filter((ticket) =>
-        ticket.university_id === universityId
-      );
+      filteredTickets = filteredTickets.filter((ticket) => ticket.university_id === universityId);
     }
 
     // Apply text search and additional filters that can't be done in Convex easily
 
     if (args.search) {
       const searchTerm = args.search.toLowerCase();
-      filteredTickets = filteredTickets.filter(ticket =>
-        ticket.subject.toLowerCase().includes(searchTerm) ||
-        ticket.description.toLowerCase().includes(searchTerm) ||
-        (ticket.user_id && ticket.user_id.toString().includes(searchTerm))
+      filteredTickets = filteredTickets.filter(
+        (ticket) =>
+          ticket.subject.toLowerCase().includes(searchTerm) ||
+          ticket.description.toLowerCase().includes(searchTerm) ||
+          (ticket.user_id && ticket.user_id.toString().includes(searchTerm)),
       );
     }
 
-    if (args.source && args.source !== "all") {
-      filteredTickets = filteredTickets.filter(ticket =>
-        ticket.ticket_type === args.source
-      );
+    if (args.source && args.source !== 'all') {
+      filteredTickets = filteredTickets.filter((ticket) => ticket.ticket_type === args.source);
     }
 
-    if (args.issueType && args.issueType !== "all") {
-      filteredTickets = filteredTickets.filter(ticket =>
-        ticket.category === args.issueType
-      );
+    if (args.issueType && args.issueType !== 'all') {
+      filteredTickets = filteredTickets.filter((ticket) => ticket.category === args.issueType);
     }
 
     if (args.dateFrom && args.dateTo) {
-      filteredTickets = filteredTickets.filter(ticket =>
-        ticket.created_at >= args.dateFrom! && ticket.created_at <= args.dateTo!
+      filteredTickets = filteredTickets.filter(
+        (ticket) => ticket.created_at >= args.dateFrom! && ticket.created_at <= args.dateTo!,
       );
     }
 
@@ -259,35 +239,37 @@ export const createTicket = mutation({
     subject: v.string(),
     description: v.string(),
     category: v.optional(v.string()),
-    priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent"))),
+    priority: v.optional(
+      v.union(v.literal('low'), v.literal('medium'), v.literal('high'), v.literal('urgent')),
+    ),
     issue_type: v.optional(v.string()),
     source: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     const membership = await getMembershipForUser(ctx, user);
-    if (user.role === "student" && (!membership || membership.status !== "active")) {
-      throw new Error("Unauthorized: Active student membership required");
+    if (user.role === 'student' && (!membership || membership.status !== 'active')) {
+      throw new Error('Unauthorized: Active student membership required');
     }
 
     const now = Date.now();
 
-    const id = await ctx.db.insert("support_tickets", {
+    const id = await ctx.db.insert('support_tickets', {
       user_id: user._id,
       university_id: membership?.university_id ?? user.university_id,
       subject: args.subject,
-      category: args.category || args.issue_type || "general",
-      priority: args.priority || "medium",
-      department: "support",
+      category: args.category || args.issue_type || 'general',
+      priority: args.priority || 'medium',
+      department: 'support',
       contact_person: undefined,
-      description: args.description + (args.source ? `\n\nSource: ${args.source}` : ""),
-      status: "open",
-      ticket_type: "regular",
+      description: args.description + (args.source ? `\n\nSource: ${args.source}` : ''),
+      status: 'open',
+      ticket_type: 'regular',
       assigned_to: undefined,
       resolution: undefined,
       resolved_at: undefined,
@@ -300,28 +282,28 @@ export const createTicket = mutation({
     // Create notifications for all super admins (non-critical)
     try {
       const superAdmins = await ctx.db
-        .query("users")
-        .withIndex("by_role", (q) => q.eq("role", "super_admin"))
+        .query('users')
+        .withIndex('by_role', (q) => q.eq('role', 'super_admin'))
         .collect();
 
       await Promise.all(
-        superAdmins.map(admin =>
-          ctx.db.insert("notifications", {
+        superAdmins.map((admin) =>
+          ctx.db.insert('notifications', {
             user_id: admin._id,
-            type: "support_ticket",
-            title: "New Support Ticket",
+            type: 'support_ticket',
+            title: 'New Support Ticket',
             message: `${user.name || user.email} submitted: ${args.subject}`,
             link: `/admin/support`,
             related_id: String(id),
             read: false,
             read_at: undefined,
             created_at: now,
-          })
-        )
+          }),
+        ),
       );
     } catch (notificationError) {
       // Log but don't fail the mutation if notification creation fails
-      console.error("Failed to create notifications for new support ticket:", notificationError);
+      console.error('Failed to create notifications for new support ticket:', notificationError);
     }
 
     return doc;
@@ -332,33 +314,36 @@ export const createTicket = mutation({
 export const updateTicketStatus = mutation({
   args: {
     clerkId: v.string(),
-    ticketId: v.id("support_tickets"),
-    status: v.union(v.literal("open"), v.literal("in_progress"), v.literal("resolved"), v.literal("closed")),
+    ticketId: v.id('support_tickets'),
+    status: v.union(
+      v.literal('open'),
+      v.literal('in_progress'),
+      v.literal('resolved'),
+      v.literal('closed'),
+    ),
     resolution: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
-    if (!currentUser) throw new Error("User not found");
+    if (!currentUser) throw new Error('User not found');
 
-    if (currentUser.role === "student") {
-      await requireMembership(ctx, { role: "student" });
+    if (currentUser.role === 'student') {
+      await requireMembership(ctx, { role: 'student' });
     }
 
-    const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
-      currentUser.role
-    );
-    if (!isAdmin) throw new Error("Unauthorized");
+    const isAdmin = ['super_admin', 'university_admin', 'advisor'].includes(currentUser.role);
+    if (!isAdmin) throw new Error('Unauthorized');
 
     const ticket = await ctx.db.get(args.ticketId);
-    if (!ticket) throw new Error("Ticket not found");
+    if (!ticket) throw new Error('Ticket not found');
 
     // SECURITY: Check if admin can access this ticket
     const hasAccess = await canAccessTicket(ctx, currentUser, ticket);
     if (!hasAccess) {
-      throw new Error("Unauthorized: Cannot access tickets from other universities");
+      throw new Error('Unauthorized: Cannot access tickets from other universities');
     }
 
     const updates: any = {
@@ -366,7 +351,7 @@ export const updateTicketStatus = mutation({
       updated_at: Date.now(),
     };
 
-    if (args.status === "resolved" || args.status === "closed") {
+    if (args.status === 'resolved' || args.status === 'closed') {
       updates.resolved_at = Date.now();
       if (args.resolution) {
         updates.resolution = args.resolution;
@@ -382,32 +367,30 @@ export const updateTicketStatus = mutation({
 export const assignTicket = mutation({
   args: {
     clerkId: v.string(),
-    ticketId: v.id("support_tickets"),
-    assignedTo: v.optional(v.id("users")),
+    ticketId: v.id('support_tickets'),
+    assignedTo: v.optional(v.id('users')),
   },
   handler: async (ctx, args) => {
     const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
-    if (!currentUser) throw new Error("User not found");
+    if (!currentUser) throw new Error('User not found');
 
-    if (currentUser.role === "student") {
-      await requireMembership(ctx, { role: "student" });
+    if (currentUser.role === 'student') {
+      await requireMembership(ctx, { role: 'student' });
     }
 
-    const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
-      currentUser.role
-    );
-    if (!isAdmin) throw new Error("Unauthorized");
+    const isAdmin = ['super_admin', 'university_admin', 'advisor'].includes(currentUser.role);
+    if (!isAdmin) throw new Error('Unauthorized');
 
     const ticket = await ctx.db.get(args.ticketId);
-    if (!ticket) throw new Error("Ticket not found");
+    if (!ticket) throw new Error('Ticket not found');
 
     // SECURITY: Check if admin can access this ticket
     const hasAccess = await canAccessTicket(ctx, currentUser, ticket);
     if (!hasAccess) {
-      throw new Error("Unauthorized: Cannot access tickets from other universities");
+      throw new Error('Unauthorized: Cannot access tickets from other universities');
     }
 
     await ctx.db.patch(args.ticketId, {
@@ -423,22 +406,27 @@ export const assignTicket = mutation({
 export const bulkUpdateTickets = mutation({
   args: {
     clerkId: v.string(),
-    ticketIds: v.array(v.id("support_tickets")),
-    status: v.optional(v.union(v.literal("open"), v.literal("in_progress"), v.literal("resolved"), v.literal("closed"))),
-    assignedTo: v.optional(v.id("users")),
+    ticketIds: v.array(v.id('support_tickets')),
+    status: v.optional(
+      v.union(
+        v.literal('open'),
+        v.literal('in_progress'),
+        v.literal('resolved'),
+        v.literal('closed'),
+      ),
+    ),
+    assignedTo: v.optional(v.id('users')),
     priority: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
-    if (!currentUser) throw new Error("User not found");
+    if (!currentUser) throw new Error('User not found');
 
-    const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
-      currentUser.role
-    );
-    if (!isAdmin) throw new Error("Unauthorized");
+    const isAdmin = ['super_admin', 'university_admin', 'advisor'].includes(currentUser.role);
+    if (!isAdmin) throw new Error('Unauthorized');
 
     const updates: any = { updated_at: Date.now() };
 
@@ -472,25 +460,25 @@ export const bulkUpdateTickets = mutation({
 export const deleteTicket = mutation({
   args: {
     clerkId: v.string(),
-    ticketId: v.id("support_tickets"),
+    ticketId: v.id('support_tickets'),
   },
   handler: async (ctx, args) => {
     const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
-    if (!currentUser) throw new Error("User not found");
+    if (!currentUser) throw new Error('User not found');
 
-    const isAdmin = ["super_admin", "university_admin", "advisor"].includes(currentUser.role);
-    if (!isAdmin) throw new Error("Unauthorized - only admins can delete tickets");
+    const isAdmin = ['super_admin', 'university_admin', 'advisor'].includes(currentUser.role);
+    if (!isAdmin) throw new Error('Unauthorized - only admins can delete tickets');
 
     const ticket = await ctx.db.get(args.ticketId);
-    if (!ticket) throw new Error("Ticket not found");
+    if (!ticket) throw new Error('Ticket not found');
 
     // SECURITY: Check if admin can access this ticket
     const hasAccess = await canAccessTicket(ctx, currentUser, ticket);
     if (!hasAccess) {
-      throw new Error("Unauthorized: Cannot delete tickets from other universities");
+      throw new Error('Unauthorized: Cannot delete tickets from other universities');
     }
 
     await ctx.db.delete(args.ticketId);
@@ -502,34 +490,32 @@ export const deleteTicket = mutation({
 export const addTicketResponse = mutation({
   args: {
     clerkId: v.string(),
-    ticketId: v.id("support_tickets"),
+    ticketId: v.id('support_tickets'),
     message: v.string(),
   },
   handler: async (ctx, args) => {
     const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
-    if (!currentUser) throw new Error("User not found");
+    if (!currentUser) throw new Error('User not found');
 
     const ticket = await ctx.db.get(args.ticketId);
-    if (!ticket) throw new Error("Ticket not found");
+    if (!ticket) throw new Error('Ticket not found');
 
     // SECURITY: Check if user can access this ticket
     const hasAccess = await canAccessTicket(ctx, currentUser, ticket);
     if (!hasAccess) {
-      throw new Error("Unauthorized: Cannot respond to tickets from other universities");
+      throw new Error('Unauthorized: Cannot respond to tickets from other universities');
     }
 
     // Check if user is admin or the ticket owner
-    const isAdmin = ["super_admin", "university_admin", "advisor"].includes(
-      currentUser.role
-    );
+    const isAdmin = ['super_admin', 'university_admin', 'advisor'].includes(currentUser.role);
     const isOwner = ticket.user_id === currentUser._id;
 
     // Update ticket with the response in the resolution field
     // In a more complex system, you'd have a separate table for responses/comments
-    const existingResolution = ticket.resolution || "";
+    const existingResolution = ticket.resolution || '';
     const newResponse = `[${new Date().toISOString()}] ${currentUser.name || currentUser.email}: ${args.message}`;
     const updatedResolution = existingResolution
       ? `${existingResolution}\n\n${newResponse}`
@@ -555,7 +541,7 @@ export const addTicketResponse = mutation({
           });
         } catch (emailError) {
           // Log but don't fail the mutation if email scheduling fails
-          console.log("Email notification scheduling failed (non-critical):", emailError);
+          console.log('Email notification scheduling failed (non-critical):', emailError);
         }
       }
     }

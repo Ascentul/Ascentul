@@ -1,85 +1,101 @@
-'use client'
+'use client';
 
-import { motion } from 'framer-motion'
-import Link from 'next/link'
-import { useEffect, useMemo } from 'react'
-import {
-  CheckCircle,
-  Circle,
-  ChevronRight
-} from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { Button } from '@/components/ui/button'
-import { useUser } from '@clerk/nextjs'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from 'convex/_generated/api'
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
+import { motion } from 'framer-motion';
+import { CheckCircle, ChevronRight, Circle } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useMemo } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 
 interface SimpleOnboardingChecklistProps {
   dashboardData?: {
     onboardingProgress?: {
-      completed_tasks: string[]
-      resumesCount: number
-      goalsCount: number
-      applicationsCount: number
-      contactsCount: number
-      userProfile: any
-    }
-  }
+      completed_tasks: string[];
+      resumesCount: number;
+      goalsCount: number;
+      applicationsCount: number;
+      contactsCount: number;
+      userProfile: any;
+    };
+  };
 }
 
 export function SimpleOnboardingChecklist({ dashboardData }: SimpleOnboardingChecklistProps = {}) {
-  const { user } = useUser()
-  const clerkId = user?.id
+  const { user } = useUser();
+  const clerkId = user?.id;
 
   // Fetch user's onboarding progress (only if not provided via props)
   const fetchedOnboardingProgress = useQuery(
     api.users.getOnboardingProgress,
-    !dashboardData && clerkId ? { clerkId } : 'skip'
-  ) as { completed_tasks?: string[] } | undefined
+    !dashboardData && clerkId ? { clerkId } : 'skip',
+  ) as { completed_tasks?: string[] } | undefined;
 
-  const updateOnboarding = useMutation(api.users.updateOnboardingProgress)
+  const updateOnboarding = useMutation(api.users.updateOnboardingProgress);
 
   // Also check actual data to determine completion (only if not provided via props)
-  const fetchedResumes = useQuery(api.resumes.getUserResumes, !dashboardData && clerkId ? { clerkId } : 'skip')
-  const fetchedGoals = useQuery(api.goals.getUserGoals, !dashboardData && clerkId ? { clerkId } : 'skip')
-  const fetchedApplications = useQuery(api.applications.getUserApplications, !dashboardData && clerkId ? { clerkId } : 'skip')
-  const fetchedContacts = useQuery(api.contacts.getUserContacts, !dashboardData && clerkId ? { clerkId } : 'skip')
-  const fetchedUserProfile = useQuery(api.users.getUserByClerkId, !dashboardData && clerkId ? { clerkId } : 'skip')
+  const fetchedResumes = useQuery(
+    api.resumes.getUserResumes,
+    !dashboardData && clerkId ? { clerkId } : 'skip',
+  );
+  const fetchedGoals = useQuery(
+    api.goals.getUserGoals,
+    !dashboardData && clerkId ? { clerkId } : 'skip',
+  );
+  const fetchedApplications = useQuery(
+    api.applications.getUserApplications,
+    !dashboardData && clerkId ? { clerkId } : 'skip',
+  );
+  const fetchedContacts = useQuery(
+    api.contacts.getUserContacts,
+    !dashboardData && clerkId ? { clerkId } : 'skip',
+  );
+  const fetchedUserProfile = useQuery(
+    api.users.getUserByClerkId,
+    !dashboardData && clerkId ? { clerkId } : 'skip',
+  );
 
   // Use prop data if available, otherwise use fetched data
-  const onboardingProgress = dashboardData?.onboardingProgress || fetchedOnboardingProgress
-  const resumes = dashboardData?.onboardingProgress ? [] : fetchedResumes // We have count from dashboardData
-  const goals = dashboardData?.onboardingProgress ? [] : fetchedGoals
-  const applications = dashboardData?.onboardingProgress ? [] : fetchedApplications
-  const contacts = dashboardData?.onboardingProgress ? [] : fetchedContacts
-  const userProfile = dashboardData?.onboardingProgress?.userProfile || fetchedUserProfile
+  const onboardingProgress = dashboardData?.onboardingProgress || fetchedOnboardingProgress;
+  const resumes = dashboardData?.onboardingProgress ? [] : fetchedResumes; // We have count from dashboardData
+  const goals = dashboardData?.onboardingProgress ? [] : fetchedGoals;
+  const applications = dashboardData?.onboardingProgress ? [] : fetchedApplications;
+  const contacts = dashboardData?.onboardingProgress ? [] : fetchedContacts;
+  const userProfile = dashboardData?.onboardingProgress?.userProfile || fetchedUserProfile;
 
-  const resumesCount = dashboardData?.onboardingProgress?.resumesCount ?? (resumes?.length || 0)
-  const goalsCount = dashboardData?.onboardingProgress?.goalsCount ?? (goals?.length || 0)
-  const applicationsCount = dashboardData?.onboardingProgress?.applicationsCount ?? (applications?.length || 0)
-  const contactsCount = dashboardData?.onboardingProgress?.contactsCount ?? (contacts?.length || 0)
+  const resumesCount = dashboardData?.onboardingProgress?.resumesCount ?? (resumes?.length || 0);
+  const goalsCount = dashboardData?.onboardingProgress?.goalsCount ?? (goals?.length || 0);
+  const applicationsCount =
+    dashboardData?.onboardingProgress?.applicationsCount ?? (applications?.length || 0);
+  const contactsCount = dashboardData?.onboardingProgress?.contactsCount ?? (contacts?.length || 0);
 
   const checklistItems = useMemo(() => {
-    const completedTasks = onboardingProgress?.completed_tasks || []
+    const completedTasks = onboardingProgress?.completed_tasks || [];
 
     // Auto-detect completion based on actual data
-    const hasResume = resumesCount > 0 || completedTasks.includes('resume-creation')
-    const hasGoal = goalsCount > 0 || completedTasks.includes('career-goal')
-    const hasApplication = applicationsCount > 0 || completedTasks.includes('job-application')
-    const hasContact = contactsCount > 0 || completedTasks.includes('network-contact')
+    const hasResume = resumesCount > 0 || completedTasks.includes('resume-creation');
+    const hasGoal = goalsCount > 0 || completedTasks.includes('career-goal');
+    const hasApplication = applicationsCount > 0 || completedTasks.includes('job-application');
+    const hasContact = contactsCount > 0 || completedTasks.includes('network-contact');
 
     // Calculate profile completion based on 5 sections (matching profile page logic)
     const profileSections = [
       !!userProfile?.bio, // Career Summary
       !!userProfile?.linkedin_url, // LinkedIn Profile
-      Array.isArray((userProfile as any)?.work_history) && (userProfile as any).work_history.length > 0, // Work History
-      (Array.isArray((userProfile as any)?.education_history) && (userProfile as any).education_history.length > 0) ||
-      (!!userProfile?.major || !!userProfile?.university_name), // Education
+      Array.isArray((userProfile as any)?.work_history) &&
+        (userProfile as any).work_history.length > 0, // Work History
+      (Array.isArray((userProfile as any)?.education_history) &&
+        (userProfile as any).education_history.length > 0) ||
+        !!userProfile?.major ||
+        !!userProfile?.university_name, // Education
       !!userProfile?.skills, // Skills
-    ]
-    const profileComplete = profileSections.filter(Boolean).length === profileSections.length
-    const hasProfile = profileComplete || completedTasks.includes('career-profile')
+    ];
+    const profileComplete = profileSections.filter(Boolean).length === profileSections.length;
+    const hasProfile = profileComplete || completedTasks.includes('career-profile');
 
     return [
       {
@@ -87,79 +103,79 @@ export function SimpleOnboardingChecklist({ dashboardData }: SimpleOnboardingChe
         title: 'Complete your career profile',
         description: 'Add your work history, education, and skills',
         completed: hasProfile,
-        href: '/career-profile'
+        href: '/career-profile',
       },
       {
         id: 'career-goal',
         title: 'Set your first career goal',
         description: 'Define what you want to achieve next',
         completed: hasGoal,
-        href: '/goals'
+        href: '/goals',
       },
       {
         id: 'resume-creation',
         title: 'Create a resume draft',
         description: 'Start building your professional resume',
         completed: hasResume,
-        href: '/resumes'
+        href: '/resumes',
       },
       {
         id: 'job-application',
         title: 'Track your first application',
         description: 'Start managing your job applications',
         completed: hasApplication,
-        href: '/applications'
+        href: '/applications',
       },
       {
         id: 'network-contact',
         title: 'Add 1 contact to your network',
         description: 'Start building your professional network',
         completed: hasContact,
-        href: '/contacts'
-      }
-    ]
-  }, [onboardingProgress, resumesCount, goalsCount, applicationsCount, contactsCount, userProfile])
+        href: '/contacts',
+      },
+    ];
+  }, [onboardingProgress, resumesCount, goalsCount, applicationsCount, contactsCount, userProfile]);
 
   // Auto-update onboarding progress when items are completed
   useEffect(() => {
-    if (!clerkId || !onboardingProgress) return
+    if (!clerkId || !onboardingProgress) return;
 
-    const completedIds = checklistItems.filter(item => item.completed).map(item => item.id)
-    const currentCompleted = onboardingProgress.completed_tasks || []
+    const completedIds = checklistItems.filter((item) => item.completed).map((item) => item.id);
+    const currentCompleted = onboardingProgress.completed_tasks || [];
 
     // Check if there are new completions
-    const hasNewCompletions = completedIds.some(id => !currentCompleted.includes(id))
+    const hasNewCompletions = completedIds.some((id) => !currentCompleted.includes(id));
 
     if (hasNewCompletions) {
-      updateOnboarding({ clerkId, completed_tasks: completedIds }).catch(console.error)
+      updateOnboarding({ clerkId, completed_tasks: completedIds }).catch(console.error);
     }
-  }, [clerkId, checklistItems, onboardingProgress, updateOnboarding])
+  }, [clerkId, checklistItems, onboardingProgress, updateOnboarding]);
 
-  const completedCount = checklistItems.filter(item => item.completed).length
-  const progressPercentage = (completedCount / checklistItems.length) * 100
+  const completedCount = checklistItems.filter((item) => item.completed).length;
+  const progressPercentage = (completedCount / checklistItems.length) * 100;
 
   const fadeIn = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.3 } }
-  }
+    visible: { opacity: 1, transition: { duration: 0.3 } },
+  };
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={fadeIn}
-      className="mb-6"
-    >
+    <motion.div initial="hidden" animate="visible" variants={fadeIn} className="mb-6">
       <Card className="relative overflow-hidden p-0 shadow-sm">
         <CardHeader className="space-y-1 px-5 py-3">
-          <CardTitle className="text-sm font-semibold text-slate-900">Get Started with Ascentful</CardTitle>
+          <CardTitle className="text-sm font-semibold text-slate-900">
+            Get Started with Ascentful
+          </CardTitle>
           <CardDescription className="text-xs text-slate-500">
-            Want to personalize your dashboard and unlock advanced features? Complete these quick steps.
+            Want to personalize your dashboard and unlock advanced features? Complete these quick
+            steps.
           </CardDescription>
 
           <div className="mt-2">
             <div className="flex justify-between text-xs mb-1">
-              <span>{completedCount} of {checklistItems.length} tasks completed</span>
+              <span>
+                {completedCount} of {checklistItems.length} tasks completed
+              </span>
               <span>{Math.round(progressPercentage)}%</span>
             </div>
             <Progress value={progressPercentage} className="h-1.5" />
@@ -191,9 +207,11 @@ export function SimpleOnboardingChecklist({ dashboardData }: SimpleOnboardingChe
                 </div>
 
                 <div className="flex-grow">
-                  <h3 className={`text-sm font-medium text-slate-800 ${
-                    item.completed ? 'text-green-700 dark:text-green-400' : ''
-                  }`}>
+                  <h3
+                    className={`text-sm font-medium text-slate-800 ${
+                      item.completed ? 'text-green-700 dark:text-green-400' : ''
+                    }`}
+                  >
                     {item.title}
                   </h3>
                   <p className="text-xs text-slate-600">{item.description}</p>
@@ -216,5 +234,5 @@ export function SimpleOnboardingChecklist({ dashboardData }: SimpleOnboardingChe
         </CardContent>
       </Card>
     </motion.div>
-  )
+  );
 }

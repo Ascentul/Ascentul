@@ -12,9 +12,10 @@
  * - Average applications per active job seeker (effort indicator)
  */
 
+import { Award, BarChart3, Briefcase, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, Briefcase, Award, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface OutcomeMetric {
@@ -58,25 +59,17 @@ function MetricTile({ icon, value, label, subtitle, href, highlight }: MetricTil
       className={cn(
         'p-3 rounded-lg border transition-colors',
         href && 'hover:bg-slate-50 hover:border-slate-300 cursor-pointer',
-        highlight ? 'bg-primary/5 border-primary/20' : 'bg-white border-slate-200'
+        highlight ? 'bg-primary/5 border-primary/20' : 'bg-white border-slate-200',
       )}
     >
       <div className="flex items-start gap-3">
-        <div
-          className={cn(
-            'p-2 rounded-lg',
-            highlight ? 'bg-primary/10' : 'bg-slate-100'
-          )}
-        >
+        <div className={cn('p-2 rounded-lg', highlight ? 'bg-primary/10' : 'bg-slate-100')}>
           <div className={highlight ? 'text-primary' : 'text-slate-500'}>{icon}</div>
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-1">
             <span
-              className={cn(
-                'text-2xl font-bold',
-                highlight ? 'text-primary' : 'text-slate-900'
-              )}
+              className={cn('text-2xl font-bold', highlight ? 'text-primary' : 'text-slate-900')}
             >
               {value}
             </span>

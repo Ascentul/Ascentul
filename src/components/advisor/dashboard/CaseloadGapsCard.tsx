@@ -13,10 +13,11 @@
  * - Students without resumes on file
  */
 
+import { ChevronRight, FileText, GraduationCap, Target, Users } from 'lucide-react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Badge } from '@/components/ui/badge';
-import { Users, Target, GraduationCap, FileText, ChevronRight } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface GapCategory {
@@ -154,9 +155,7 @@ export function CaseloadGapsCard({ data, isLoading }: CaseloadGapsCardProps) {
             My Caseload
           </CardTitle>
           {totalGaps > 0 && (
-            <span className="text-xs text-slate-500">
-              {totalGaps} readiness gaps
-            </span>
+            <span className="text-xs text-slate-500">{totalGaps} readiness gaps</span>
           )}
         </div>
       </CardHeader>
@@ -167,9 +166,7 @@ export function CaseloadGapsCard({ data, isLoading }: CaseloadGapsCardProps) {
           className="flex items-center justify-between mb-4 pb-3 border-b group"
         >
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-slate-900">
-              {data.totalStudents}
-            </span>
+            <span className="text-3xl font-bold text-slate-900">{data.totalStudents}</span>
             <span className="text-sm text-slate-500">students</span>
           </div>
           <span className="text-sm text-primary font-medium group-hover:underline flex items-center gap-1">

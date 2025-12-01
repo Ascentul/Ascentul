@@ -1,37 +1,38 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { Bell, MessageCircle, Search } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/contexts/ClerkAuthProvider";
-import { useUser } from "@clerk/nextjs";
-import { useImpersonation } from "@/contexts/ImpersonationContext";
-import Image from "next/image";
-import Link from "next/link";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "convex/_generated/api";
-import { GlobalSearch, useGlobalSearch } from "@/components/GlobalSearch";
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
+import { Bell, MessageCircle, Search } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+
+import { GlobalSearch, useGlobalSearch } from '@/components/GlobalSearch';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { useImpersonation } from '@/contexts/ImpersonationContext';
+import { cn } from '@/lib/utils';
 
 type IconButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   hasUnread?: boolean;
   isActive?: boolean;
 };
 
-function IconButton({ hasUnread, isActive, className = "", children, ...rest }: IconButtonProps) {
+function IconButton({ hasUnread, isActive, className = '', children, ...rest }: IconButtonProps) {
   return (
     <button
       {...rest}
       className={cn(
-        "relative flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm text-slate-500 transition-colors",
-        isActive ? "ring-2 ring-primary-500/30 text-slate-700" : "hover:bg-slate-50 hover:text-slate-700",
-        className
+        'relative flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm text-slate-500 transition-colors',
+        isActive
+          ? 'ring-2 ring-primary-500/30 text-slate-700'
+          : 'hover:bg-slate-50 hover:text-slate-700',
+        className,
       )}
     >
       {children}
-      {hasUnread && (
-        <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
-      )}
+      {hasUnread && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />}
     </button>
   );
 }
@@ -46,40 +47,32 @@ export default function AppTopBar() {
   // Get effective role/plan for badge display
   const effectiveRole = getEffectiveRole();
   const effectivePlan = getEffectivePlan();
-  const effectiveIsAdmin = effectiveRole === "super_admin";
+  const effectiveIsAdmin = effectiveRole === 'super_admin';
 
   // Fetch viewer data to get student context (university name)
-  const viewer = useQuery(
-    api.viewer.getViewer,
-    clerkUser ? {} : "skip"
-  );
+  const viewer = useQuery(api.viewer.getViewer, clerkUser ? {} : 'skip');
 
   // Check if user is university-affiliated (they have a dedicated badge in sidebar)
   const isUniversityAffiliated = viewer?.university != null;
 
   // Compute badge text - only for non-university users (university users have sidebar badge)
-  const badgeText = effectiveIsAdmin || isUniversityAffiliated
-    ? null
-    : impersonation.isImpersonating
-      ? (effectivePlan || effectiveRole)
-      : (subscription.planName || "Free plan");
-  const [openPanel, setOpenPanel] = useState<null | "search" | "messages" | "notifications">(null);
+  const badgeText =
+    effectiveIsAdmin || isUniversityAffiliated
+      ? null
+      : impersonation.isImpersonating
+        ? effectivePlan || effectiveRole
+        : subscription.planName || 'Free plan';
+  const [openPanel, setOpenPanel] = useState<null | 'search' | 'messages' | 'notifications'>(null);
   const [unreadMessages, setUnreadMessages] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-
   // Fetch notification count from Convex
-  const unreadCount = useQuery(
-    api.notifications.getUnreadCount,
-    user ? {} : "skip"
-  );
+  const unreadCount = useQuery(api.notifications.getUnreadCount, user ? {} : 'skip');
 
   // Fetch notifications
   const notifications = useQuery(
     api.notifications.getNotifications,
-    openPanel === "notifications" && user
-      ? { unreadOnly: false }
-      : "skip"
+    openPanel === 'notifications' && user ? { unreadOnly: false } : 'skip',
   );
 
   // Mark notification as read mutation
@@ -88,10 +81,10 @@ export default function AppTopBar() {
 
   const hasUnreadNotifications = (unreadCount ?? 0) > 0;
 
-  const togglePanel = (panel: "search" | "messages" | "notifications") => {
+  const togglePanel = (panel: 'search' | 'messages' | 'notifications') => {
     setOpenPanel((prev) => {
       const next = prev === panel ? null : panel;
-      if (next === "messages") {
+      if (next === 'messages') {
         setUnreadMessages(false);
       }
       return next;
@@ -105,8 +98,8 @@ export default function AppTopBar() {
         setOpenPanel(null);
       }
     };
-    window.addEventListener("mousedown", handler);
-    return () => window.removeEventListener("mousedown", handler);
+    window.addEventListener('mousedown', handler);
+    return () => window.removeEventListener('mousedown', handler);
   }, [openPanel]);
 
   return (
@@ -137,16 +130,16 @@ export default function AppTopBar() {
           <IconButton
             aria-label="Messages"
             hasUnread={unreadMessages}
-            isActive={openPanel === "messages"}
-            onClick={() => togglePanel("messages")}
+            isActive={openPanel === 'messages'}
+            onClick={() => togglePanel('messages')}
           >
             <MessageCircle className="h-4 w-4" />
           </IconButton>
           <IconButton
             aria-label="Notifications"
             hasUnread={hasUnreadNotifications}
-            isActive={openPanel === "notifications"}
-            onClick={() => togglePanel("notifications")}
+            isActive={openPanel === 'notifications'}
+            onClick={() => togglePanel('notifications')}
           >
             <Bell className="h-4 w-4" />
           </IconButton>
@@ -159,7 +152,7 @@ export default function AppTopBar() {
                   src={
                     user?.profile_image ||
                     clerkUser.imageUrl ||
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(clerkUser.firstName || user?.name || "User")}&background=5371FF&color=fff`
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(clerkUser.firstName || user?.name || 'User')}&background=5371FF&color=fff`
                   }
                   alt="Profile"
                   width={40}
@@ -171,22 +164,23 @@ export default function AppTopBar() {
           )}
         </div>
 
-        {openPanel === "messages" && (
+        {openPanel === 'messages' && (
           <div className="absolute right-4 top-[calc(100%+8px)] w-full max-w-xs rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
             <p className="mb-2 text-xs font-semibold text-slate-500">Messages</p>
             <p className="text-sm text-slate-600">No new messages.</p>
           </div>
         )}
 
-        {openPanel === "notifications" && (
+        {openPanel === 'notifications' && (
           <div className="absolute right-4 top-[calc(100%+8px)] w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-200 p-3">
               <p className="text-sm font-semibold text-slate-900">Notifications</p>
               {hasUnreadNotifications && (
                 <button
                   onClick={() => {
-                    markAllAsRead({})
-                      .catch((err) => console.error("Failed to mark all notifications as read:", err));
+                    markAllAsRead({}).catch((err) =>
+                      console.error('Failed to mark all notifications as read:', err),
+                    );
                   }}
                   className="text-xs text-[#4257FF] hover:text-[#3f5dde] transition-colors"
                 >
@@ -205,13 +199,14 @@ export default function AppTopBar() {
                     <div
                       key={notification._id}
                       className={cn(
-                        "p-3 hover:bg-slate-50 transition-colors cursor-pointer",
-                        !notification.read && "bg-blue-50/50"
+                        'p-3 hover:bg-slate-50 transition-colors cursor-pointer',
+                        !notification.read && 'bg-blue-50/50',
                       )}
                       onClick={() => {
                         if (!notification.read) {
-                          markAsRead({ notificationId: notification._id })
-                            .catch((err) => console.error("Failed to mark notification as read:", err));
+                          markAsRead({ notificationId: notification._id }).catch((err) =>
+                            console.error('Failed to mark notification as read:', err),
+                          );
                         }
                         if (notification.link) {
                           router.push(notification.link);
@@ -220,12 +215,8 @@ export default function AppTopBar() {
                     >
                       <div className="flex items-start gap-3">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-900">
-                            {notification.title}
-                          </p>
-                          <p className="text-xs text-slate-600 mt-0.5">
-                            {notification.message}
-                          </p>
+                          <p className="text-sm font-medium text-slate-900">{notification.title}</p>
+                          <p className="text-xs text-slate-600 mt-0.5">{notification.message}</p>
                           <p className="text-xs text-slate-400 mt-1">
                             {new Date(notification.created_at).toLocaleString()}
                           </p>

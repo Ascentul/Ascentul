@@ -13,23 +13,24 @@
  * task management within sessions.
  */
 
-import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
+import { v } from 'convex/values';
+
+import { mutation, query } from './_generated/server';
 import {
-  getCurrentUser,
-  requireTenant,
-  requireAdvisorRole,
   assertCanAccessStudent,
   createAuditLog,
-} from "./advisor_auth";
-import { getAuthenticatedUser } from "./lib/roles";
+  getCurrentUser,
+  requireAdvisorRole,
+  requireTenant,
+} from './advisor_auth';
+import { getAuthenticatedUser } from './lib/roles';
 
 /**
  * Get a single session by ID
  */
 export const getSessionById = query({
   args: {
-    sessionId: v.id("advisor_sessions"),
+    sessionId: v.id('advisor_sessions'),
   },
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
@@ -39,12 +40,12 @@ export const getSessionById = query({
 
     const session = await ctx.db.get(args.sessionId);
     if (!session) {
-      throw new Error("Session not found");
+      throw new Error('Session not found');
     }
 
     // Verify tenant isolation
     if (session.university_id !== universityId) {
-      throw new Error("Unauthorized: Session not in your university");
+      throw new Error('Unauthorized: Session not in your university');
     }
 
     // Verify advisor can access this student
@@ -55,8 +56,8 @@ export const getSessionById = query({
 
     return {
       ...session,
-      student_name: student?.name || "Unknown",
-      student_email: student?.email || "",
+      student_name: student?.name || 'Unknown',
+      student_email: student?.email || '',
     };
   },
 });
@@ -103,9 +104,10 @@ export const getSessions = query({
       sessions = await ctx.db
         .query('advisor_sessions')
         .withIndex('by_advisor_student', (q) =>
-          q.eq('advisor_id', sessionCtx.userId)
-           .eq('student_id', studentId)
-           .eq('university_id', universityId)
+          q
+            .eq('advisor_id', sessionCtx.userId)
+            .eq('student_id', studentId)
+            .eq('university_id', universityId),
         )
         .collect();
     } else if (args.startDate) {
@@ -114,8 +116,7 @@ export const getSessions = query({
       sessions = await ctx.db
         .query('advisor_sessions')
         .withIndex('by_advisor_scheduled', (q) =>
-          q.eq('advisor_id', sessionCtx.userId)
-           .gte('scheduled_at', args.startDate)
+          q.eq('advisor_id', sessionCtx.userId).gte('scheduled_at', args.startDate),
         )
         .filter((q) => q.eq(q.field('university_id'), universityId))
         .collect();
@@ -124,7 +125,7 @@ export const getSessions = query({
       sessions = await ctx.db
         .query('advisor_sessions')
         .withIndex('by_advisor', (q) =>
-          q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId)
+          q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
         )
         .collect();
     }
@@ -182,14 +183,14 @@ export const getTodaySessions = query({
 
     // Use collect() to return all sessions for the day (typically < 20 for most advisors)
     const sessions = await ctx.db
-      .query("advisor_sessions")
-      .withIndex("by_advisor_scheduled", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).gte("scheduled_at", startOfDay),
+      .query('advisor_sessions')
+      .withIndex('by_advisor_scheduled', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).gte('scheduled_at', startOfDay),
       )
       .filter((q) =>
         q.and(
-          q.eq(q.field("university_id"), universityId),
-          q.lt(q.field("scheduled_at"), endOfDay),
+          q.eq(q.field('university_id'), universityId),
+          q.lt(q.field('scheduled_at'), endOfDay),
         ),
       )
       .collect();
@@ -217,13 +218,13 @@ export const getTodaySessions = query({
  */
 export const addSessionTask = mutation({
   args: {
-    sessionId: v.id("advisor_sessions"),
+    sessionId: v.id('advisor_sessions'),
     task: v.object({
       id: v.string(),
       title: v.string(),
       due_at: v.optional(v.number()),
-      owner: v.union(v.literal("student"), v.literal("advisor")),
-      status: v.union(v.literal("open"), v.literal("done")),
+      owner: v.union(v.literal('student'), v.literal('advisor')),
+      status: v.union(v.literal('open'), v.literal('done')),
     }),
   },
   handler: async (ctx, args) => {
@@ -233,13 +234,13 @@ export const addSessionTask = mutation({
 
     const session = await ctx.db.get(args.sessionId);
     if (!session) {
-      throw new Error("Session not found");
+      throw new Error('Session not found');
     }
 
     // Verify tenant isolation
     const universityId = requireTenant(sessionCtx);
     if (session.university_id !== universityId) {
-      throw new Error("Unauthorized: Session not in your university");
+      throw new Error('Unauthorized: Session not in your university');
     }
 
     await assertCanAccessStudent(ctx, sessionCtx, session.student_id);
@@ -251,8 +252,8 @@ export const addSessionTask = mutation({
     const currentTasks = session.tasks || [];
 
     // Ensure task ID is unique within session
-    if (currentTasks.some(t => t.id === args.task.id)) {
-      throw new Error("Task ID already exists in this session");
+    if (currentTasks.some((t) => t.id === args.task.id)) {
+      throw new Error('Task ID already exists in this session');
     }
 
     const updatedTasks = [...currentTasks, args.task];
@@ -272,7 +273,7 @@ export const addSessionTask = mutation({
  */
 export const completeSession = mutation({
   args: {
-    sessionId: v.id("advisor_sessions"),
+    sessionId: v.id('advisor_sessions'),
     finalNotes: v.optional(v.string()),
     outcomes: v.optional(v.array(v.string())),
   },
@@ -283,25 +284,25 @@ export const completeSession = mutation({
 
     const session = await ctx.db.get(args.sessionId);
     if (!session) {
-      throw new Error("Session not found");
+      throw new Error('Session not found');
     }
 
     // Verify tenant isolation
     const universityId = requireTenant(sessionCtx);
     if (session.university_id !== universityId) {
-      throw new Error("Unauthorized: Session not in your university");
+      throw new Error('Unauthorized: Session not in your university');
     }
 
     // Strict ownership check: Only the original advisor can complete their own session.
     // This differs from updateSession/addSessionTask which allow collaborative editing.
     if (session.advisor_id !== sessionCtx.userId) {
-      throw new Error("Unauthorized: Only the session creator can complete it");
+      throw new Error('Unauthorized: Only the session creator can complete it');
     }
 
     const now = Date.now();
 
     await ctx.db.patch(args.sessionId, {
-      status: "completed",
+      status: 'completed',
       end_at: now,
       notes: args.finalNotes !== undefined ? args.finalNotes : session.notes,
       outcomes: args.outcomes !== undefined ? args.outcomes : session.outcomes,
@@ -313,8 +314,8 @@ export const completeSession = mutation({
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId: session.university_id,
-      action: "session.completed",
-      entityType: "advisor_session",
+      action: 'session.completed',
+      entityType: 'advisor_session',
       entityId: args.sessionId,
       studentId: session.student_id,
       newValue: { completed_at: now },

@@ -1,53 +1,62 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { api } from 'convex/_generated/api'
-import sgMail from '@sendgrid/mail'
+import { auth } from '@clerk/nextjs/server';
+import sgMail from '@sendgrid/mail';
+import { api } from 'convex/_generated/api';
+import { NextRequest, NextResponse } from 'next/server';
+
 import { convexServer } from '@/lib/convex-server';
 
 // Initialize SendGrid
 if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const { userId, getToken } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const token = await getToken({ template: 'convex' })
-    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
-    const tickets = await convexServer.query(api.support_tickets.listTickets, { clerkId: userId }, token)
-    return NextResponse.json({ tickets })
+    const { userId, getToken } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const token = await getToken({ template: 'convex' });
+    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 });
+    const tickets = await convexServer.query(
+      api.support_tickets.listTickets,
+      { clerkId: userId },
+      token,
+    );
+    return NextResponse.json({ tickets });
   } catch (error) {
-    console.error('Error fetching support tickets:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error fetching support tickets:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, getToken } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const token = await getToken({ template: 'convex' })
-    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 })
-    const body = await request.json()
-    const { subject, description, issueType, source } = body
+    const { userId, getToken } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const token = await getToken({ template: 'convex' });
+    if (!token) return NextResponse.json({ error: 'Failed to obtain auth token' }, { status: 401 });
+    const body = await request.json();
+    const { subject, description, issueType, source } = body;
 
     if (!subject || !description) {
-      return NextResponse.json({ error: 'Subject and description are required' }, { status: 400 })
+      return NextResponse.json({ error: 'Subject and description are required' }, { status: 400 });
     }
 
     // Get user info to send email
-    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token)
+    const user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token);
 
-    const ticket = await convexServer.mutation(api.support_tickets.createTicket, {
-      clerkId: userId,
-      subject: String(subject),
-      description: String(description),
-      issue_type: issueType ? String(issueType) : undefined,
-      source: source ? String(source) : 'in-app',
-    }, token)
+    const ticket = await convexServer.mutation(
+      api.support_tickets.createTicket,
+      {
+        clerkId: userId,
+        subject: String(subject),
+        description: String(description),
+        issue_type: issueType ? String(issueType) : undefined,
+        source: source ? String(source) : 'in-app',
+      },
+      token,
+    );
 
     // Send email notification to user
     if (process.env.SENDGRID_API_KEY && user?.email) {
@@ -80,21 +89,24 @@ export async function POST(request: NextRequest) {
               </p>
             </div>
           `,
-        }
+        };
 
-        await sgMail.send(msg)
+        await sgMail.send(msg);
       } catch (emailError) {
-        console.error('Error sending support ticket email:', emailError)
+        console.error('Error sending support ticket email:', emailError);
         // Don't fail the ticket creation if email fails
       }
     }
 
-    return NextResponse.json({
-      ticket,
-      message: 'Support ticket submitted successfully!'
-    }, { status: 201 })
+    return NextResponse.json(
+      {
+        ticket,
+        message: 'Support ticket submitted successfully!',
+      },
+      { status: 201 },
+    );
   } catch (error) {
-    console.error('Error creating support ticket:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error creating support ticket:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

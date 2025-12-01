@@ -1,15 +1,16 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { PenSquare, Clock, CalendarClock, ThumbsUp, X, ChevronDown } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { CalendarClock, ChevronDown, Clock, PenSquare, ThumbsUp, X } from 'lucide-react';
+import { useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { cn } from '@/lib/utils'
+} from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
 export type ApplicationStatusLabel =
   | 'Not Started'
@@ -17,15 +18,15 @@ export type ApplicationStatusLabel =
   | 'Applied'
   | 'Interviewing'
   | 'Offer'
-  | 'Rejected'
+  | 'Rejected';
 
 interface ApplicationStatusBadgeProps {
-  status: ApplicationStatusLabel | string
-  size?: 'sm' | 'default'
-  className?: string
-  showIcon?: boolean
-  onStatusChange?: (status: ApplicationStatusLabel) => void
-  clickable?: boolean
+  status: ApplicationStatusLabel | string;
+  size?: 'sm' | 'default';
+  className?: string;
+  showIcon?: boolean;
+  onStatusChange?: (status: ApplicationStatusLabel) => void;
+  clickable?: boolean;
 }
 
 const statusConfig: Record<string, { color: string; icon: React.ReactNode; label?: string }> = {
@@ -57,7 +58,7 @@ const statusConfig: Record<string, { color: string; icon: React.ReactNode; label
     color: 'bg-slate-100 text-slate-800 border-slate-200',
     icon: <PenSquare className="h-3 w-3 mr-1" />,
   },
-}
+};
 
 const allStatuses: ApplicationStatusLabel[] = [
   'In Progress',
@@ -65,7 +66,7 @@ const allStatuses: ApplicationStatusLabel[] = [
   'Interviewing',
   'Offer',
   'Rejected',
-]
+];
 
 export function ApplicationStatusBadge({
   status,
@@ -73,9 +74,9 @@ export function ApplicationStatusBadge({
   className,
   showIcon = true,
   onStatusChange,
-  clickable = false
+  clickable = false,
 }: ApplicationStatusBadgeProps) {
-  const config = statusConfig[status] || statusConfig.default
+  const config = statusConfig[status] || statusConfig.default;
 
   if (!onStatusChange && !clickable) {
     return (
@@ -85,13 +86,13 @@ export function ApplicationStatusBadge({
           config.color,
           size === 'sm' ? 'text-xs py-0 px-1.5' : '',
           'flex items-center',
-          className
+          className,
         )}
       >
         {showIcon && config.icon}
         <span>{config.label || status}</span>
       </Badge>
-    )
+    );
   }
 
   return (
@@ -102,7 +103,7 @@ export function ApplicationStatusBadge({
             'inline-flex items-center gap-1 rounded-md border px-2.5 py-0.5 font-semibold transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
             config.color,
             size === 'sm' ? 'text-xs py-0 px-1.5' : 'text-xs',
-            className
+            className,
           )}
         >
           {showIcon && config.icon}
@@ -112,7 +113,7 @@ export function ApplicationStatusBadge({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {allStatuses.map((statusOption) => {
-          const optionConfig = statusConfig[statusOption]
+          const optionConfig = statusConfig[statusOption];
           return (
             <DropdownMenuItem
               key={statusOption}
@@ -122,9 +123,9 @@ export function ApplicationStatusBadge({
               {showIcon && optionConfig.icon}
               <span>{statusOption}</span>
             </DropdownMenuItem>
-          )
+          );
         })}
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

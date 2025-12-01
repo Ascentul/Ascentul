@@ -19,8 +19,9 @@
  * Current approach is sufficient for expected advisor session volumes.
  */
 
-import { internalMutation, internalQuery } from "./_generated/server";
-import { v } from "convex/values";
+import { v } from 'convex/values';
+
+import { internalMutation, internalQuery } from './_generated/server';
 
 /**
  * Backfill scheduled_at from start_at for sessions missing scheduled_at
@@ -43,7 +44,7 @@ export const backfillScheduledAt = internalMutation({
     const errors: string[] = [];
 
     // Get all sessions at once
-    const sessions = await ctx.db.query("advisor_sessions").collect();
+    const sessions = await ctx.db.query('advisor_sessions').collect();
 
     for (const session of sessions) {
       totalProcessed++;
@@ -54,7 +55,9 @@ export const backfillScheduledAt = internalMutation({
         if (session.scheduled_at !== undefined) {
           alreadySet++;
           if (totalProcessed % 100 === 0) {
-            console.log(`  ✓ ${sessionLabel} already has scheduled_at: ${new Date(session.scheduled_at).toISOString()}`);
+            console.log(
+              `  ✓ ${sessionLabel} already has scheduled_at: ${new Date(session.scheduled_at).toISOString()}`,
+            );
           }
           continue;
         }
@@ -69,7 +72,9 @@ export const backfillScheduledAt = internalMutation({
         }
 
         // Backfill scheduled_at from start_at
-        console.log(`📝 ${sessionLabel}: backfilling scheduled_at from start_at (${new Date(session.start_at).toISOString()})`);
+        console.log(
+          `📝 ${sessionLabel}: backfilling scheduled_at from start_at (${new Date(session.start_at).toISOString()})`,
+        );
 
         if (!dryRun) {
           await ctx.db.patch(session._id, {
@@ -103,7 +108,7 @@ export const backfillScheduledAt = internalMutation({
         : `Successfully backfilled ${migrated} sessions (${alreadySet} already had scheduled_at, ${skipped} skipped)`,
     };
 
-    console.log("\n✅ Migration complete!");
+    console.log('\n✅ Migration complete!');
     console.log(JSON.stringify(summary, null, 2));
 
     return summary;
@@ -118,11 +123,11 @@ export const backfillScheduledAt = internalMutation({
 export const verifyMigration = internalQuery({
   args: {},
   handler: async (ctx) => {
-    console.log("🔍 Verifying advisor_sessions scheduled_at migration...");
+    console.log('🔍 Verifying advisor_sessions scheduled_at migration...');
 
-    const allSessions = await ctx.db.query("advisor_sessions").collect();
-    const withoutScheduledAt = allSessions.filter(session => session.scheduled_at === undefined);
-    const withScheduledAt = allSessions.filter(session => session.scheduled_at !== undefined);
+    const allSessions = await ctx.db.query('advisor_sessions').collect();
+    const withoutScheduledAt = allSessions.filter((session) => session.scheduled_at === undefined);
+    const withScheduledAt = allSessions.filter((session) => session.scheduled_at !== undefined);
 
     // Check for mismatches (where scheduled_at !== start_at after migration)
     const mismatches: Array<{
@@ -152,15 +157,18 @@ export const verifyMigration = internalQuery({
       mismatches: mismatches.length,
       mismatchDetails: mismatches.slice(0, 10), // Show first 10
       complete: withoutScheduledAt.length === 0,
-      note: mismatches.length > 0
-        ? "Some sessions have scheduled_at !== start_at, which is expected if they were rescheduled"
-        : "All sessions have scheduled_at set",
+      note:
+        mismatches.length > 0
+          ? 'Some sessions have scheduled_at !== start_at, which is expected if they were rescheduled'
+          : 'All sessions have scheduled_at set',
     };
 
     if (result.complete) {
-      console.log("✅ Migration complete and verified!");
+      console.log('✅ Migration complete and verified!');
       if (mismatches.length > 0) {
-        console.log(`ℹ️  ${mismatches.length} sessions have different scheduled_at vs start_at (expected for rescheduled sessions)`);
+        console.log(
+          `ℹ️  ${mismatches.length} sessions have different scheduled_at vs start_at (expected for rescheduled sessions)`,
+        );
       }
     } else {
       console.error(`❌ ${withoutScheduledAt.length} sessions missing scheduled_at field`);
@@ -179,14 +187,16 @@ export const verifyMigration = internalQuery({
 export const getMigrationStats = internalQuery({
   args: {},
   handler: async (ctx) => {
-    const allSessions = await ctx.db.query("advisor_sessions").collect();
+    const allSessions = await ctx.db.query('advisor_sessions').collect();
 
     const stats = {
       total: allSessions.length,
-      withScheduledAt: allSessions.filter(s => s.scheduled_at !== undefined).length,
-      withoutScheduledAt: allSessions.filter(s => s.scheduled_at === undefined).length,
-      matching: allSessions.filter(s => s.scheduled_at === s.start_at).length,
-      different: allSessions.filter(s => s.scheduled_at !== undefined && s.scheduled_at !== s.start_at).length,
+      withScheduledAt: allSessions.filter((s) => s.scheduled_at !== undefined).length,
+      withoutScheduledAt: allSessions.filter((s) => s.scheduled_at === undefined).length,
+      matching: allSessions.filter((s) => s.scheduled_at === s.start_at).length,
+      different: allSessions.filter(
+        (s) => s.scheduled_at !== undefined && s.scheduled_at !== s.start_at,
+      ).length,
     };
 
     return stats;

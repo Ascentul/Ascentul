@@ -15,16 +15,17 @@
  * - Progress and Outcomes
  */
 
-import { query } from "./_generated/server";
-import { v } from "convex/values";
+import { v } from 'convex/values';
+
+import { Id } from './_generated/dataModel';
+import { query } from './_generated/server';
 import {
   getCurrentUser,
+  getOwnedStudentIds,
   requireAdvisorRole,
   requireTenant,
-  getOwnedStudentIds,
-} from "./advisor_auth";
+} from './advisor_auth';
 import { ACTIVE_STAGES } from './advisor_constants';
-import { Id } from "./_generated/dataModel";
 
 // Configuration constants (can be moved to a settings table later)
 const CONFIG = {
@@ -56,21 +57,19 @@ export const getNeedsAttentionToday = query({
 
     // 1. Overdue follow-ups (due date in the past, still open)
     const allFollowUps = await ctx.db
-      .query("follow_ups")
-      .withIndex("by_university", (q) => q.eq("university_id", universityId))
+      .query('follow_ups')
+      .withIndex('by_university', (q) => q.eq('university_id', universityId))
       .filter((q) =>
         q.and(
-          q.eq(q.field("created_by_id"), sessionCtx.userId),
-          q.eq(q.field("created_by_type"), "advisor"),
-          q.eq(q.field("status"), "open"),
-          q.lt(q.field("due_at"), now)
-        )
+          q.eq(q.field('created_by_id'), sessionCtx.userId),
+          q.eq(q.field('created_by_type'), 'advisor'),
+          q.eq(q.field('status'), 'open'),
+          q.lt(q.field('due_at'), now),
+        ),
       )
       .collect();
 
-    const overdueFollowUps = allFollowUps.filter((f) =>
-      studentIdSet.has(f.user_id)
-    );
+    const overdueFollowUps = allFollowUps.filter((f) => studentIdSet.has(f.user_id));
 
     // Enrich with student names
     const overdueFollowUpsEnriched = await Promise.all(
@@ -79,37 +78,32 @@ export const getNeedsAttentionToday = query({
         return {
           _id: f._id,
           student_id: f.user_id,
-          student_name: student?.name || "Unknown",
+          student_name: student?.name || 'Unknown',
           title: f.title,
           due_at: f.due_at,
           priority: f.priority,
         };
-      })
+      }),
     );
 
     // 2. Past sessions without notes (completed sessions with no notes)
     const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
     const pastSessions = await ctx.db
-      .query("advisor_sessions")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId)
+      .query('advisor_sessions')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
       .filter((q) =>
         q.and(
-          q.lt(q.field("start_at"), now),
-          q.gte(q.field("start_at"), oneWeekAgo),
-          q.or(
-            q.eq(q.field("status"), "completed"),
-            q.eq(q.field("status"), undefined)
-          )
-        )
+          q.lt(q.field('start_at'), now),
+          q.gte(q.field('start_at'), oneWeekAgo),
+          q.or(q.eq(q.field('status'), 'completed'), q.eq(q.field('status'), undefined)),
+        ),
       )
       .collect();
 
     // Filter to sessions without notes
-    const sessionsWithoutNotes = pastSessions.filter(
-      (s) => !s.notes || s.notes.trim() === ""
-    );
+    const sessionsWithoutNotes = pastSessions.filter((s) => !s.notes || s.notes.trim() === '');
 
     const sessionsWithoutNotesEnriched = await Promise.all(
       sessionsWithoutNotes.slice(0, 10).map(async (s) => {
@@ -117,12 +111,12 @@ export const getNeedsAttentionToday = query({
         return {
           _id: s._id,
           student_id: s.student_id,
-          student_name: student?.name || "Unknown",
+          student_name: student?.name || 'Unknown',
           title: s.title,
           start_at: s.start_at,
           session_type: s.session_type,
         };
-      })
+      }),
     );
 
     // 3. Students with no contact in N days
@@ -130,16 +124,14 @@ export const getNeedsAttentionToday = query({
     const noContactCutoff = now - CONFIG.NO_CONTACT_DAYS * 24 * 60 * 60 * 1000;
 
     // Get all students in caseload
-    const students = await Promise.all(
-      studentIds.map((id) => ctx.db.get(id))
-    );
+    const students = await Promise.all(studentIds.map((id) => ctx.db.get(id)));
     const validStudents = students.filter((s): s is NonNullable<typeof s> => s !== null);
 
     // Batch load all sessions for this advisor to avoid N+1 queries
     const allSessions = await ctx.db
-      .query("advisor_sessions")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId)
+      .query('advisor_sessions')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
       .collect();
 
@@ -158,10 +150,10 @@ export const getNeedsAttentionToday = query({
     // Note: We query by user_id which is the student, so we need to check each student
     const followUpPromises = validStudents.map((student) =>
       ctx.db
-        .query("follow_ups")
-        .withIndex("by_user", (q) => q.eq("user_id", student._id))
-        .order("desc")
-        .first()
+        .query('follow_ups')
+        .withIndex('by_user', (q) => q.eq('user_id', student._id))
+        .order('desc')
+        .first(),
     );
     const allLastFollowUps = await Promise.all(followUpPromises);
 
@@ -177,7 +169,7 @@ export const getNeedsAttentionToday = query({
 
     // For each student, check recent activity using pre-loaded data
     const studentsNoContact: Array<{
-      _id: Id<"users">;
+      _id: Id<'users'>;
       name: string;
       email: string;
       last_activity: number | null;
@@ -193,9 +185,10 @@ export const getNeedsAttentionToday = query({
       const lastActivity = Math.max(lastSessionTime, lastFollowUpTime, lastLoginTime);
 
       if (lastActivity < noContactCutoff || lastActivity === 0) {
-        const daysInactive = lastActivity === 0
-          ? CONFIG.NO_CONTACT_DAYS + 1
-          : Math.floor((now - lastActivity) / (24 * 60 * 60 * 1000));
+        const daysInactive =
+          lastActivity === 0
+            ? CONFIG.NO_CONTACT_DAYS + 1
+            : Math.floor((now - lastActivity) / (24 * 60 * 60 * 1000));
 
         studentsNoContact.push({
           _id: student._id,
@@ -213,14 +206,12 @@ export const getNeedsAttentionToday = query({
     // 4. Pending reviews that are urgent (waiting > 3 days)
     const threeDaysAgo = now - 3 * 24 * 60 * 60 * 1000;
     const allPendingReviews = await ctx.db
-      .query("advisor_reviews")
-      .withIndex("by_status", (q) =>
-        q.eq("status", "waiting").eq("university_id", universityId)
-      )
+      .query('advisor_reviews')
+      .withIndex('by_status', (q) => q.eq('status', 'waiting').eq('university_id', universityId))
       .collect();
 
     const urgentReviews = allPendingReviews.filter(
-      (r) => studentIdSet.has(r.student_id) && r.created_at < threeDaysAgo
+      (r) => studentIdSet.has(r.student_id) && r.created_at < threeDaysAgo,
     );
 
     const urgentReviewsEnriched = await Promise.all(
@@ -229,12 +220,12 @@ export const getNeedsAttentionToday = query({
         return {
           _id: r._id,
           student_id: r.student_id,
-          student_name: student?.name || "Unknown",
+          student_name: student?.name || 'Unknown',
           asset_type: r.asset_type,
           submitted_at: r.created_at,
           days_waiting: Math.floor((now - r.created_at) / (24 * 60 * 60 * 1000)),
         };
-      })
+      }),
     );
 
     return {
@@ -280,22 +271,16 @@ export const getRiskOverview = query({
     const now = Date.now();
 
     // Get all students with their data
-    const students = await Promise.all(
-      studentIds.map((id) => ctx.db.get(id))
-    );
+    const students = await Promise.all(studentIds.map((id) => ctx.db.get(id)));
     const validStudents = students.filter((s): s is NonNullable<typeof s> => s !== null);
 
     // Get all applications for caseload students
     const advisorApplications = await ctx.db
-      .query("applications")
-      .withIndex("by_advisor", (q) =>
-        q.eq("assigned_advisor_id", sessionCtx.userId)
-      )
+      .query('applications')
+      .withIndex('by_advisor', (q) => q.eq('assigned_advisor_id', sessionCtx.userId))
       .collect();
 
-    const caseloadApps = advisorApplications.filter((a) =>
-      studentIdSet.has(a.user_id)
-    );
+    const caseloadApps = advisorApplications.filter((a) => studentIdSet.has(a.user_id));
 
     // Group applications by student
     const appsByStudent = new Map<string, typeof caseloadApps>();
@@ -310,7 +295,7 @@ export const getRiskOverview = query({
     // 1. Low Engagement - no logins, sessions, or tracked activity for N days
     const lowEngagementCutoff = now - CONFIG.LOW_ENGAGEMENT_DAYS * 24 * 60 * 60 * 1000;
     const lowEngagementStudents: Array<{
-      _id: Id<"users">;
+      _id: Id<'users'>;
       name: string;
       last_login_at: number | null;
       days_inactive: number;
@@ -318,16 +303,16 @@ export const getRiskOverview = query({
 
     // Batch load all recent sessions for low engagement check (avoids N+1 queries)
     const allRecentSessions = await ctx.db
-      .query("advisor_sessions")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId)
+      .query('advisor_sessions')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
-      .filter((q) => q.gte(q.field("start_at"), lowEngagementCutoff))
+      .filter((q) => q.gte(q.field('start_at'), lowEngagementCutoff))
       .collect();
 
     // Build set of students with recent sessions for O(1) lookup
     const studentsWithRecentSessions = new Set<string>(
-      allRecentSessions.map((s) => s.student_id as string)
+      allRecentSessions.map((s) => s.student_id as string),
     );
 
     for (const student of validStudents) {
@@ -335,9 +320,10 @@ export const getRiskOverview = query({
       const hasRecentSession = studentsWithRecentSessions.has(student._id as string);
 
       if (!hasRecentSession && lastLogin < lowEngagementCutoff) {
-        const daysInactive = lastLogin === 0
-          ? CONFIG.LOW_ENGAGEMENT_DAYS + 1
-          : Math.floor((now - lastLogin) / (24 * 60 * 60 * 1000));
+        const daysInactive =
+          lastLogin === 0
+            ? CONFIG.LOW_ENGAGEMENT_DAYS + 1
+            : Math.floor((now - lastLogin) / (24 * 60 * 60 * 1000));
 
         lowEngagementStudents.push({
           _id: student._id,
@@ -351,7 +337,7 @@ export const getRiskOverview = query({
     // 2. Stalled Search - at least one application but no status change for N days
     const stalledCutoff = now - CONFIG.STALLED_SEARCH_DAYS * 24 * 60 * 60 * 1000;
     const stalledSearchStudents: Array<{
-      _id: Id<"users">;
+      _id: Id<'users'>;
       name: string;
       total_apps: number;
       has_interview: boolean;
@@ -361,7 +347,7 @@ export const getRiskOverview = query({
 
     // Legacy at-risk: >5 apps, no offers (keeping for compatibility)
     const atRiskNoOfferStudents: Array<{
-      _id: Id<"users">;
+      _id: Id<'users'>;
       name: string;
       total_apps: number;
     }> = [];
@@ -373,15 +359,15 @@ export const getRiskOverview = query({
       // Check for offers/interviews using stage with status fallback during migration
       // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
       const hasOffer = studentApps.some(
-        (a) => a.stage === "Offer" || a.stage === "Accepted" || (!a.stage && a.status === "offer")
+        (a) => a.stage === 'Offer' || a.stage === 'Accepted' || (!a.stage && a.status === 'offer'),
       );
       const hasInterview = studentApps.some(
-        (a) => a.stage === "Interview" || (!a.stage && a.status === "interview")
+        (a) => a.stage === 'Interview' || (!a.stage && a.status === 'interview'),
       );
 
       // Check last status change (using stage_set_at or updated_at)
       const lastUpdate = Math.max(
-        ...studentApps.map((a) => a.stage_set_at || a.updated_at || a._creationTime)
+        ...studentApps.map((a) => a.stage_set_at || a.updated_at || a._creationTime),
       );
 
       // Stalled: has apps but no movement
@@ -415,16 +401,16 @@ export const getRiskOverview = query({
     const atRiskIds = new Set([...lowEngagementIds, ...stalledIds]);
 
     const priorityStudents: Array<{
-      _id: Id<"users">;
+      _id: Id<'users'>;
       name: string;
       graduation_year: string | undefined;
-      risk_type: "low_engagement" | "stalled_search" | "both";
+      risk_type: 'low_engagement' | 'stalled_search' | 'both';
     }> = [];
 
     for (const student of validStudents) {
       // Check if student is in a priority population (seniors or entry-level)
       const isSenior = student.graduation_year === CONFIG.SENIOR_GRADUATION_YEAR;
-      const isEntryLevel = student.experience_level === "entry";
+      const isEntryLevel = student.experience_level === 'entry';
 
       if ((isSenior || isEntryLevel) && atRiskIds.has(student._id)) {
         const isLowEngagement = lowEngagementIds.has(student._id);
@@ -434,7 +420,12 @@ export const getRiskOverview = query({
           _id: student._id,
           name: student.name,
           graduation_year: student.graduation_year,
-          risk_type: isLowEngagement && isStalled ? "both" : isLowEngagement ? "low_engagement" : "stalled_search",
+          risk_type:
+            isLowEngagement && isStalled
+              ? 'both'
+              : isLowEngagement
+                ? 'low_engagement'
+                : 'stalled_search',
         });
       }
     }
@@ -455,12 +446,12 @@ export const getRiskOverview = query({
       priorityPopulation: {
         count: priorityStudents.length,
         items: priorityStudents.slice(0, 10),
-        subtitle: "Seniors or entry-level students with engagement/search concerns",
+        subtitle: 'Seniors or entry-level students with engagement/search concerns',
       },
       atRiskNoOffer: {
         count: atRiskNoOfferStudents.length,
         items: atRiskNoOfferStudents.slice(0, 10),
-        subtitle: ">5 applications but no offers yet",
+        subtitle: '>5 applications but no offers yet',
       },
     };
   },
@@ -483,24 +474,22 @@ export const getCaseloadGaps = query({
     const studentIdSet = new Set(studentIds);
 
     // Get all students
-    const students = await Promise.all(
-      studentIds.map((id) => ctx.db.get(id))
-    );
+    const students = await Promise.all(studentIds.map((id) => ctx.db.get(id)));
     const validStudents = students.filter((s): s is NonNullable<typeof s> => s !== null);
 
     // 1. Students with no goal or career path defined
     const studentsNoGoal: Array<{
-      _id: Id<"users">;
+      _id: Id<'users'>;
       name: string;
       email: string;
     }> = [];
 
     for (const student of validStudents) {
       // Check if student has career_goals field set or has goals in goals table
-      if (!student.career_goals || student.career_goals.trim() === "") {
+      if (!student.career_goals || student.career_goals.trim() === '') {
         const goals = await ctx.db
-          .query("goals")
-          .withIndex("by_user", (q) => q.eq("user_id", student._id))
+          .query('goals')
+          .withIndex('by_user', (q) => q.eq('user_id', student._id))
           .first();
 
         if (!goals) {
@@ -515,29 +504,25 @@ export const getCaseloadGaps = query({
 
     // 2. Seniors (or near graduation) with zero applications
     const seniorsNoApps: Array<{
-      _id: Id<"users">;
+      _id: Id<'users'>;
       name: string;
       graduation_year: string | undefined;
     }> = [];
 
     // Get applications for caseload
     const advisorApplications = await ctx.db
-      .query("applications")
-      .withIndex("by_advisor", (q) =>
-        q.eq("assigned_advisor_id", sessionCtx.userId)
-      )
+      .query('applications')
+      .withIndex('by_advisor', (q) => q.eq('assigned_advisor_id', sessionCtx.userId))
       .collect();
 
     const studentsWithApps = new Set(
-      advisorApplications
-        .filter((a) => studentIdSet.has(a.user_id))
-        .map((a) => a.user_id)
+      advisorApplications.filter((a) => studentIdSet.has(a.user_id)).map((a) => a.user_id),
     );
 
     for (const student of validStudents) {
       // Check if senior (current year or next year graduation)
       const currentYear = new Date().getFullYear();
-      const gradYear = parseInt(student.graduation_year || "0", 10);
+      const gradYear = parseInt(student.graduation_year || '0', 10);
 
       if (gradYear >= currentYear && gradYear <= currentYear + 1) {
         if (!studentsWithApps.has(student._id)) {
@@ -552,15 +537,15 @@ export const getCaseloadGaps = query({
 
     // 3. Students with no resume on file
     const studentsNoResume: Array<{
-      _id: Id<"users">;
+      _id: Id<'users'>;
       name: string;
       email: string;
     }> = [];
 
     for (const student of validStudents) {
       const resume = await ctx.db
-        .query("resumes")
-        .withIndex("by_user", (q) => q.eq("user_id", student._id))
+        .query('resumes')
+        .withIndex('by_user', (q) => q.eq('user_id', student._id))
         .first();
 
       if (!resume) {
@@ -577,17 +562,17 @@ export const getCaseloadGaps = query({
       noGoal: {
         count: studentsNoGoal.length,
         items: studentsNoGoal.slice(0, 10),
-        subtitle: "No career goal or path defined",
+        subtitle: 'No career goal or path defined',
       },
       seniorsNoApps: {
         count: seniorsNoApps.length,
         items: seniorsNoApps.slice(0, 10),
-        subtitle: "Near graduation with zero applications",
+        subtitle: 'Near graduation with zero applications',
       },
       noResume: {
         count: studentsNoResume.length,
         items: studentsNoResume.slice(0, 10),
-        subtitle: "No resume uploaded",
+        subtitle: 'No resume uploaded',
       },
     };
   },
@@ -615,7 +600,7 @@ export const getCapacityAndSchedule = query({
     const now = Date.now();
     const weeklySlots = args.weeklySlots ?? CONFIG.WEEKLY_SESSION_SLOTS;
     if (weeklySlots <= 0) {
-      throw new Error("weeklySlots must be greater than 0");
+      throw new Error('weeklySlots must be greater than 0');
     }
 
     // Get current week boundaries (Monday to Sunday) in client's timezone
@@ -634,36 +619,33 @@ export const getCapacityAndSchedule = query({
 
     // Get sessions this week
     const sessionsThisWeek = await ctx.db
-      .query("advisor_sessions")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId)
+      .query('advisor_sessions')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
       .filter((q) =>
-        q.and(
-          q.gte(q.field("start_at"), mondayUtc),
-          q.lt(q.field("start_at"), sundayUtc)
-        )
+        q.and(q.gte(q.field('start_at'), mondayUtc), q.lt(q.field('start_at'), sundayUtc)),
       )
       .collect();
 
     // Filter to scheduled/completed sessions (exclude cancelled)
     const activeSessions = sessionsThisWeek.filter(
-      (s) => s.status !== "cancelled" && s.status !== "no_show"
+      (s) => s.status !== 'cancelled' && s.status !== 'no_show',
     );
 
     // Get upcoming sessions (next 7 days) with student info
     const oneWeekFromNow = now + 7 * 24 * 60 * 60 * 1000;
     const upcomingSessions = await ctx.db
-      .query("advisor_sessions")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId)
+      .query('advisor_sessions')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
       .filter((q) =>
         q.and(
-          q.gte(q.field("start_at"), now),
-          q.lt(q.field("start_at"), oneWeekFromNow),
-          q.neq(q.field("status"), "cancelled")
-        )
+          q.gte(q.field('start_at'), now),
+          q.lt(q.field('start_at'), oneWeekFromNow),
+          q.neq(q.field('status'), 'cancelled'),
+        ),
       )
       .collect();
 
@@ -675,22 +657,20 @@ export const getCapacityAndSchedule = query({
         return {
           _id: s._id,
           student_id: s.student_id,
-          student_name: student?.name || "Unknown",
+          student_name: student?.name || 'Unknown',
           title: s.title,
           start_at: s.start_at,
           session_type: s.session_type,
           status: s.status,
         };
-      })
+      }),
     );
 
     return {
       capacity: {
         booked: activeSessions.length,
         total: weeklySlots,
-        percentage: weeklySlots > 0
-          ? Math.round((activeSessions.length / weeklySlots) * 100)
-          : 0,
+        percentage: weeklySlots > 0 ? Math.round((activeSessions.length / weeklySlots) * 100) : 0,
       },
       sessionsThisWeek: activeSessions.length,
       upcoming: {
@@ -718,29 +698,21 @@ export const getProgressAndOutcomes = query({
     const studentIdSet = new Set(studentIds);
 
     // Get students
-    const students = await Promise.all(
-      studentIds.map((id) => ctx.db.get(id))
-    );
+    const students = await Promise.all(studentIds.map((id) => ctx.db.get(id)));
     const validStudents = students.filter((s): s is NonNullable<typeof s> => s !== null);
 
     // Identify seniors (graduating this year)
     const currentYear = new Date().getFullYear().toString();
-    const seniors = validStudents.filter(
-      (s) => s.graduation_year === currentYear
-    );
+    const seniors = validStudents.filter((s) => s.graduation_year === currentYear);
     const seniorIds = new Set(seniors.map((s) => s._id));
 
     // Get all applications for caseload
     const advisorApplications = await ctx.db
-      .query("applications")
-      .withIndex("by_advisor", (q) =>
-        q.eq("assigned_advisor_id", sessionCtx.userId)
-      )
+      .query('applications')
+      .withIndex('by_advisor', (q) => q.eq('assigned_advisor_id', sessionCtx.userId))
       .collect();
 
-    const caseloadApps = advisorApplications.filter((a) =>
-      studentIdSet.has(a.user_id)
-    );
+    const caseloadApps = advisorApplications.filter((a) => studentIdSet.has(a.user_id));
 
     // Calculate metrics
     let seniorsWithInterview = 0;
@@ -764,10 +736,14 @@ export const getProgressAndOutcomes = query({
 
       // Check for interviews/offers using stage with status fallback during migration
       // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
-      if (app.stage === "Interview" || (!app.stage && app.status === "interview")) {
+      if (app.stage === 'Interview' || (!app.stage && app.status === 'interview')) {
         stats.hasInterview = true;
       }
-      if (app.stage === "Offer" || app.stage === "Accepted" || (!app.stage && app.status === "offer")) {
+      if (
+        app.stage === 'Offer' ||
+        app.stage === 'Accepted' ||
+        (!app.stage && app.status === 'offer')
+      ) {
         stats.hasOffer = true;
       }
       if (app.stage && activeStages.has(app.stage)) {
@@ -804,18 +780,19 @@ export const getProgressAndOutcomes = query({
       seniorsWithInterview: {
         count: seniorsWithInterview,
         total: seniors.length,
-        percentage: seniors.length > 0 ? Math.round((seniorsWithInterview / seniors.length) * 100) : 0,
-        subtitle: "Seniors with at least one interview this term",
+        percentage:
+          seniors.length > 0 ? Math.round((seniorsWithInterview / seniors.length) * 100) : 0,
+        subtitle: 'Seniors with at least one interview this term',
       },
       studentsWithOffer: {
         count: studentsWithOffer,
         total: validStudents.length,
-        subtitle: "Students with offers this term",
+        subtitle: 'Students with offers this term',
       },
       avgAppsPerStudent: {
         value: avgAppsPerStudent,
         activeStudents: studentsWithActiveApps.size,
-        subtitle: "Avg applications per active job seeker",
+        subtitle: 'Avg applications per active job seeker',
       },
       totalActiveApps: totalActiveApps,
     };
@@ -846,10 +823,8 @@ export const getDashboardStatsExtended = query({
 
     // Load all advisor-assigned applications once for aggregation
     const advisorApplications = await ctx.db
-      .query("applications")
-      .withIndex("by_advisor", (q) =>
-        q.eq("assigned_advisor_id", sessionCtx.userId)
-      )
+      .query('applications')
+      .withIndex('by_advisor', (q) => q.eq('assigned_advisor_id', sessionCtx.userId))
       .collect();
 
     const activeStages = new Set(ACTIVE_STAGES);
@@ -873,10 +848,17 @@ export const getDashboardStatsExtended = query({
       }
       // Check for offers/interviews using stage with status fallback during migration
       // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
-      if (application.stage === "Offer" || application.stage === "Accepted" || (!application.stage && application.status === "offer")) {
+      if (
+        application.stage === 'Offer' ||
+        application.stage === 'Accepted' ||
+        (!application.stage && application.status === 'offer')
+      ) {
         stats.hasOffer = true;
       }
-      if (application.stage === "Interview" || (!application.stage && application.status === "interview")) {
+      if (
+        application.stage === 'Interview' ||
+        (!application.stage && application.status === 'interview')
+      ) {
         stats.hasInterview = true;
       }
       perStudentAppStats.set(key, stats);
@@ -895,41 +877,35 @@ export const getDashboardStatsExtended = query({
     const sundayUtc = mondayUtc + 7 * 24 * 60 * 60 * 1000;
 
     const sessionsThisWeek = await ctx.db
-      .query("advisor_sessions")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId)
+      .query('advisor_sessions')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
       .filter((q) =>
-        q.and(
-          q.gte(q.field("start_at"), mondayUtc),
-          q.lt(q.field("start_at"), sundayUtc)
-        )
+        q.and(q.gte(q.field('start_at'), mondayUtc), q.lt(q.field('start_at'), sundayUtc)),
       )
       .collect();
 
     // Count pending reviews
     const allPendingReviews = await ctx.db
-      .query("advisor_reviews")
-      .withIndex("by_status", (q) =>
-        q.eq("status", "waiting").eq("university_id", universityId)
-      )
+      .query('advisor_reviews')
+      .withIndex('by_status', (q) => q.eq('status', 'waiting').eq('university_id', universityId))
       .collect();
 
     const pendingReviews = allPendingReviews.filter((review) =>
-      studentIdSet.has(review.student_id)
+      studentIdSet.has(review.student_id),
     );
 
     // At-risk students (>5 apps, no offers)
     const atRiskNoOfferCount = Array.from(perStudentAppStats.values()).reduce(
-      (total, stats) =>
-        stats.total > 5 && !stats.hasOffer ? total + 1 : total,
-      0
+      (total, stats) => (stats.total > 5 && !stats.hasOffer ? total + 1 : total),
+      0,
     );
 
     // Calculate total applications
     const totalApplicationsCount = Array.from(perStudentAppStats.values()).reduce(
       (sum, stats) => sum + stats.total,
-      0
+      0,
     );
 
     return {

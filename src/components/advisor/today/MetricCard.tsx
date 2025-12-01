@@ -7,9 +7,10 @@
  * a section or change tab state.
  */
 
+import { LucideIcon } from 'lucide-react';
+
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { LucideIcon } from 'lucide-react';
 
 interface MetricCardProps {
   label: string;
@@ -44,10 +45,7 @@ export function MetricCard({
 }: MetricCardProps) {
   if (isLoading) {
     return (
-      <Card className={cn(
-        'p-4 border transition-colors',
-        variantStyles.default
-      )}>
+      <Card className={cn('p-4 border transition-colors', variantStyles.default)}>
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-full bg-slate-200 animate-pulse" />
           <div className="space-y-2">
@@ -64,23 +62,29 @@ export function MetricCard({
       className={cn(
         'p-4 border transition-all',
         variantStyles[variant],
-        onClick && 'cursor-pointer hover:shadow-md hover:scale-[1.02]'
+        onClick && 'cursor-pointer hover:shadow-md hover:scale-[1.02]',
       )}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
-      onKeyDown={onClick ? (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick();
-        }
-      } : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
     >
       <div className="flex items-center gap-3">
-        <div className={cn(
-          'flex items-center justify-center h-10 w-10 rounded-full',
-          variant === 'default' ? 'bg-slate-100' : `bg-white/50`
-        )}>
+        <div
+          className={cn(
+            'flex items-center justify-center h-10 w-10 rounded-full',
+            variant === 'default' ? 'bg-slate-100' : `bg-white/50`,
+          )}
+        >
           <Icon className={cn('h-5 w-5', iconVariantStyles[variant])} />
         </div>
         <div>

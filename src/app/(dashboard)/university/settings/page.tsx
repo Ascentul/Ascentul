@@ -1,23 +1,18 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
-import { useAuth } from "@/contexts/ClerkAuthProvider";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "convex/_generated/api";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardDescription,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { Settings, Building, Users, Mail, Globe } from "lucide-react";
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
+import { Building, Globe, Mail, Settings, Users } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { useToast } from '@/hooks/use-toast';
 
 export default function UniversitySettingsPage() {
   const { user: clerkUser } = useUser();
@@ -29,18 +24,16 @@ export default function UniversitySettingsPage() {
   const updateUniversitySettingsMutation = useMutation(api.universities.updateUniversitySettings);
   const universitySettings = useQuery(
     api.universities.getUniversitySettings,
-    effectiveClerkId ? { clerkId: effectiveClerkId } : "skip",
+    effectiveClerkId ? { clerkId: effectiveClerkId } : 'skip',
   );
 
-  const canAccess =
-    !!user &&
-    (isAdmin || (subscription?.isUniversity ?? false));
+  const canAccess = !!user && (isAdmin || (subscription?.isUniversity ?? false));
 
   const [settings, setSettings] = useState({
-    name: "",
-    description: "",
-    website: "",
-    contactEmail: "",
+    name: '',
+    description: '',
+    website: '',
+    contactEmail: '',
     maxStudents: 0,
     licenseSeats: 0,
   });
@@ -51,10 +44,10 @@ export default function UniversitySettingsPage() {
   useEffect(() => {
     if (universitySettings) {
       setSettings({
-        name: universitySettings.name || "",
-        description: universitySettings.description || "",
-        website: universitySettings.website || "",
-        contactEmail: universitySettings.contact_email || "",
+        name: universitySettings.name || '',
+        description: universitySettings.description || '',
+        website: universitySettings.website || '',
+        contactEmail: universitySettings.contact_email || '',
         maxStudents: universitySettings.max_students || 0,
         licenseSeats: universitySettings.license_seats || 0,
       });
@@ -64,9 +57,9 @@ export default function UniversitySettingsPage() {
   const handleSaveSettings = async () => {
     if (!effectiveClerkId || !universitySettings?._id) {
       toast({
-        title: "Error",
-        description: "Unable to save settings. Please try refreshing the page.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Unable to save settings. Please try refreshing the page.',
+        variant: 'destructive',
       });
       return;
     }
@@ -86,16 +79,16 @@ export default function UniversitySettingsPage() {
       });
 
       toast({
-        title: "Settings saved",
-        description: "University settings have been updated successfully.",
+        title: 'Settings saved',
+        description: 'University settings have been updated successfully.',
       });
     } catch (error) {
-      console.error("Settings save error:", error);
+      console.error('Settings save error:', error);
       toast({
-        title: "Error",
+        title: 'Error',
         description:
-          error instanceof Error ? error.message : "Failed to save settings. Please try again.",
-        variant: "destructive",
+          error instanceof Error ? error.message : 'Failed to save settings. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -104,8 +97,9 @@ export default function UniversitySettingsPage() {
 
   const handleConfigureNotifications = () => {
     toast({
-      title: "Email Notifications",
-      description: "This feature allows you to configure email alerts for student activity. Contact support to enable custom notifications.",
+      title: 'Email Notifications',
+      description:
+        'This feature allows you to configure email alerts for student activity. Contact support to enable custom notifications.',
     });
   };
 
@@ -114,15 +108,15 @@ export default function UniversitySettingsPage() {
 
     try {
       toast({
-        title: "Preparing Export",
-        description: "Generating your data export...",
+        title: 'Preparing Export',
+        description: 'Generating your data export...',
       });
 
       // Call the export API
-      const response = await fetch("/api/university/export-data", {
-        method: "POST",
+      const response = await fetch('/api/university/export-data', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           clerkId: effectiveClerkId,
@@ -130,12 +124,12 @@ export default function UniversitySettingsPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Export failed");
+        throw new Error('Export failed');
       }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
       a.download = `university-data-export-${new Date().toISOString().split('T')[0]}.csv`;
       document.body.appendChild(a);
@@ -144,23 +138,24 @@ export default function UniversitySettingsPage() {
       document.body.removeChild(a);
 
       toast({
-        title: "Export Complete",
-        description: "Your data has been downloaded successfully.",
+        title: 'Export Complete',
+        description: 'Your data has been downloaded successfully.',
       });
     } catch (error) {
-      console.error("Export error:", error);
+      console.error('Export error:', error);
       toast({
-        title: "Export Failed",
-        description: "Unable to export data. Please try again or contact support.",
-        variant: "destructive",
+        title: 'Export Failed',
+        description: 'Unable to export data. Please try again or contact support.',
+        variant: 'destructive',
       });
     }
   };
 
   const handleConfigureSecurity = () => {
     toast({
-      title: "Security Settings",
-      description: "Advanced security options including SSO, IP restrictions, and 2FA are available. Contact support to configure enterprise security features.",
+      title: 'Security Settings',
+      description:
+        'Advanced security options including SSO, IP restrictions, and 2FA are available. Contact support to configure enterprise security features.',
     });
   };
 
@@ -172,9 +167,7 @@ export default function UniversitySettingsPage() {
             <CardTitle>Unauthorized</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">
-              You do not have access to University Settings.
-            </p>
+            <p className="text-muted-foreground">You do not have access to University Settings.</p>
           </CardContent>
         </Card>
       </div>
@@ -185,9 +178,7 @@ export default function UniversitySettingsPage() {
     <div className="max-w-screen-2xl mx-auto p-4 md:p-6 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">
-            University Settings
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">University Settings</h1>
           <p className="text-muted-foreground">
             Manage your institution's configuration and preferences.
           </p>
@@ -201,9 +192,7 @@ export default function UniversitySettingsPage() {
               <Building className="h-5 w-5" />
               Institution Information
             </CardTitle>
-            <CardDescription>
-              Update your university's basic information
-            </CardDescription>
+            <CardDescription>Update your university's basic information</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -212,9 +201,7 @@ export default function UniversitySettingsPage() {
                 id="name"
                 placeholder="Enter university name"
                 value={settings.name}
-                onChange={(e) =>
-                  setSettings((prev) => ({ ...prev, name: e.target.value }))
-                }
+                onChange={(e) => setSettings((prev) => ({ ...prev, name: e.target.value }))}
               />
             </div>
 
@@ -241,9 +228,7 @@ export default function UniversitySettingsPage() {
                 type="url"
                 placeholder="https://university.edu"
                 value={settings.website}
-                onChange={(e) =>
-                  setSettings((prev) => ({ ...prev, website: e.target.value }))
-                }
+                onChange={(e) => setSettings((prev) => ({ ...prev, website: e.target.value }))}
               />
             </div>
 
@@ -271,9 +256,7 @@ export default function UniversitySettingsPage() {
               <Users className="h-5 w-5" />
               License Management
             </CardTitle>
-            <CardDescription>
-              View your institution's license information
-            </CardDescription>
+            <CardDescription>View your institution's license information</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -285,9 +268,7 @@ export default function UniversitySettingsPage() {
                 disabled
                 className="bg-muted cursor-not-allowed"
               />
-              <p className="text-xs text-muted-foreground">
-                Managed by system administrator
-              </p>
+              <p className="text-xs text-muted-foreground">Managed by system administrator</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="licenseSeats">License Seats</Label>
@@ -307,10 +288,13 @@ export default function UniversitySettingsPage() {
               <Label>License Usage</Label>
               <div className="flex items-center justify-between p-3 border rounded-md bg-muted">
                 <span className="text-sm font-medium">
-                  {universitySettings?.license_used || 0} / {universitySettings?.license_seats || 0} seats used
+                  {universitySettings?.license_used || 0} / {universitySettings?.license_seats || 0}{' '}
+                  seats used
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {(universitySettings?.license_seats || 0) - (universitySettings?.license_used || 0)} available
+                  {(universitySettings?.license_seats || 0) -
+                    (universitySettings?.license_used || 0)}{' '}
+                  available
                 </span>
               </div>
             </div>
@@ -318,13 +302,11 @@ export default function UniversitySettingsPage() {
             <div className="space-y-2">
               <Label>License Plan</Label>
               <Input
-                value={universitySettings?.license_plan || "N/A"}
+                value={universitySettings?.license_plan || 'N/A'}
                 disabled
                 className="bg-muted cursor-not-allowed"
               />
-              <p className="text-xs text-muted-foreground">
-                Current subscription plan (read-only)
-              </p>
+              <p className="text-xs text-muted-foreground">Current subscription plan (read-only)</p>
             </div>
           </CardContent>
         </Card>
@@ -356,9 +338,7 @@ export default function UniversitySettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-sm font-medium">Data Export</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Download student and usage data
-                  </p>
+                  <p className="text-xs text-muted-foreground">Download student and usage data</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={handleExportData}>
                   Export
@@ -370,9 +350,7 @@ export default function UniversitySettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-sm font-medium">Security</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Configure security settings
-                  </p>
+                  <p className="text-xs text-muted-foreground">Configure security settings</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={handleConfigureSecurity}>
                   Configure
@@ -388,7 +366,7 @@ export default function UniversitySettingsPage() {
           Cancel
         </Button>
         <Button onClick={handleSaveSettings} disabled={loading}>
-          {loading ? "Saving..." : "Save Changes"}
+          {loading ? 'Saving...' : 'Save Changes'}
         </Button>
       </div>
     </div>

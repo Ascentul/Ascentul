@@ -1,11 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import type { Id } from 'convex/_generated/dataModel';
+import { useMutation } from 'convex/react';
+import { format } from 'date-fns';
+import { AlertCircle, Check, Loader2, Save } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -13,18 +19,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useMutation } from 'convex/react';
-import { api } from 'convex/_generated/api';
 import { getErrorMessage } from '@/lib/errors';
-import { Save, Loader2, Check, AlertCircle } from 'lucide-react';
-import { format } from 'date-fns';
-import type { Id } from 'convex/_generated/dataModel';
 
-const DATETIME_LOCAL_FORMAT = 'yyyy-MM-dd\'T\'HH:mm';
+const DATETIME_LOCAL_FORMAT = "yyyy-MM-dd'T'HH:mm";
 
-type SessionType = 'career_planning' | 'resume_review' | 'mock_interview' | 'application_strategy' | 'general_advising' | 'other';
+type SessionType =
+  | 'career_planning'
+  | 'resume_review'
+  | 'mock_interview'
+  | 'application_strategy'
+  | 'general_advising'
+  | 'other';
 type Visibility = 'shared' | 'advisor_only';
 type SessionStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';
 
@@ -60,11 +67,9 @@ export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
     (() => {
       const date = new Date(session.start_at);
       return isNaN(date.getTime()) ? '' : format(date, DATETIME_LOCAL_FORMAT);
-    })()
+    })(),
   );
-  const [durationMinutes, setDurationMinutes] = useState(
-    session.duration_minutes.toString()
-  );
+  const [durationMinutes, setDurationMinutes] = useState(session.duration_minutes.toString());
   const [location, setLocation] = useState(session.location || '');
   const [meetingUrl, setMeetingUrl] = useState(session.meeting_url || '');
   const [notes, setNotes] = useState(session.notes || '');
@@ -220,7 +225,9 @@ export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
       // Check if it's a version conflict
       const isVersionConflict = code === 'VERSION_CONFLICT';
       if (isVersionConflict) {
-        setSaveError('This session was updated elsewhere. Please refresh to see the latest version.');
+        setSaveError(
+          'This session was updated elsewhere. Please refresh to see the latest version.',
+        );
         toast({
           title: 'Version conflict',
           description: 'Please refresh the page to see the latest changes.',
@@ -329,112 +336,108 @@ export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
   };
 
   return (
-    <div className='space-y-6'>
+    <div className="space-y-6">
       {/* Save indicator */}
-      <div className='flex items-center justify-between'>
-        <div className='flex items-center gap-2'>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
           {isSaving ? (
             <>
-              <Loader2 className='h-4 w-4 animate-spin text-blue-500' />
-              <span className='text-sm text-muted-foreground'>Saving...</span>
+              <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+              <span className="text-sm text-muted-foreground">Saving...</span>
             </>
           ) : hasUnsavedChanges ? (
             <>
-              <AlertCircle className='h-4 w-4 text-orange-500' />
-              <span className='text-sm text-muted-foreground'>Unsaved changes</span>
+              <AlertCircle className="h-4 w-4 text-orange-500" />
+              <span className="text-sm text-muted-foreground">Unsaved changes</span>
             </>
           ) : lastSaved ? (
             <>
-              <Check className='h-4 w-4 text-green-500' />
-              <span className='text-sm text-muted-foreground'>
+              <Check className="h-4 w-4 text-green-500" />
+              <span className="text-sm text-muted-foreground">
                 Saved {format(lastSaved, 'h:mm a')}
               </span>
             </>
           ) : null}
         </div>
 
-        <Button
-          onClick={handleManualSave}
-          disabled={!hasUnsavedChanges || isSaving}
-          size='sm'
-        >
-          <Save className='h-4 w-4 mr-2' />
+        <Button onClick={handleManualSave} disabled={!hasUnsavedChanges || isSaving} size="sm">
+          <Save className="h-4 w-4 mr-2" />
           Save Now
         </Button>
       </div>
 
       {saveError && (
-        <div className='bg-red-50 border border-red-200 rounded-lg p-3'>
-          <p className='text-sm text-red-800'>{saveError}</p>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+          <p className="text-sm text-red-800">{saveError}</p>
         </div>
       )}
 
       {/* Form fields */}
-      <div className='grid gap-4'>
-        <div className='space-y-2'>
-          <Label htmlFor='title'>Session Title *</Label>
+      <div className="grid gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="title">Session Title *</Label>
           <Input
-            id='title'
+            id="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder='e.g., Career Planning Discussion'
+            placeholder="e.g., Career Planning Discussion"
             required
           />
         </div>
 
-        <div className='grid gap-4 md:grid-cols-2'>
-          <div className='space-y-2'>
-            <Label htmlFor='session_type'>Session Type *</Label>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="session_type">Session Type *</Label>
             <Select value={sessionType} onValueChange={(v) => setSessionType(v as SessionType)}>
-              <SelectTrigger id='session_type'>
+              <SelectTrigger id="session_type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value='career_planning'>Career Planning</SelectItem>
-                <SelectItem value='resume_review'>Resume Review</SelectItem>
-                <SelectItem value='mock_interview'>Mock Interview</SelectItem>
-                <SelectItem value='application_strategy'>Application Strategy</SelectItem>
-                <SelectItem value='general_advising'>General Advising</SelectItem>
-                <SelectItem value='other'>Other</SelectItem>
+                <SelectItem value="career_planning">Career Planning</SelectItem>
+                <SelectItem value="resume_review">Resume Review</SelectItem>
+                <SelectItem value="mock_interview">Mock Interview</SelectItem>
+                <SelectItem value="application_strategy">Application Strategy</SelectItem>
+                <SelectItem value="general_advising">General Advising</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className='space-y-2'>
-            <Label htmlFor='status'>Status</Label>
+          <div className="space-y-2">
+            <Label htmlFor="status">Status</Label>
             <Select value={status} onValueChange={(v) => setStatus(v as SessionStatus)}>
-              <SelectTrigger id='status'>
+              <SelectTrigger id="status">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value='scheduled'>Scheduled</SelectItem>
-                <SelectItem value='completed'>Completed</SelectItem>
-                <SelectItem value='cancelled'>Cancelled</SelectItem>
-                <SelectItem value='no_show'>No-Show</SelectItem>
+                <SelectItem value="scheduled">Scheduled</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="no_show">No-Show</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        <div className='grid gap-4 md:grid-cols-2'>
-          <div className='space-y-2'>
-            <Label htmlFor='start_at'>Start Date & Time *</Label>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="start_at">Start Date & Time *</Label>
             <Input
-              id='start_at'
-              type='datetime-local'
+              id="start_at"
+              type="datetime-local"
               value={startAt}
               onChange={(e) => setStartAt(e.target.value)}
               required
             />
           </div>
 
-          <div className='space-y-2'>
-            <Label htmlFor='duration'>Duration (minutes) *</Label>
+          <div className="space-y-2">
+            <Label htmlFor="duration">Duration (minutes) *</Label>
             <Input
-              id='duration'
-              type='number'
-              min='15'
-              step='15'
+              id="duration"
+              type="number"
+              min="15"
+              step="15"
               value={durationMinutes}
               onChange={(e) => setDurationMinutes(e.target.value)}
               required
@@ -442,65 +445,59 @@ export function SessionEditor({ session, onSaveSuccess }: SessionEditorProps) {
           </div>
         </div>
 
-        <div className='grid gap-4 md:grid-cols-2'>
-          <div className='space-y-2'>
-            <Label htmlFor='location'>Location</Label>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="location">Location</Label>
             <Input
-              id='location'
+              id="location"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder='e.g., Room 305, Student Center'
+              placeholder="e.g., Room 305, Student Center"
             />
           </div>
 
-          <div className='space-y-2'>
-            <Label htmlFor='meeting_url'>Meeting URL</Label>
+          <div className="space-y-2">
+            <Label htmlFor="meeting_url">Meeting URL</Label>
             <Input
-              id='meeting_url'
-              type='url'
+              id="meeting_url"
+              type="url"
               value={meetingUrl}
               onChange={(e) => setMeetingUrl(e.target.value)}
-              placeholder='https://zoom.us/...'
+              placeholder="https://zoom.us/..."
             />
           </div>
         </div>
 
-        <div className='space-y-2'>
-          <Label htmlFor='visibility'>Visibility</Label>
+        <div className="space-y-2">
+          <Label htmlFor="visibility">Visibility</Label>
           <Select value={visibility} onValueChange={(v) => setVisibility(v as Visibility)}>
-            <SelectTrigger id='visibility'>
+            <SelectTrigger id="visibility">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value='advisor_only'>
-                Advisor Only (Only you can see)
-              </SelectItem>
-              <SelectItem value='shared'>
-                Shared (Visible to student)
-              </SelectItem>
+              <SelectItem value="advisor_only">Advisor Only (Only you can see)</SelectItem>
+              <SelectItem value="shared">Shared (Visible to student)</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <div className='space-y-2'>
-          <Label htmlFor='notes'>Session Notes</Label>
+        <div className="space-y-2">
+          <Label htmlFor="notes">Session Notes</Label>
           <Textarea
-            id='notes'
+            id="notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder='Add notes about the session...'
+            placeholder="Add notes about the session..."
             rows={6}
           />
         </div>
       </div>
 
-      <div className='flex items-center justify-between pt-4 border-t'>
-        <div className='text-xs text-muted-foreground'>
+      <div className="flex items-center justify-between pt-4 border-t">
+        <div className="text-xs text-muted-foreground">
           Version: {currentVersion} • Autosave enabled
         </div>
-        <Badge variant='secondary'>
-          {hasUnsavedChanges ? 'Editing' : 'Up to date'}
-        </Badge>
+        <Badge variant="secondary">{hasUnsavedChanges ? 'Editing' : 'Up to date'}</Badge>
       </div>
     </div>
   );

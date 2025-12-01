@@ -23,9 +23,10 @@
  * - Verify (custom sample): npx convex run migrate_follow_ups:verifyMigration '{"sampleSize": 500}'
  */
 
-import { internalMutation, internalQuery } from './_generated/server';
 import { v } from 'convex/values';
+
 import { Id } from './_generated/dataModel';
+import { internalMutation, internalQuery } from './_generated/server';
 
 async function countWithPagination(ctx: any, tableName: string): Promise<number> {
   let count = 0;
@@ -70,21 +71,21 @@ export const migrateFollowUps = internalMutation({
             : 'unknown time';
           throw new Error(
             `Migration '${MIGRATION_NAME}' has already completed successfully at ${completedDate}. ` +
-            `Migrated: ${JSON.stringify(existingMigration.metadata)}. ` +
-            'To re-run anyway, use: npx convex run migrate_follow_ups:migrateFollowUps \'{"force": true}\' ' +
-            '(safe - already-migrated records will be skipped via migrated_from_id check)'
+              `Migrated: ${JSON.stringify(existingMigration.metadata)}. ` +
+              'To re-run anyway, use: npx convex run migrate_follow_ups:migrateFollowUps \'{"force": true}\' ' +
+              '(safe - already-migrated records will be skipped via migrated_from_id check)',
           );
         } else if (existingMigration.status === 'in_progress') {
           const elapsed = Date.now() - existingMigration.started_at;
           const elapsedMinutes = Math.floor(elapsed / 60000);
           throw new Error(
             `Migration '${MIGRATION_NAME}' is currently in progress (started ${elapsedMinutes} minutes ago). ` +
-            'If it is stuck, use force=true to override.'
+              'If it is stuck, use force=true to override.',
           );
         } else if (existingMigration.status === 'failed') {
           throw new Error(
             `Migration '${MIGRATION_NAME}' previously failed: ${existingMigration.error_message}. ` +
-            'Fix the issue and use force=true to retry.'
+              'Fix the issue and use force=true to retry.',
           );
         }
       }
@@ -114,9 +115,9 @@ export const migrateFollowUps = internalMutation({
       if (followUpsCount > 0 && followUpsCount !== expectedCount) {
         throw new Error(
           `Partial migration detected! follow_ups has ${followUpsCount} records but expected ${expectedCount} ` +
-          `(${followupActionsCount} from followup_actions + ${advisorFollowUpsCount} from advisor_follow_ups). ` +
-          'This indicates a previous migration may have partially completed. ' +
-          'Please verify the data integrity before proceeding with force=true.'
+            `(${followupActionsCount} from followup_actions + ${advisorFollowUpsCount} from advisor_follow_ups). ` +
+            'This indicates a previous migration may have partially completed. ' +
+            'Please verify the data integrity before proceeding with force=true.',
         );
       }
     }
@@ -155,38 +156,40 @@ export const migrateFollowUps = internalMutation({
       console.log(`Processing batch of ${page.page.length} followup_actions...`);
 
       // Batch user lookups to avoid N+1 queries
-      const userIds = [...new Set(page.page.map(a => a.user_id))];
-      const users = await Promise.all(userIds.map(id => ctx.db.get(id)));
+      const userIds = [...new Set(page.page.map((a) => a.user_id))];
+      const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
       const userMap = new Map(
-        users
-          .filter((u): u is NonNullable<typeof u> => u !== null)
-          .map(u => [u._id, u] as const)
+        users.filter((u): u is NonNullable<typeof u> => u !== null).map((u) => [u._id, u] as const),
       );
 
       // Batch application lookups to validate foreign keys
-      const faApplicationIds = [...new Set(
-        page.page
-          .filter(a => a.application_id)
-          .map(a => a.application_id as Id<'applications'>)
-      )];
-      const faApplications = await Promise.all(faApplicationIds.map(id => ctx.db.get(id)));
+      const faApplicationIds = [
+        ...new Set(
+          page.page
+            .filter((a) => a.application_id)
+            .map((a) => a.application_id as Id<'applications'>),
+        ),
+      ];
+      const faApplications = await Promise.all(faApplicationIds.map((id) => ctx.db.get(id)));
       const faApplicationMap = new Map(
         faApplications
           .filter((a): a is NonNullable<typeof a> => a !== null)
-          .map(a => [a._id, a] as const)
+          .map((a) => [a._id, a] as const),
       );
 
       // Batch contact lookups to validate foreign keys
-      const faContactIds = [...new Set(
-        page.page
-          .filter(a => a.contact_id)
-          .map(a => a.contact_id as Id<'networking_contacts'>)
-      )];
-      const faContacts = await Promise.all(faContactIds.map(id => ctx.db.get(id)));
+      const faContactIds = [
+        ...new Set(
+          page.page
+            .filter((a) => a.contact_id)
+            .map((a) => a.contact_id as Id<'networking_contacts'>),
+        ),
+      ];
+      const faContacts = await Promise.all(faContactIds.map((id) => ctx.db.get(id)));
       const faContactMap = new Map(
         faContacts
           .filter((c): c is NonNullable<typeof c> => c !== null)
-          .map(c => [c._id, c] as const)
+          .map((c) => [c._id, c] as const),
       );
 
       // Skip batch lookup if no items to check
@@ -206,9 +209,11 @@ export const migrateFollowUps = internalMutation({
             .withIndex('by_migrated_from', (q) => q.eq('migrated_from_id', a._id))
             .first();
           return existing ? a._id : null;
-        })
+        }),
       );
-      const migratedSet = new Set(migratedChecks.filter((id): id is NonNullable<typeof id> => id !== null));
+      const migratedSet = new Set(
+        migratedChecks.filter((id): id is NonNullable<typeof id> => id !== null),
+      );
 
       for (const action of page.page) {
         try {
@@ -218,99 +223,96 @@ export const migrateFollowUps = internalMutation({
             continue;
           }
 
-        // Get user from batched lookup
-        const user = userMap.get(action.user_id);
-        if (!user) {
+          // Get user from batched lookup
+          const user = userMap.get(action.user_id);
+          if (!user) {
+            results.errors.push(`followup_actions ${action._id}: User ${action.user_id} not found`);
+            continue;
+          }
+
+          // Derive title from description (first 100 chars) or use type
+          const title =
+            action.description?.substring(0, 100) || `${action.type || 'Follow-up'} task`;
+
+          // Map completed boolean to status
+          const status = action.completed ? 'done' : 'open';
+
+          // Determine related_type from entity links
+          let related_type: 'application' | 'contact' | 'general' | undefined;
+          let related_id: string | undefined;
+
+          if (action.application_id) {
+            // Validate that the application exists
+            if (!faApplicationMap.has(action.application_id)) {
+              results.errors.push(
+                `followup_actions ${action._id}: Application ${action.application_id} not found (orphaned reference)`,
+              );
+              continue;
+            }
+            related_type = 'application';
+            related_id = action.application_id;
+          } else if (action.contact_id) {
+            // Validate that the contact exists
+            if (!faContactMap.has(action.contact_id)) {
+              results.errors.push(
+                `followup_actions ${action._id}: Contact ${action.contact_id} not found (orphaned reference)`,
+              );
+              continue;
+            }
+            related_type = 'contact';
+            related_id = action.contact_id;
+          }
+
+          if (!dryRun) {
+            await ctx.db.insert('follow_ups', {
+              // Core fields
+              title,
+              description: action.description,
+              type: action.type,
+              notes: action.notes,
+
+              // Ownership - student-created, so all IDs point to user
+              user_id: action.user_id,
+              owner_id: action.user_id,
+              created_by_id: action.user_id,
+              created_by_type: 'student' as const,
+
+              // Multi-tenancy
+              university_id: user.university_id,
+
+              // Relationships
+              related_type,
+              related_id,
+              application_id: action.application_id,
+              contact_id: action.contact_id,
+
+              // Task management
+              due_at: action.due_date,
+              status: status as 'open' | 'done',
+
+              // Completion tracking
+              completed_at: action.completed ? action.updated_at || action.created_at : undefined,
+              completed_by: action.completed ? action.user_id : undefined,
+
+              // Migration tracking for idempotent re-runs
+              migrated_from_id: action._id,
+
+              // Concurrency control
+              version: 1,
+
+              // Timestamps
+              created_at: action.created_at,
+              updated_at: action.updated_at,
+            });
+          }
+
+          results.followup_actions_migrated++;
+        } catch (error) {
           results.errors.push(
-            `followup_actions ${action._id}: User ${action.user_id} not found`,
+            `followup_actions ${action._id}: ${error instanceof Error ? error.message : String(error)}`,
           );
-          continue;
         }
-
-        // Derive title from description (first 100 chars) or use type
-        const title =
-          action.description?.substring(0, 100) ||
-          `${action.type || 'Follow-up'} task`;
-
-        // Map completed boolean to status
-        const status = action.completed ? 'done' : 'open';
-
-        // Determine related_type from entity links
-        let related_type: 'application' | 'contact' | 'general' | undefined;
-        let related_id: string | undefined;
-
-        if (action.application_id) {
-          // Validate that the application exists
-          if (!faApplicationMap.has(action.application_id)) {
-            results.errors.push(
-              `followup_actions ${action._id}: Application ${action.application_id} not found (orphaned reference)`,
-            );
-            continue;
-          }
-          related_type = 'application';
-          related_id = action.application_id;
-        } else if (action.contact_id) {
-          // Validate that the contact exists
-          if (!faContactMap.has(action.contact_id)) {
-            results.errors.push(
-              `followup_actions ${action._id}: Contact ${action.contact_id} not found (orphaned reference)`,
-            );
-            continue;
-          }
-          related_type = 'contact';
-          related_id = action.contact_id;
-        }
-
-        if (!dryRun) {
-          await ctx.db.insert('follow_ups', {
-            // Core fields
-            title,
-            description: action.description,
-            type: action.type,
-            notes: action.notes,
-
-            // Ownership - student-created, so all IDs point to user
-            user_id: action.user_id,
-            owner_id: action.user_id,
-            created_by_id: action.user_id,
-            created_by_type: 'student' as const,
-
-            // Multi-tenancy
-            university_id: user.university_id,
-
-            // Relationships
-            related_type,
-            related_id,
-            application_id: action.application_id,
-            contact_id: action.contact_id,
-
-            // Task management
-            due_at: action.due_date,
-            status: status as 'open' | 'done',
-
-            // Completion tracking
-            completed_at: action.completed ? (action.updated_at || action.created_at) : undefined,
-            completed_by: action.completed ? action.user_id : undefined,
-
-            // Migration tracking for idempotent re-runs
-            migrated_from_id: action._id,
-
-            // Concurrency control
-            version: 1,
-
-            // Timestamps
-            created_at: action.created_at,
-            updated_at: action.updated_at,
-          });
-        }
-
-        results.followup_actions_migrated++;
-      } catch (error) {
-        results.errors.push(
-          `followup_actions ${action._id}: ${error instanceof Error ? error.message : String(error)}`,
-        );
       }
-    }
 
       followupActionsCursor = page.continueCursor;
       hasMoreFollowupActions = !page.isDone;
@@ -333,49 +335,47 @@ export const migrateFollowUps = internalMutation({
 
       // Batch user lookups to avoid N+1 queries (validate student_id, owner_id, advisor_id)
       const allUserIds = new Set<Id<'users'>>();
-      page.page.forEach(f => {
+      page.page.forEach((f) => {
         allUserIds.add(f.student_id);
         allUserIds.add(f.owner_id);
         allUserIds.add(f.advisor_id);
       });
-      const users = await Promise.all([...allUserIds].map(id => ctx.db.get(id)));
+      const users = await Promise.all([...allUserIds].map((id) => ctx.db.get(id)));
       const userMap = new Map(
-        users
-          .filter((u): u is NonNullable<typeof u> => u !== null)
-          .map(u => [u._id, u] as const)
+        users.filter((u): u is NonNullable<typeof u> => u !== null).map((u) => [u._id, u] as const),
       );
 
       // Batch application lookups to validate foreign keys
       const applicationIds = page.page
-        .filter(f => f.related_type === 'application' && f.related_id)
-        .map(f => f.related_id as Id<'applications'>);
-      const applications = await Promise.all(applicationIds.map(id => ctx.db.get(id)));
+        .filter((f) => f.related_type === 'application' && f.related_id)
+        .map((f) => f.related_id as Id<'applications'>);
+      const applications = await Promise.all(applicationIds.map((id) => ctx.db.get(id)));
       const applicationMap = new Map(
         applications
           .filter((a): a is NonNullable<typeof a> => a !== null)
-          .map(a => [a._id, a] as const)
+          .map((a) => [a._id, a] as const),
       );
 
       // Batch session lookups to validate foreign keys
       const sessionIds = page.page
-        .filter(f => f.related_type === 'session' && f.related_id)
-        .map(f => f.related_id as Id<'advisor_sessions'>);
-      const sessions = await Promise.all(sessionIds.map(id => ctx.db.get(id)));
+        .filter((f) => f.related_type === 'session' && f.related_id)
+        .map((f) => f.related_id as Id<'advisor_sessions'>);
+      const sessions = await Promise.all(sessionIds.map((id) => ctx.db.get(id)));
       const sessionMap = new Map(
         sessions
           .filter((s): s is NonNullable<typeof s> => s !== null)
-          .map(s => [s._id, s] as const)
+          .map((s) => [s._id, s] as const),
       );
 
       // Batch review lookups to validate foreign keys
       const reviewIds = page.page
-        .filter(f => f.related_type === 'review' && f.related_id)
-        .map(f => f.related_id as Id<'advisor_reviews'>);
-      const reviews = await Promise.all(reviewIds.map(id => ctx.db.get(id)));
+        .filter((f) => f.related_type === 'review' && f.related_id)
+        .map((f) => f.related_id as Id<'advisor_reviews'>);
+      const reviews = await Promise.all(reviewIds.map((id) => ctx.db.get(id)));
       const reviewMap = new Map(
         reviews
           .filter((r): r is NonNullable<typeof r> => r !== null)
-          .map(r => [r._id, r] as const)
+          .map((r) => [r._id, r] as const),
       );
 
       // Pre-fetch already migrated IDs for this batch using parallel indexed lookups
@@ -388,129 +388,131 @@ export const migrateFollowUps = internalMutation({
             .withIndex('by_migrated_from', (q) => q.eq('migrated_from_id', f._id))
             .first();
           return existing ? f._id : null;
-        })
+        }),
       );
-      const alreadyMigratedIds = new Set(migratedChecks.filter((id): id is NonNullable<typeof id> => id !== null));
+      const alreadyMigratedIds = new Set(
+        migratedChecks.filter((id): id is NonNullable<typeof id> => id !== null),
+      );
 
       for (const followUp of page.page) {
         try {
-        // Skip if already migrated (idempotent re-run support for force=true)
-        if (alreadyMigratedIds.has(followUp._id)) {
-          console.log(`Skipping advisor_follow_ups ${followUp._id} - already migrated`);
-          continue;
-        }
+          // Skip if already migrated (idempotent re-run support for force=true)
+          if (alreadyMigratedIds.has(followUp._id)) {
+            console.log(`Skipping advisor_follow_ups ${followUp._id} - already migrated`);
+            continue;
+          }
 
-        // Validate users from batched lookup
-        if (!userMap.has(followUp.student_id)) {
-          results.errors.push(
-            `advisor_follow_ups ${followUp._id}: Student ${followUp.student_id} not found`,
-          );
-          continue;
-        }
-        if (!userMap.has(followUp.owner_id)) {
-          results.errors.push(
-            `advisor_follow_ups ${followUp._id}: Owner ${followUp.owner_id} not found`,
-          );
-          continue;
-        }
-        if (!userMap.has(followUp.advisor_id)) {
-          results.errors.push(
-            `advisor_follow_ups ${followUp._id}: Advisor ${followUp.advisor_id} not found`,
-          );
-          continue;
-        }
-
-        // Map related entities to specific fields with validation
-        let application_id: Id<'applications'> | undefined;
-
-        if (followUp.related_type === 'application' && followUp.related_id) {
-          const appId = followUp.related_id as Id<'applications'>;
-          if (applicationMap.has(appId)) {
-            application_id = appId;
-          } else {
+          // Validate users from batched lookup
+          if (!userMap.has(followUp.student_id)) {
             results.errors.push(
-              `advisor_follow_ups ${followUp._id}: Application ${followUp.related_id} not found`,
+              `advisor_follow_ups ${followUp._id}: Student ${followUp.student_id} not found`,
             );
             continue;
           }
-        }
-
-        // Validate session references
-        if (followUp.related_type === 'session' && followUp.related_id) {
-          const sessionId = followUp.related_id as Id<'advisor_sessions'>;
-          if (!sessionMap.has(sessionId)) {
+          if (!userMap.has(followUp.owner_id)) {
             results.errors.push(
-              `advisor_follow_ups ${followUp._id}: Session ${followUp.related_id} not found`,
+              `advisor_follow_ups ${followUp._id}: Owner ${followUp.owner_id} not found`,
             );
             continue;
           }
-        }
-
-        // Validate review references
-        if (followUp.related_type === 'review' && followUp.related_id) {
-          const reviewId = followUp.related_id as Id<'advisor_reviews'>;
-          if (!reviewMap.has(reviewId)) {
+          if (!userMap.has(followUp.advisor_id)) {
             results.errors.push(
-              `advisor_follow_ups ${followUp._id}: Review ${followUp.related_id} not found`,
+              `advisor_follow_ups ${followUp._id}: Advisor ${followUp.advisor_id} not found`,
             );
             continue;
           }
+
+          // Map related entities to specific fields with validation
+          let application_id: Id<'applications'> | undefined;
+
+          if (followUp.related_type === 'application' && followUp.related_id) {
+            const appId = followUp.related_id as Id<'applications'>;
+            if (applicationMap.has(appId)) {
+              application_id = appId;
+            } else {
+              results.errors.push(
+                `advisor_follow_ups ${followUp._id}: Application ${followUp.related_id} not found`,
+              );
+              continue;
+            }
+          }
+
+          // Validate session references
+          if (followUp.related_type === 'session' && followUp.related_id) {
+            const sessionId = followUp.related_id as Id<'advisor_sessions'>;
+            if (!sessionMap.has(sessionId)) {
+              results.errors.push(
+                `advisor_follow_ups ${followUp._id}: Session ${followUp.related_id} not found`,
+              );
+              continue;
+            }
+          }
+
+          // Validate review references
+          if (followUp.related_type === 'review' && followUp.related_id) {
+            const reviewId = followUp.related_id as Id<'advisor_reviews'>;
+            if (!reviewMap.has(reviewId)) {
+              results.errors.push(
+                `advisor_follow_ups ${followUp._id}: Review ${followUp.related_id} not found`,
+              );
+              continue;
+            }
+          }
+
+          // Note: advisor_follow_ups.related_type doesn't include 'contact' type
+          // Only 'application', 'session', 'review', 'general'
+
+          if (!dryRun) {
+            await ctx.db.insert('follow_ups', {
+              // Core fields
+              title: followUp.title,
+              description: followUp.description,
+              type: followUp.related_type || 'general',
+              notes: undefined,
+
+              // Ownership - advisor-created
+              user_id: followUp.student_id,
+              owner_id: followUp.owner_id,
+              created_by_id: followUp.advisor_id,
+              created_by_type: 'advisor' as const,
+
+              // Multi-tenancy
+              university_id: followUp.university_id,
+
+              // Relationships
+              related_type: followUp.related_type,
+              related_id: followUp.related_id,
+              application_id,
+              // Note: contact_id is not used since advisor_follow_ups.related_type doesn't include 'contact'
+
+              // Task management
+              due_at: followUp.due_at,
+              priority: followUp.priority,
+              status: followUp.status,
+
+              // Completion tracking
+              completed_at: followUp.completed_at,
+              completed_by: followUp.completed_by,
+
+              // Migration tracking for idempotent re-runs
+              migrated_from_id: followUp._id,
+
+              // Concurrency control
+              version: 1,
+
+              // Timestamps
+              created_at: followUp.created_at,
+              updated_at: followUp.updated_at,
+            });
+          }
+
+          results.advisor_follow_ups_migrated++;
+        } catch (error) {
+          results.errors.push(
+            `advisor_follow_ups ${followUp._id}: ${error instanceof Error ? error.message : String(error)}`,
+          );
         }
-
-        // Note: advisor_follow_ups.related_type doesn't include 'contact' type
-        // Only 'application', 'session', 'review', 'general'
-
-        if (!dryRun) {
-          await ctx.db.insert('follow_ups', {
-            // Core fields
-            title: followUp.title,
-            description: followUp.description,
-            type: followUp.related_type || 'general',
-            notes: undefined,
-
-            // Ownership - advisor-created
-            user_id: followUp.student_id,
-            owner_id: followUp.owner_id,
-            created_by_id: followUp.advisor_id,
-            created_by_type: 'advisor' as const,
-
-            // Multi-tenancy
-            university_id: followUp.university_id,
-
-            // Relationships
-            related_type: followUp.related_type,
-            related_id: followUp.related_id,
-            application_id,
-            // Note: contact_id is not used since advisor_follow_ups.related_type doesn't include 'contact'
-
-            // Task management
-            due_at: followUp.due_at,
-            priority: followUp.priority,
-            status: followUp.status,
-
-            // Completion tracking
-            completed_at: followUp.completed_at,
-            completed_by: followUp.completed_by,
-
-            // Migration tracking for idempotent re-runs
-            migrated_from_id: followUp._id,
-
-            // Concurrency control
-            version: 1,
-
-            // Timestamps
-            created_at: followUp.created_at,
-            updated_at: followUp.updated_at,
-          });
-        }
-
-        results.advisor_follow_ups_migrated++;
-      } catch (error) {
-        results.errors.push(
-          `advisor_follow_ups ${followUp._id}: ${error instanceof Error ? error.message : String(error)}`,
-        );
       }
-    }
 
       advisorFollowUpsCursor = page.continueCursor;
       hasMoreAdvisorFollowUps = !page.isDone;
@@ -580,11 +582,7 @@ export const verifyMigration = internalQuery({
     const sampleSize = args.sampleSize ?? 100;
 
     // Count checks using pagination to avoid loading full tables into memory
-    const [
-      followupActionsCount,
-      advisorFollowUpsCount,
-      followUpsCount,
-    ] = await Promise.all([
+    const [followupActionsCount, advisorFollowUpsCount, followUpsCount] = await Promise.all([
       countWithPagination(ctx, 'followup_actions'),
       countWithPagination(ctx, 'advisor_follow_ups'),
       countWithPagination(ctx, 'follow_ups'),
@@ -600,56 +598,52 @@ export const verifyMigration = internalQuery({
     const warnings: string[] = [];
 
     // Batch fetch all referenced users for relationship validation
-    const userIds = [...new Set(sampleFollowUps.map(f => f.user_id))];
-    const users = await Promise.all(userIds.map(id => ctx.db.get(id)));
+    const userIds = [...new Set(sampleFollowUps.map((f) => f.user_id))];
+    const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
     const userMap = new Map(
-      users
-        .filter((u): u is NonNullable<typeof u> => u !== null)
-        .map(u => [u._id, u] as const)
+      users.filter((u): u is NonNullable<typeof u> => u !== null).map((u) => [u._id, u] as const),
     );
 
     // Batch fetch sessions for foreign key validation
     const sessionIds = sampleFollowUps
-      .filter(f => f.related_type === 'session' && f.related_id)
-      .map(f => f.related_id as Id<'advisor_sessions'>);
-    const sessions = await Promise.all(sessionIds.map(id => ctx.db.get(id)));
+      .filter((f) => f.related_type === 'session' && f.related_id)
+      .map((f) => f.related_id as Id<'advisor_sessions'>);
+    const sessions = await Promise.all(sessionIds.map((id) => ctx.db.get(id)));
     const sessionMap = new Map(
       sessions
         .filter((s): s is NonNullable<typeof s> => s !== null)
-        .map(s => [s._id, s] as const)
+        .map((s) => [s._id, s] as const),
     );
 
     // Batch fetch reviews for foreign key validation
     const reviewIds = sampleFollowUps
-      .filter(f => f.related_type === 'review' && f.related_id)
-      .map(f => f.related_id as Id<'advisor_reviews'>);
-    const reviews = await Promise.all(reviewIds.map(id => ctx.db.get(id)));
+      .filter((f) => f.related_type === 'review' && f.related_id)
+      .map((f) => f.related_id as Id<'advisor_reviews'>);
+    const reviews = await Promise.all(reviewIds.map((id) => ctx.db.get(id)));
     const reviewMap = new Map(
-      reviews
-        .filter((r): r is NonNullable<typeof r> => r !== null)
-        .map(r => [r._id, r] as const)
+      reviews.filter((r): r is NonNullable<typeof r> => r !== null).map((r) => [r._id, r] as const),
     );
 
     // Batch fetch applications for foreign key validation
     const applicationIds = sampleFollowUps
-      .filter(f => f.related_type === 'application' && f.related_id)
-      .map(f => f.related_id as Id<'applications'>);
-    const applications = await Promise.all(applicationIds.map(id => ctx.db.get(id)));
+      .filter((f) => f.related_type === 'application' && f.related_id)
+      .map((f) => f.related_id as Id<'applications'>);
+    const applications = await Promise.all(applicationIds.map((id) => ctx.db.get(id)));
     const applicationMap = new Map(
       applications
         .filter((a): a is NonNullable<typeof a> => a !== null)
-        .map(a => [a._id, a] as const)
+        .map((a) => [a._id, a] as const),
     );
 
     // Batch fetch contacts for foreign key validation
     const contactIds = sampleFollowUps
-      .filter(f => f.related_type === 'contact' && f.contact_id)
-      .map(f => f.contact_id as Id<'networking_contacts'>);
-    const contacts = await Promise.all(contactIds.map(id => ctx.db.get(id)));
+      .filter((f) => f.related_type === 'contact' && f.contact_id)
+      .map((f) => f.contact_id as Id<'networking_contacts'>);
+    const contacts = await Promise.all(contactIds.map((id) => ctx.db.get(id)));
     const contactMap = new Map(
       contacts
         .filter((c): c is NonNullable<typeof c> => c !== null)
-        .map(c => [c._id, c] as const)
+        .map((c) => [c._id, c] as const),
     );
 
     for (const followUp of sampleFollowUps) {
@@ -682,7 +676,10 @@ export const verifyMigration = internalQuery({
       if (followUp.priority && !['low', 'medium', 'high', 'urgent'].includes(followUp.priority)) {
         validationErrors.push(`${id}: Invalid priority: ${followUp.priority}`);
       }
-      if (followUp.related_type && !['application', 'contact', 'session', 'review', 'general'].includes(followUp.related_type)) {
+      if (
+        followUp.related_type &&
+        !['application', 'contact', 'session', 'review', 'general'].includes(followUp.related_type)
+      ) {
         validationErrors.push(`${id}: Invalid related_type: ${followUp.related_type}`);
       }
 
@@ -699,10 +696,14 @@ export const verifyMigration = internalQuery({
       // Dual-field pattern validation
       if (followUp.related_type === 'application') {
         if (!followUp.application_id) {
-          validationErrors.push(`${id}: related_type is 'application' but application_id is missing`);
+          validationErrors.push(
+            `${id}: related_type is 'application' but application_id is missing`,
+          );
         }
         if (followUp.related_id !== followUp.application_id) {
-          validationErrors.push(`${id}: related_id (${followUp.related_id}) doesn't match application_id (${followUp.application_id})`);
+          validationErrors.push(
+            `${id}: related_id (${followUp.related_id}) doesn't match application_id (${followUp.application_id})`,
+          );
         }
         // Validate foreign key exists
         if (followUp.application_id && !applicationMap.has(followUp.application_id)) {
@@ -714,7 +715,9 @@ export const verifyMigration = internalQuery({
           validationErrors.push(`${id}: related_type is 'contact' but contact_id is missing`);
         }
         if (followUp.related_id !== followUp.contact_id) {
-          validationErrors.push(`${id}: related_id (${followUp.related_id}) doesn't match contact_id (${followUp.contact_id})`);
+          validationErrors.push(
+            `${id}: related_id (${followUp.related_id}) doesn't match contact_id (${followUp.contact_id})`,
+          );
         }
         // Validate foreign key exists
         if (followUp.contact_id && !contactMap.has(followUp.contact_id)) {

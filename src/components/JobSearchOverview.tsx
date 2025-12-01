@@ -1,25 +1,26 @@
-'use client'
+'use client';
 
-import { useMemo } from 'react'
-import Link from 'next/link'
-import { useUser } from '@clerk/nextjs'
-import { useQuery } from 'convex/react'
-import { api } from 'convex/_generated/api'
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useQuery } from 'convex/react';
 import {
-  Bookmark,
-  Send,
-  MessageSquare,
-  Trophy,
-  Calendar,
-  Clock,
   AlertCircle,
   ArrowRight,
+  Bookmark,
   Briefcase,
+  Calendar,
+  Clock,
+  MessageSquare,
   Plus,
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { calculateFunnelStats } from '@/lib/journey'
+  Send,
+  Trophy,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useMemo } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { calculateFunnelStats } from '@/lib/journey';
+import { cn } from '@/lib/utils';
 
 // Funnel stage configuration
 const FUNNEL_STAGES = [
@@ -27,21 +28,21 @@ const FUNNEL_STAGES = [
   { id: 'applied', label: 'Applied', icon: Send },
   { id: 'interview', label: 'Interviews', icon: MessageSquare },
   { id: 'offer', label: 'Offers', icon: Trophy },
-] as const
+] as const;
 
 interface FunnelBarProps {
-  stats: { saved: number; applied: number; interview: number; offer: number; total: number }
+  stats: { saved: number; applied: number; interview: number; offer: number; total: number };
 }
 
 function FunnelBar({ stats }: FunnelBarProps) {
-  const maxCount = Math.max(stats.saved, stats.applied, stats.interview, stats.offer, 1)
+  const maxCount = Math.max(stats.saved, stats.applied, stats.interview, stats.offer, 1);
 
   return (
     <div className="space-y-2">
       {FUNNEL_STAGES.map((stage) => {
-        const count = stats[stage.id as keyof typeof stats] as number
-        const percentage = (count / maxCount) * 100
-        const Icon = stage.icon
+        const count = stats[stage.id as keyof typeof stats] as number;
+        const percentage = (count / maxCount) * 100;
+        const Icon = stage.icon;
 
         return (
           <Link
@@ -62,37 +63,35 @@ function FunnelBar({ stats }: FunnelBarProps) {
                   stage.id === 'saved' && 'bg-slate-400',
                   stage.id === 'applied' && 'bg-blue-500',
                   stage.id === 'interview' && 'bg-purple-500',
-                  stage.id === 'offer' && 'bg-green-500'
+                  stage.id === 'offer' && 'bg-green-500',
                 )}
                 style={{ width: `${Math.max(percentage, count > 0 ? 8 : 0)}%` }}
               />
             </div>
-            <span className="w-8 text-right text-sm font-medium text-slate-700">
-              {count}
-            </span>
+            <span className="w-8 text-right text-sm font-medium text-slate-700">{count}</span>
           </Link>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
 function formatInterviewDate(timestamp: number): string {
-  const date = new Date(timestamp)
-  const now = new Date()
-  const tomorrow = new Date(now)
-  tomorrow.setDate(tomorrow.getDate() + 1)
+  const date = new Date(timestamp);
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const isToday = date.toDateString() === now.toDateString()
-  const isTomorrow = date.toDateString() === tomorrow.toDateString()
+  const isToday = date.toDateString() === now.toDateString();
+  const isTomorrow = date.toDateString() === tomorrow.toDateString();
 
   const time = date.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
-  })
+  });
 
-  if (isToday) return `Today at ${time}`
-  if (isTomorrow) return `Tomorrow at ${time}`
+  if (isToday) return `Today at ${time}`;
+  if (isTomorrow) return `Tomorrow at ${time}`;
 
   return date.toLocaleDateString('en-US', {
     weekday: 'short',
@@ -100,37 +99,37 @@ function formatInterviewDate(timestamp: number): string {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-  })
+  });
 }
 
 export function JobSearchOverview() {
-  const { user: clerkUser } = useUser()
-  const clerkId = clerkUser?.id
+  const { user: clerkUser } = useUser();
+  const clerkId = clerkUser?.id;
 
   // Fetch applications
   const applications = useQuery(
     api.applications.getUserApplications,
-    clerkId ? { clerkId } : 'skip'
-  )
+    clerkId ? { clerkId } : 'skip',
+  );
 
   // Fetch dashboard data for interview and followup info
   const dashboardData = useQuery(
     api.analytics.getUserDashboardAnalytics,
-    clerkId ? { clerkId } : 'skip'
-  )
+    clerkId ? { clerkId } : 'skip',
+  );
 
-  const isLoading = applications === undefined || dashboardData === undefined
+  const isLoading = applications === undefined || dashboardData === undefined;
 
   // Calculate funnel stats
   const funnelStats = useMemo(() => {
-    if (!applications) return { saved: 0, applied: 0, interview: 0, offer: 0, total: 0 }
-    return calculateFunnelStats(applications)
-  }, [applications])
+    if (!applications) return { saved: 0, applied: 0, interview: 0, offer: 0, total: 0 };
+    return calculateFunnelStats(applications);
+  }, [applications]);
 
-  const hasApplications = funnelStats.total > 0
-  const nextInterview = dashboardData?.nextInterviewDetails
-  const overdueFollowups = dashboardData?.overdueFollowups || 0
-  const pendingTasks = dashboardData?.pendingTasks || 0
+  const hasApplications = funnelStats.total > 0;
+  const nextInterview = dashboardData?.nextInterviewDetails;
+  const overdueFollowups = dashboardData?.overdueFollowups || 0;
+  const pendingTasks = dashboardData?.pendingTasks || 0;
 
   return (
     <section className="h-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col">
@@ -181,10 +180,7 @@ export function JobSearchOverview() {
               Start tracking your job search to see your progress
             </p>
             <Link href="/applications/new">
-              <Button
-                size="sm"
-                className="bg-[#5371FF] hover:bg-[#4260e6] text-white rounded-xl"
-              >
+              <Button size="sm" className="bg-[#5371FF] hover:bg-[#4260e6] text-white rounded-xl">
                 <Plus className="h-4 w-4 mr-1" />
                 Add your first application
               </Button>
@@ -230,10 +226,7 @@ export function JobSearchOverview() {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm text-slate-500">No interviews scheduled</p>
-                    <Link
-                      href="/applications"
-                      className="text-xs text-[#5371FF] hover:underline"
-                    >
+                    <Link href="/applications" className="text-xs text-[#5371FF] hover:underline">
                       Review applications
                     </Link>
                   </div>
@@ -271,10 +264,7 @@ export function JobSearchOverview() {
                     </>
                   )}
                 </div>
-                <Link
-                  href="/applications"
-                  className="text-xs text-[#5371FF] hover:underline"
-                >
+                <Link href="/applications" className="text-xs text-[#5371FF] hover:underline">
                   View all
                 </Link>
               </div>
@@ -283,5 +273,5 @@ export function JobSearchOverview() {
         )}
       </div>
     </section>
-  )
+  );
 }

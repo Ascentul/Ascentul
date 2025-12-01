@@ -1,6 +1,13 @@
 'use client';
 
+import { api } from 'convex/_generated/api';
+import type { Id } from 'convex/_generated/dataModel';
+import { useMutation } from 'convex/react';
+import { AlertCircle, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -9,9 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -19,14 +24,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { AlertCircle, ArrowRight } from 'lucide-react';
-import { useMutation } from 'convex/react';
-import { api } from 'convex/_generated/api';
-import type { Id } from 'convex/_generated/dataModel';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { getNextStages, getStageLabel, getStageColor, isTerminalStage, requiresReasonCode, getReasonCodesForStage } from '@/lib/advisor/stages';
 import type { ApplicationStage } from '@/lib/advisor/stages';
+import {
+  getNextStages,
+  getReasonCodesForStage,
+  getStageColor,
+  getStageLabel,
+  isTerminalStage,
+  requiresReasonCode,
+} from '@/lib/advisor/stages';
 
 interface StageTransitionModalProps {
   isOpen: boolean;
@@ -130,41 +138,37 @@ export function StageTransitionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className='sm:max-w-[500px]'>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Change Application Stage</DialogTitle>
-          <DialogDescription>
-            Update the stage for this application
-          </DialogDescription>
+          <DialogDescription>Update the stage for this application</DialogDescription>
         </DialogHeader>
 
-        <div className='space-y-4 py-4'>
+        <div className="space-y-4 py-4">
           {/* Application Details */}
-          <div className='space-y-2'>
-            <div className='text-sm'>
-              <span className='font-medium'>{application.company_name}</span>
-              <span className='text-muted-foreground'> - {application.position_title}</span>
+          <div className="space-y-2">
+            <div className="text-sm">
+              <span className="font-medium">{application.company_name}</span>
+              <span className="text-muted-foreground"> - {application.position_title}</span>
             </div>
-            <div className='text-xs text-muted-foreground'>
-              Student: {application.student_name}
-            </div>
+            <div className="text-xs text-muted-foreground">Student: {application.student_name}</div>
           </div>
 
           {/* Current Stage */}
-          <div className='space-y-2'>
+          <div className="space-y-2">
             <Label>Current Stage</Label>
             <div>
-              <Badge variant='secondary' className={getStageColor(currentStage)}>
+              <Badge variant="secondary" className={getStageColor(currentStage)}>
                 {getStageLabel(currentStage)}
               </Badge>
             </div>
           </div>
 
           {/* New Stage Selection */}
-          <div className='space-y-2'>
-            <Label htmlFor='stage'>New Stage *</Label>
+          <div className="space-y-2">
+            <Label htmlFor="stage">New Stage *</Label>
             {nextStages.length === 0 ? (
-              <div className='text-sm text-muted-foreground p-3 bg-muted rounded-md'>
+              <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
                 No transitions available from {currentStage}
               </div>
             ) : (
@@ -175,14 +179,14 @@ export function StageTransitionModal({
                   setReasonCode(''); // Reset reason code when stage changes
                 }}
               >
-                <SelectTrigger id='stage'>
-                  <SelectValue placeholder='Select new stage...' />
+                <SelectTrigger id="stage">
+                  <SelectValue placeholder="Select new stage..." />
                 </SelectTrigger>
                 <SelectContent>
                   {nextStages.map((stage) => (
                     <SelectItem key={stage} value={stage}>
-                      <div className='flex items-center gap-2'>
-                        <ArrowRight className='h-3 w-3 text-muted-foreground' />
+                      <div className="flex items-center gap-2">
+                        <ArrowRight className="h-3 w-3 text-muted-foreground" />
                         {getStageLabel(stage)}
                       </div>
                     </SelectItem>
@@ -194,11 +198,11 @@ export function StageTransitionModal({
 
           {/* Reason Code (for Rejected/Withdrawn) */}
           {reasonCodeRequired && availableReasonCodes && (
-            <div className='space-y-2'>
-              <Label htmlFor='reason-code'>Reason *</Label>
+            <div className="space-y-2">
+              <Label htmlFor="reason-code">Reason *</Label>
               <Select value={reasonCode} onValueChange={setReasonCode}>
-                <SelectTrigger id='reason-code'>
-                  <SelectValue placeholder='Select reason...' />
+                <SelectTrigger id="reason-code">
+                  <SelectValue placeholder="Select reason..." />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(availableReasonCodes).map(([code, label]) => (
@@ -212,18 +216,18 @@ export function StageTransitionModal({
           )}
 
           {/* Additional Notes */}
-          <div className='space-y-2'>
-            <Label htmlFor='notes'>
+          <div className="space-y-2">
+            <Label htmlFor="notes">
               {notesRequired ? 'Additional Notes *' : 'Notes (Optional)'}
             </Label>
             {notesRequired && (
-              <div className='flex items-start gap-2 text-xs text-amber-600 bg-amber-50 p-2 rounded-md mb-2'>
-                <AlertCircle className='h-4 w-4 mt-0.5 flex-shrink-0' />
+              <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 p-2 rounded-md mb-2">
+                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                 <span>Additional context is required when moving to {selectedStage} stage</span>
               </div>
             )}
             <Textarea
-              id='notes'
+              id="notes"
               placeholder={
                 notesRequired
                   ? `Provide additional context about this ${selectedStage} decision...`
@@ -234,14 +238,14 @@ export function StageTransitionModal({
               rows={4}
               disabled={isSubmitting}
             />
-            <p className='text-xs text-muted-foreground'>
+            <p className="text-xs text-muted-foreground">
               This will be added to the application notes with a timestamp
             </p>
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant='outline' onClick={handleClose} disabled={isSubmitting}>
+          <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button

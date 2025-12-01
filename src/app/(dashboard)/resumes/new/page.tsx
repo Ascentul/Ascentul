@@ -1,37 +1,38 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useUser } from '@clerk/nextjs'
-import { useMutation, useQuery } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { useToast } from '@/hooks/use-toast'
-import { ArrowLeft, Save, Loader2, Upload as UploadIcon } from 'lucide-react'
-import Link from 'next/link'
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
+import { ArrowLeft, Loader2, Save, Upload as UploadIcon } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 export default function NewResumePage() {
-  const router = useRouter()
-  const { user: clerkUser } = useUser()
-  const { toast } = useToast()
+  const router = useRouter();
+  const { user: clerkUser } = useUser();
+  const { toast } = useToast();
 
   const userProfile = useQuery(
     api.users.getUserByClerkId,
-    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
-  )
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip',
+  );
 
   const userProjects = useQuery(
     api.projects.getUserProjects,
-    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
-  )
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip',
+  );
 
-  const [title, setTitle] = useState('My Resume')
-  const [saving, setSaving] = useState(false)
-  const [importing, setImporting] = useState(false)
+  const [title, setTitle] = useState('My Resume');
+  const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   // Initial resume template
   const [resumeContent, setResumeContent] = useState({
@@ -41,103 +42,103 @@ export default function NewResumePage() {
       phone: '',
       location: '',
       linkedin: '',
-      github: ''
+      github: '',
     },
     summary: '',
     skills: [] as any[],
     experience: [] as any[],
     education: [] as any[],
     projects: [] as any[],
-    achievements: [] as any[]
-  })
+    achievements: [] as any[],
+  });
 
-  const createResumeMutation = useMutation(api.resumes.createResume)
+  const createResumeMutation = useMutation(api.resumes.createResume);
 
   const handleSave = async () => {
     if (!clerkUser?.id) {
       toast({
         title: 'Error',
         description: 'You must be logged in to create a resume',
-        variant: 'destructive'
-      })
-      return
+        variant: 'destructive',
+      });
+      return;
     }
 
     if (!title.trim()) {
       toast({
         title: 'Error',
         description: 'Please enter a title for your resume',
-        variant: 'destructive'
-      })
-      return
+        variant: 'destructive',
+      });
+      return;
     }
 
-    setSaving(true)
+    setSaving(true);
     try {
       const resumeId = await createResumeMutation({
         clerkId: clerkUser.id,
         title: title.trim(),
         content: resumeContent,
         source: 'manual' as any,
-        visibility: 'private' as any
-      })
+        visibility: 'private' as any,
+      });
 
       toast({
         title: 'Success',
-        description: 'Resume created successfully!'
-      })
+        description: 'Resume created successfully!',
+      });
 
       // Redirect to full-featured editor
-      router.push(`/resumes/${resumeId}`)
+      router.push(`/resumes/${resumeId}`);
     } catch (error: any) {
       toast({
         title: 'Error',
         description: error.message || 'Failed to create resume',
-        variant: 'destructive'
-      })
+        variant: 'destructive',
+      });
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const updateContactInfo = (field: string, value: string) => {
-    setResumeContent(prev => ({
+    setResumeContent((prev) => ({
       ...prev,
       contactInfo: {
         ...prev.contactInfo,
-        [field]: value
-      }
-    }))
-  }
+        [field]: value,
+      },
+    }));
+  };
 
   const importFromProfile = async () => {
     if (userProfile === undefined) {
       toast({
         title: 'Loading...',
         description: 'Please wait while we load your profile',
-        variant: 'default'
-      })
-      return
+        variant: 'default',
+      });
+      return;
     }
 
     if (!userProfile) {
       toast({
         title: 'Profile not found',
         description: 'Please complete your career profile first',
-        variant: 'destructive'
-      })
-      return
+        variant: 'destructive',
+      });
+      return;
     }
 
-    setImporting(true)
+    setImporting(true);
     try {
       // Debug logging
       console.log('Importing from profile:', {
         userProfile,
         workHistory: userProfile.work_history,
         educationHistory: userProfile.education_history,
-        projects: userProjects
-      })
+        projects: userProjects,
+      });
 
       // Map work history to experience
       const experience = (userProfile.work_history || []).map((job: any) => ({
@@ -145,12 +146,12 @@ export default function NewResumePage() {
         company: job.company || '',
         location: job.location || '',
         startDate: job.start_date || '',
-        endDate: job.is_current ? 'Present' : (job.end_date || ''),
+        endDate: job.is_current ? 'Present' : job.end_date || '',
         current: job.is_current || false,
-        description: job.summary || ''
-      }))
+        description: job.summary || '',
+      }));
 
-      console.log('Mapped experience:', experience)
+      console.log('Mapped experience:', experience);
 
       // Map education history to education
       const education = (userProfile.education_history || []).map((edu: any) => ({
@@ -162,8 +163,8 @@ export default function NewResumePage() {
         endYear: edu.end_year || '',
         graduationYear: edu.end_year || '',
         gpa: '',
-        honors: ''
-      }))
+        honors: '',
+      }));
 
       // Map projects from projects table
       const projects = (userProjects || []).map((proj: any) => ({
@@ -171,19 +172,19 @@ export default function NewResumePage() {
         role: proj.role || '',
         technologies: Array.isArray(proj.technologies) ? proj.technologies.join(', ') : '',
         description: proj.description || '',
-        url: proj.url || proj.github_url || ''
-      }))
+        url: proj.url || proj.github_url || '',
+      }));
 
       // Map achievements from achievements_history
       const achievements = (userProfile.achievements_history || []).map((ach: any) => ({
         id: Date.now().toString() + Math.random(), // Ensure unique IDs
         title: ach.title || '',
         description: ach.description || '',
-        date: ach.date || ''
-      }))
+        date: ach.date || '',
+      }));
 
       // Import all profile data
-      setResumeContent(prev => ({
+      setResumeContent((prev) => ({
         ...prev,
         contactInfo: {
           name: userProfile.name || clerkUser?.fullName || '',
@@ -191,33 +192,35 @@ export default function NewResumePage() {
           phone: clerkUser?.phoneNumbers?.[0]?.phoneNumber || '',
           location: userProfile.location || '',
           linkedin: userProfile.linkedin_url || '',
-          github: userProfile.github_url || ''
+          github: userProfile.github_url || '',
         },
         summary: userProfile.bio || '',
-        skills: userProfile.skills ? userProfile.skills.split(',').map((s: string) => s.trim()) : [],
+        skills: userProfile.skills
+          ? userProfile.skills.split(',').map((s: string) => s.trim())
+          : [],
         experience,
         education,
         projects,
-        achievements
-      }))
+        achievements,
+      }));
 
       toast({
         title: 'Profile Imported',
         description: 'Career profile data has been imported successfully',
-        variant: 'success'
-      })
+        variant: 'success',
+      });
     } catch (error) {
-      console.error('Import error:', error)
-      const errorMsg = error instanceof Error ? error.message : 'Failed to import profile data'
+      console.error('Import error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Failed to import profile data';
       toast({
         title: 'Import Failed',
         description: errorMsg,
-        variant: 'destructive'
-      })
+        variant: 'destructive',
+      });
     } finally {
-      setImporting(false)
+      setImporting(false);
     }
-  }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -248,10 +251,7 @@ export default function NewResumePage() {
               </>
             )}
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-          >
+          <Button onClick={handleSave} disabled={saving}>
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -364,10 +364,12 @@ export default function NewResumePage() {
               id="summary"
               placeholder="Brief overview of your professional background and key strengths..."
               value={resumeContent.summary}
-              onChange={(e) => setResumeContent(prev => ({
-                ...prev,
-                summary: e.target.value
-              }))}
+              onChange={(e) =>
+                setResumeContent((prev) => ({
+                  ...prev,
+                  summary: e.target.value,
+                }))
+              }
               rows={4}
             />
             <p className="text-sm text-muted-foreground">
@@ -398,5 +400,5 @@ export default function NewResumePage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

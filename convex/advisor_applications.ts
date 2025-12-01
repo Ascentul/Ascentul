@@ -7,18 +7,25 @@
  * - Application pipeline views (Kanban, table)
  */
 
-import { query, mutation, QueryCtx } from './_generated/server';
 import { v } from 'convex/values';
-import { Doc, Id } from './_generated/dataModel';
+
 import { api } from './_generated/api';
+import { Doc, Id } from './_generated/dataModel';
+import { mutation, query, QueryCtx } from './_generated/server';
 import {
+  createAuditLog,
   getCurrentUser,
+  getOwnedStudentIds,
   requireAdvisorRole,
   requireTenant,
-  getOwnedStudentIds,
-  createAuditLog,
 } from './advisor_auth';
-import { ALL_STAGES, ACTIVE_STAGES, STAGE_TRANSITIONS, isTerminalStage, requiresReasonCode } from './advisor_constants';
+import {
+  ACTIVE_STAGES,
+  ALL_STAGES,
+  isTerminalStage,
+  requiresReasonCode,
+  STAGE_TRANSITIONS,
+} from './advisor_constants';
 import { mapStageToStatus } from './migrate_application_status_to_stage';
 
 /**
@@ -54,8 +61,8 @@ type EnrichedApplication = {
  */
 async function fetchApplicationsForStudents(
   ctx: QueryCtx,
-  studentIds: Id<"users">[]
-): Promise<Doc<"applications">[]> {
+  studentIds: Id<'users'>[],
+): Promise<Doc<'applications'>[]> {
   if (studentIds.length === 0) {
     return [];
   }
@@ -66,8 +73,8 @@ async function fetchApplicationsForStudents(
       ctx.db
         .query('applications')
         .withIndex('by_user', (q) => q.eq('user_id', studentId))
-        .collect()
-    )
+        .collect(),
+    ),
   );
 
   // Flatten results
@@ -106,17 +113,15 @@ export const getApplicationsForCaseload = query({
     }
 
     // Filter by stage if provided
-    let filteredApps = args.stage
+    const filteredApps = args.stage
       ? allApplications.filter((app) => app.stage === args.stage)
       : allApplications;
 
     // Batch fetch student data to avoid N+1 queries
     const uniqueStudentIds = [...new Set(filteredApps.map((app) => app.user_id))];
-    const students = await Promise.all(
-      uniqueStudentIds.map((id) => ctx.db.get(id))
-    );
+    const students = await Promise.all(uniqueStudentIds.map((id) => ctx.db.get(id)));
     const studentMap = new Map(
-      students.filter((student) => student !== null).map((student) => [student._id, student])
+      students.filter((student) => student !== null).map((student) => [student._id, student]),
     );
 
     // Enrich with student data from map
@@ -175,11 +180,9 @@ export const getApplicationsByStage = query({
 
     // Batch fetch student data to avoid N+1 queries
     const uniqueStudentIds = [...new Set(allApplications.map((app) => app.user_id))];
-    const students = await Promise.all(
-      uniqueStudentIds.map((id) => ctx.db.get(id))
-    );
+    const students = await Promise.all(uniqueStudentIds.map((id) => ctx.db.get(id)));
     const studentMap = new Map(
-      students.filter((student) => student !== null).map((student) => [student._id, student])
+      students.filter((student) => student !== null).map((student) => [student._id, student]),
     );
 
     // Enrich with student data from map
@@ -273,8 +276,8 @@ export const getApplicationStats = query({
 
     // Applications needing action with detailed breakdown
     const now = Date.now();
-    const threeDaysFromNow = now + (3 * 24 * 60 * 60 * 1000);
-    const fourteenDaysAgo = now - (14 * 24 * 60 * 60 * 1000);
+    const threeDaysFromNow = now + 3 * 24 * 60 * 60 * 1000;
+    const fourteenDaysAgo = now - 14 * 24 * 60 * 60 * 1000;
 
     const needActionBreakdown = {
       no_next_step: 0,
@@ -284,7 +287,7 @@ export const getApplicationStats = query({
     };
 
     const activeApps = allApplications.filter((app) =>
-      ACTIVE_STAGES.includes(app.stage || 'Prospect')
+      ACTIVE_STAGES.includes(app.stage || 'Prospect'),
     );
 
     for (const app of activeApps) {
@@ -303,11 +306,7 @@ export const getApplicationStats = query({
       }
 
       // Rule 3: Due soon (within 3 days)
-      if (
-        app.due_date &&
-        app.due_date >= now &&
-        app.due_date <= threeDaysFromNow
-      ) {
+      if (app.due_date && app.due_date >= now && app.due_date <= threeDaysFromNow) {
         needActionBreakdown.due_soon++;
         needsAction = true;
       }
@@ -324,10 +323,7 @@ export const getApplicationStats = query({
     for (const app of activeApps) {
       const hasNoNextStep = !app.next_step;
       const isOverdue = app.due_date && app.due_date < now;
-      const isDueSoon =
-        app.due_date &&
-        app.due_date >= now &&
-        app.due_date <= threeDaysFromNow;
+      const isDueSoon = app.due_date && app.due_date >= now && app.due_date <= threeDaysFromNow;
       const isStale = app.updated_at < fourteenDaysAgo;
 
       if (hasNoNextStep || isOverdue || isDueSoon || isStale) {
@@ -344,8 +340,7 @@ export const getApplicationStats = query({
       studentsWithApps: studentsWithApps.size,
       needingAction: needingActionSet.size,
       needActionBreakdown,
-      conversionRate:
-        active > 0 ? Math.round(((offers + accepted) / active) * 100) : 0,
+      conversionRate: active > 0 ? Math.round(((offers + accepted) / active) * 100) : 0,
     };
   },
 });
@@ -371,7 +366,7 @@ export const getApplicationById = query({
     // Verify advisor owns this student
     const studentIds = await getOwnedStudentIds(ctx, sessionCtx);
     if (!studentIds.some((id) => id === application.user_id)) {
-      throw new Error('Unauthorized: Not your student\'s application');
+      throw new Error("Unauthorized: Not your student's application");
     }
 
     // Enrich with student data
@@ -389,9 +384,7 @@ export const getApplicationById = query({
  * Convex validator for ApplicationStage
  * Generated from ALL_STAGES constant to maintain single source of truth
  */
-const applicationStageValidator = v.union(
-  ...ALL_STAGES.map((stage) => v.literal(stage))
-);
+const applicationStageValidator = v.union(...ALL_STAGES.map((stage) => v.literal(stage)));
 
 // Note: requiresReasonCode imported from advisor_constants.ts
 
@@ -419,7 +412,7 @@ export const updateApplicationStage = mutation({
     // Verify advisor owns this student
     const studentIds = await getOwnedStudentIds(ctx, sessionCtx);
     if (!studentIds.some((id) => id === application.user_id)) {
-      throw new Error('Unauthorized: Not your student\'s application');
+      throw new Error("Unauthorized: Not your student's application");
     }
 
     const currentStage = application.stage || 'Prospect';
@@ -429,22 +422,18 @@ export const updateApplicationStage = mutation({
     const allowedTransitions = STAGE_TRANSITIONS[currentStage] || [];
     if (!allowedTransitions.includes(newStage)) {
       throw new Error(
-        `Invalid transition from ${currentStage} to ${newStage}. Allowed: ${allowedTransitions.join(", ")}`,
+        `Invalid transition from ${currentStage} to ${newStage}. Allowed: ${allowedTransitions.join(', ')}`,
       );
     }
 
     // Require notes for terminal states
     if (isTerminalStage(newStage) && !args.notes) {
-      throw new Error(
-        `Notes required when moving to ${newStage} state`,
-      );
+      throw new Error(`Notes required when moving to ${newStage} state`);
     }
 
     // Require reason_code for Rejected/Withdrawn stages
     if (requiresReasonCode(newStage) && !args.reason_code) {
-      throw new Error(
-        `Reason code required when moving to ${newStage} state`,
-      );
+      throw new Error(`Reason code required when moving to ${newStage} state`);
     }
 
     const now = Date.now();
@@ -470,9 +459,7 @@ export const updateApplicationStage = mutation({
       const timestamp = new Date(now).toISOString().split('T')[0];
       const newNoteEntry = `[${timestamp}] Stage changed to ${newStage}: ${args.notes}`;
 
-      updates.notes = currentNotes
-        ? `${currentNotes}\n\n${newNoteEntry}`
-        : newNoteEntry;
+      updates.notes = currentNotes ? `${currentNotes}\n\n${newNoteEntry}` : newNoteEntry;
     }
 
     await ctx.db.patch(args.applicationId, updates);
@@ -527,7 +514,7 @@ export const updateApplicationNextStep = mutation({
     // Verify advisor owns this student
     const studentIds = await getOwnedStudentIds(ctx, sessionCtx);
     if (!studentIds.some((id) => id === application.user_id)) {
-      throw new Error('Unauthorized: Not your student\'s application');
+      throw new Error("Unauthorized: Not your student's application");
     }
 
     const now = Date.now();
@@ -547,8 +534,15 @@ export const updateApplicationNextStep = mutation({
       entityType: 'application',
       entityId: args.applicationId,
       studentId: application.user_id,
-      previousValue: { hasNextStep: Boolean(application.next_step), due_date: application.due_date },
-      newValue: { hasNextStep: Boolean(args.nextStep), nextStepLength: args.nextStep.length, due_date: args.dueDate },
+      previousValue: {
+        hasNextStep: Boolean(application.next_step),
+        due_date: application.due_date,
+      },
+      newValue: {
+        hasNextStep: Boolean(args.nextStep),
+        nextStepLength: args.nextStep.length,
+        due_date: args.dueDate,
+      },
     });
 
     return {
@@ -577,12 +571,10 @@ export const bulkUpdateApplicationStage = mutation({
 
     // Get owned student IDs for permission checking
     const studentIds = await getOwnedStudentIds(ctx, sessionCtx);
-    const studentIdSet = new Set(studentIds.map(id => id.toString()));
+    const studentIdSet = new Set(studentIds.map((id) => id.toString()));
 
     // Fetch all applications in parallel
-    const applications = await Promise.all(
-      args.applicationIds.map((id) => ctx.db.get(id))
-    );
+    const applications = await Promise.all(args.applicationIds.map((id) => ctx.db.get(id)));
 
     const now = Date.now();
     const results = {
@@ -624,7 +616,7 @@ export const bulkUpdateApplicationStage = mutation({
         if (!studentIdSet.has(application.user_id.toString())) {
           results.failed++;
           results.errors.push(
-            `Unauthorized: Application ${applicationId} does not belong to your student`
+            `Unauthorized: Application ${applicationId} does not belong to your student`,
           );
           changeRecords.push({
             applicationId,
@@ -645,7 +637,7 @@ export const bulkUpdateApplicationStage = mutation({
         if (!allowedTransitions.includes(newStage)) {
           results.failed++;
           results.errors.push(
-            `Invalid transition from ${currentStage} to ${newStage} for application ${applicationId}`
+            `Invalid transition from ${currentStage} to ${newStage} for application ${applicationId}`,
           );
           changeRecords.push({
             applicationId,
@@ -662,7 +654,7 @@ export const bulkUpdateApplicationStage = mutation({
         if (isTerminalStage(newStage) && !args.notes) {
           results.failed++;
           results.errors.push(
-            `Notes required when moving application ${applicationId} to ${newStage}`
+            `Notes required when moving application ${applicationId} to ${newStage}`,
           );
           changeRecords.push({
             applicationId,
@@ -679,7 +671,7 @@ export const bulkUpdateApplicationStage = mutation({
         if (requiresReasonCode(newStage) && !args.reason_code) {
           results.failed++;
           results.errors.push(
-            `Reason code required when moving application ${applicationId} to ${newStage}`
+            `Reason code required when moving application ${applicationId} to ${newStage}`,
           );
           changeRecords.push({
             applicationId,
@@ -713,9 +705,7 @@ export const bulkUpdateApplicationStage = mutation({
           const timestamp = new Date(now).toISOString().split('T')[0];
           const newNoteEntry = `[${timestamp}] Bulk stage change to ${newStage}: ${args.notes}`;
 
-          updates.notes = currentNotes
-            ? `${currentNotes}\n\n${newNoteEntry}`
-            : newNoteEntry;
+          updates.notes = currentNotes ? `${currentNotes}\n\n${newNoteEntry}` : newNoteEntry;
         }
 
         await ctx.db.patch(applicationId, updates);
@@ -729,11 +719,8 @@ export const bulkUpdateApplicationStage = mutation({
         });
       } catch (error) {
         results.failed++;
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
-        results.errors.push(
-          `Error updating application ${applicationId}: ${errorMessage}`
-        );
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        results.errors.push(`Error updating application ${applicationId}: ${errorMessage}`);
         changeRecords.push({
           applicationId,
           previousStage: application?.stage,
@@ -812,12 +799,10 @@ export const bulkUpdateNextStep = mutation({
 
     // Get owned student IDs for permission checking
     const studentIds = await getOwnedStudentIds(ctx, sessionCtx);
-    const studentIdSet = new Set(studentIds.map(id => id.toString()));
+    const studentIdSet = new Set(studentIds.map((id) => id.toString()));
 
     // Fetch all applications in parallel
-    const applications = await Promise.all(
-      args.applicationIds.map((id) => ctx.db.get(id))
-    );
+    const applications = await Promise.all(args.applicationIds.map((id) => ctx.db.get(id)));
 
     const now = Date.now();
     const results = {
@@ -848,7 +833,7 @@ export const bulkUpdateNextStep = mutation({
         if (!studentIdSet.has(application.user_id.toString())) {
           results.failed++;
           results.errors.push(
-            `Unauthorized: Application ${applicationId} does not belong to your student`
+            `Unauthorized: Application ${applicationId} does not belong to your student`,
           );
           continue;
         }
@@ -865,9 +850,7 @@ export const bulkUpdateNextStep = mutation({
       } catch (error) {
         results.failed++;
         const message = error instanceof Error ? error.message : 'Unknown error';
-        results.errors.push(
-          `Error updating application ${applicationId}: ${message}`
-        );
+        results.errors.push(`Error updating application ${applicationId}: ${message}`);
         changeRecords.push({ applicationId, success: false, error: message });
       }
     }
@@ -914,12 +897,10 @@ export const bulkMarkReviewed = mutation({
 
     // Get owned student IDs for permission checking
     const studentIds = await getOwnedStudentIds(ctx, sessionCtx);
-    const studentIdSet = new Set(studentIds.map(id => id.toString()));
+    const studentIdSet = new Set(studentIds.map((id) => id.toString()));
 
     // Fetch all applications in parallel
-    const applications = await Promise.all(
-      args.applicationIds.map((id) => ctx.db.get(id))
-    );
+    const applications = await Promise.all(args.applicationIds.map((id) => ctx.db.get(id)));
 
     const now = Date.now();
     const results = {
@@ -950,7 +931,7 @@ export const bulkMarkReviewed = mutation({
         if (!studentIdSet.has(application.user_id.toString())) {
           results.failed++;
           results.errors.push(
-            `Unauthorized: Application ${applicationId} does not belong to your student`
+            `Unauthorized: Application ${applicationId} does not belong to your student`,
           );
           continue;
         }
@@ -966,9 +947,7 @@ export const bulkMarkReviewed = mutation({
       } catch (error) {
         results.failed++;
         const message = error instanceof Error ? error.message : 'Unknown error';
-        results.errors.push(
-          `Error marking application ${applicationId} as reviewed: ${message}`
-        );
+        results.errors.push(`Error marking application ${applicationId} as reviewed: ${message}`);
         changeRecords.push({ applicationId, success: false, error: message });
       }
     }

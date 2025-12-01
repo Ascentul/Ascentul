@@ -1,60 +1,61 @@
-'use client'
+'use client';
 
-import React, { useState, useRef, useEffect } from 'react'
-import { useQuery } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { useToast } from '@/hooks/use-toast'
+import { api } from 'convex/_generated/api';
+import { Doc } from 'convex/_generated/dataModel';
+import { useQuery } from 'convex/react';
 import {
-  Search,
   AlertTriangle,
-  CheckCircle,
-  RefreshCw,
-  Loader2,
-  Info,
-  XCircle,
   ArrowRight,
-} from 'lucide-react'
-import { Doc } from 'convex/_generated/dataModel'
+  CheckCircle,
+  Info,
+  Loader2,
+  RefreshCw,
+  Search,
+  XCircle,
+} from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 
 interface ClerkDataResult {
-  id: string
-  email: string
-  name?: string
+  id: string;
+  email: string;
+  name?: string;
 }
 
 interface DiagnosticResult {
-  user: Doc<"users"> | null
-  clerkData: ClerkDataResult
-  mismatch: boolean
-  clerkRole: string | null
-  convexRole: string | null
-  lastSync: number | null
-  issues: string[]
-  suggestions: string[]
+  user: Doc<'users'> | null;
+  clerkData: ClerkDataResult;
+  mismatch: boolean;
+  clerkRole: string | null;
+  convexRole: string | null;
+  lastSync: number | null;
+  issues: string[];
+  suggestions: string[];
 }
 
 export function RoleDiagnostics() {
-  const { toast } = useToast()
-  const [email, setEmail] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [diagnosticResult, setDiagnosticResult] = useState<DiagnosticResult | null>(null)
-  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const isMountedRef = useRef(true)
+  const { toast } = useToast();
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [diagnosticResult, setDiagnosticResult] = useState<DiagnosticResult | null>(null);
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
 
   // Cleanup timeout on unmount to prevent memory leaks
   useEffect(() => {
     return () => {
-      isMountedRef.current = false
+      isMountedRef.current = false;
       if (syncTimeoutRef.current) {
-        clearTimeout(syncTimeoutRef.current)
+        clearTimeout(syncTimeoutRef.current);
       }
-    }
-  }, [])
+    };
+  }, []);
 
   const runDiagnostic = async () => {
     if (!email) {
@@ -62,12 +63,12 @@ export function RoleDiagnostics() {
         title: 'Error',
         description: 'Please enter a user email',
         variant: 'destructive',
-      })
-      return
+      });
+      return;
     }
 
-    setLoading(true)
-    setDiagnosticResult(null)
+    setLoading(true);
+    setDiagnosticResult(null);
 
     try {
       // Call API to check role sync status
@@ -75,30 +76,30 @@ export function RoleDiagnostics() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
-      })
+      });
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to run diagnostic')
+        throw new Error(result.error || 'Failed to run diagnostic');
       }
 
-      setDiagnosticResult(result)
+      setDiagnosticResult(result);
     } catch (error) {
       toast({
         title: 'Diagnostic Failed',
         description: error instanceof Error ? error.message : 'Failed to run diagnostic',
         variant: 'destructive',
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const syncRoleToClerk = async () => {
-    if (!diagnosticResult?.user) return
+    if (!diagnosticResult?.user) return;
 
-    setLoading(true)
+    setLoading(true);
 
     try {
       const response = await fetch('/api/admin/users/sync-role-to-clerk', {
@@ -108,45 +109,45 @@ export function RoleDiagnostics() {
           userId: diagnosticResult.clerkData.id,
           role: diagnosticResult.convexRole,
         }),
-      })
+      });
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to sync role')
+        throw new Error(result.error || 'Failed to sync role');
       }
 
       toast({
         title: 'Role Synced',
         description: 'Successfully synced role from Convex to Clerk. Re-checking in 2 seconds...',
-      })
+      });
 
       // Clear any existing timeout to prevent stale callbacks
       if (syncTimeoutRef.current) {
-        clearTimeout(syncTimeoutRef.current)
+        clearTimeout(syncTimeoutRef.current);
       }
 
       // Wait for webhook to process before re-checking (webhook takes ~500ms-1s)
       syncTimeoutRef.current = setTimeout(async () => {
         if (isMountedRef.current) {
-          await runDiagnostic()
-          setLoading(false)
+          await runDiagnostic();
+          setLoading(false);
         }
-      }, 2000)
+      }, 2000);
     } catch (error) {
       toast({
         title: 'Sync Failed',
         description: error instanceof Error ? error.message : 'Failed to sync role',
         variant: 'destructive',
-      })
-      setLoading(false)
+      });
+      setLoading(false);
     }
-  }
+  };
 
   const syncRoleToConvex = async () => {
-    if (!diagnosticResult?.user) return
+    if (!diagnosticResult?.user) return;
 
-    setLoading(true)
+    setLoading(true);
 
     try {
       const response = await fetch('/api/admin/users/sync-role-to-convex', {
@@ -156,40 +157,40 @@ export function RoleDiagnostics() {
           userId: diagnosticResult.clerkData.id,
           role: diagnosticResult.clerkRole,
         }),
-      })
+      });
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to sync role')
+        throw new Error(result.error || 'Failed to sync role');
       }
 
       toast({
         title: 'Role Synced',
         description: 'Successfully synced role from Clerk to Convex. Re-checking in 2 seconds...',
-      })
+      });
 
       // Clear any existing timeout to prevent stale callbacks
       if (syncTimeoutRef.current) {
-        clearTimeout(syncTimeoutRef.current)
+        clearTimeout(syncTimeoutRef.current);
       }
 
       // Wait for webhook to process before re-checking (webhook takes ~500ms-1s)
       syncTimeoutRef.current = setTimeout(async () => {
         if (isMountedRef.current) {
-          await runDiagnostic()
-          setLoading(false)
+          await runDiagnostic();
+          setLoading(false);
         }
-      }, 2000)
+      }, 2000);
     } catch (error) {
       toast({
         title: 'Sync Failed',
         description: error instanceof Error ? error.message : 'Failed to sync role',
         variant: 'destructive',
-      })
-      setLoading(false)
+      });
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <Card>
@@ -258,7 +259,10 @@ export function RoleDiagnostics() {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>User Not Found in Convex</AlertTitle>
                 <AlertDescription>
-                  This user exists in Clerk ({diagnosticResult.clerkData.email || diagnosticResult.clerkData.id}) but has not been synced to the Convex database yet. This may indicate a webhook configuration issue.
+                  This user exists in Clerk (
+                  {diagnosticResult.clerkData.email || diagnosticResult.clerkData.id}) but has not
+                  been synced to the Convex database yet. This may indicate a webhook configuration
+                  issue.
                 </AlertDescription>
               </Alert>
             )}
@@ -284,23 +288,21 @@ export function RoleDiagnostics() {
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="p-3 border rounded-lg">
                   <div className="text-xs text-muted-foreground mb-2">Clerk Role</div>
-                  <div className="text-sm font-medium">
-                    (Source of Truth)
-                  </div>
+                  <div className="text-sm font-medium">(Source of Truth)</div>
                   <Badge variant="outline" className="mt-2 capitalize">
                     {diagnosticResult.clerkRole || 'None'}
                   </Badge>
                 </div>
 
                 <div className="flex items-center justify-center">
-                  <ArrowRight className={`h-6 w-6 ${diagnosticResult.mismatch ? 'text-red-500' : 'text-green-500'}`} />
+                  <ArrowRight
+                    className={`h-6 w-6 ${diagnosticResult.mismatch ? 'text-red-500' : 'text-green-500'}`}
+                  />
                 </div>
 
                 <div className="p-3 border rounded-lg">
                   <div className="text-xs text-muted-foreground mb-2">Convex Role</div>
-                  <div className="text-sm font-medium">
-                    (Cached Display)
-                  </div>
+                  <div className="text-sm font-medium">(Cached Display)</div>
                   <Badge variant="outline" className="mt-2 capitalize">
                     {diagnosticResult.convexRole || 'None'}
                   </Badge>
@@ -356,7 +358,12 @@ export function RoleDiagnostics() {
                         Update Clerk metadata with Convex role
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" onClick={syncRoleToClerk} disabled={loading}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={syncRoleToClerk}
+                      disabled={loading}
+                    >
                       {loading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
@@ -374,7 +381,12 @@ export function RoleDiagnostics() {
                         Update Convex database with Clerk role
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" onClick={syncRoleToConvex} disabled={loading}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={syncRoleToConvex}
+                      disabled={loading}
+                    >
                       {loading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
@@ -396,12 +408,12 @@ export function RoleDiagnostics() {
           <Info className="h-4 w-4" />
           <AlertDescription className="text-sm">
             <strong>Important:</strong> Clerk `publicMetadata.role` is the source of truth for
-            authorization. The Convex role is cached for display purposes. Normal role changes
-            flow: Update Clerk → Webhook → Convex. If there's a mismatch, use sync tools to
-            resolve inconsistencies, then investigate why the webhook failed to sync properly.
+            authorization. The Convex role is cached for display purposes. Normal role changes flow:
+            Update Clerk → Webhook → Convex. If there's a mismatch, use sync tools to resolve
+            inconsistencies, then investigate why the webhook failed to sync properly.
           </AlertDescription>
         </Alert>
       </CardContent>
     </Card>
-  )
+  );
 }

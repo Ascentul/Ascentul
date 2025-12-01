@@ -1,6 +1,50 @@
 {
-  "extends": ["next/core-web-vitals"],
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "plugins": ["simple-import-sort"],
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:jsx-a11y/recommended",
+    "plugin:security/recommended-legacy",
+    "prettier"
+  ],
   "rules": {
-    "react/no-unescaped-entities": "off"
-  }
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/no-empty-object-type": "warn",
+    "@typescript-eslint/no-require-imports": "warn",
+    "@typescript-eslint/ban-ts-comment": "warn",
+
+    "react/no-unescaped-entities": "off",
+    "react/jsx-key": "error",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+
+    "import/order": "off",
+    "simple-import-sort/imports": "error",
+    "simple-import-sort/exports": "error",
+
+    "jsx-a11y/anchor-is-valid": "warn",
+    "jsx-a11y/label-has-associated-control": "warn",
+    "jsx-a11y/click-events-have-key-events": "warn",
+    "jsx-a11y/no-static-element-interactions": "warn",
+
+    "no-console": ["warn", { "allow": ["warn", "error"] }]
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    ".next/",
+    "convex/_generated/",
+    "convex/__tests_disabled__/",
+    "archive/",
+    "*.config.js",
+    "*.config.mjs",
+    "*.config.ts",
+    "jest.setup.js"
+  ]
 }

@@ -27,7 +27,4 @@ export type FollowUpStatus = (typeof FOLLOW_UP_STATUSES)[number];
 /**
  * Convex validator for follow-up status
  */
-export const followUpStatusValidator = v.union(
-  v.literal('open'),
-  v.literal('done'),
-);
+export const followUpStatusValidator = v.union(v.literal('open'), v.literal('done'));

@@ -6,23 +6,20 @@
  */
 
 // Re-export constants from Convex (single source of truth)
-import type {
-  ApplicationStage as AppStage,
-} from 'convex/advisor_constants';
-
+import type { ApplicationStage as AppStage } from 'convex/advisor_constants';
 import {
-  ALL_STAGES,
   ACTIVE_STAGES,
+  ALL_STAGES,
   FINAL_STAGES,
-  TERMINAL_STAGES,
-  STAGE_TRANSITIONS,
-  REJECTED_REASON_CODES,
-  WITHDRAWN_REASON_CODES,
-  isTerminalStage,
+  getReasonCodesForStage,
   isActiveStage,
   isFinalStage,
+  isTerminalStage,
+  REJECTED_REASON_CODES,
   requiresReasonCode,
-  getReasonCodesForStage,
+  STAGE_TRANSITIONS,
+  TERMINAL_STAGES,
+  WITHDRAWN_REASON_CODES,
 } from 'convex/advisor_constants';
 
 // Re-export type
@@ -30,18 +27,18 @@ export type ApplicationStage = AppStage;
 
 // Re-export constants and type guards
 export {
-  ALL_STAGES,
   ACTIVE_STAGES,
+  ALL_STAGES,
   FINAL_STAGES,
-  TERMINAL_STAGES,
-  STAGE_TRANSITIONS,
-  REJECTED_REASON_CODES,
-  WITHDRAWN_REASON_CODES,
-  isTerminalStage,
+  getReasonCodesForStage,
   isActiveStage,
   isFinalStage,
+  isTerminalStage,
+  REJECTED_REASON_CODES,
   requiresReasonCode,
-  getReasonCodesForStage,
+  STAGE_TRANSITIONS,
+  TERMINAL_STAGES,
+  WITHDRAWN_REASON_CODES,
 };
 
 /**
@@ -88,10 +85,7 @@ export function getStageColor(stage: ApplicationStage): string {
  * - Offer -> Accepted, Rejected, Withdrawn, Archived
  * - Final states -> Archived only
  */
-export function isValidTransition(
-  fromStage: ApplicationStage,
-  toStage: ApplicationStage,
-): boolean {
+export function isValidTransition(fromStage: ApplicationStage, toStage: ApplicationStage): boolean {
   return STAGE_TRANSITIONS[fromStage]?.includes(toStage) || false;
 }
 

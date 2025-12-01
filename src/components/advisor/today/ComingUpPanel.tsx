@@ -7,17 +7,18 @@
  * to help advisors prepare.
  */
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, User, ChevronRight } from 'lucide-react';
-import { format } from 'date-fns';
-import Link from 'next/link';
-import { cn } from '@/lib/utils';
 import { Id } from 'convex/_generated/dataModel';
+import { format } from 'date-fns';
+import { Calendar, ChevronRight, Clock, User } from 'lucide-react';
+import Link from 'next/link';
+
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 interface ComingUpSession {
-  _id: Id<"advisor_sessions">;
-  student_id: Id<"users">;
+  _id: Id<'advisor_sessions'>;
+  student_id: Id<'users'>;
   student_name: string;
   title: string;
   session_type?: string;
@@ -74,10 +75,7 @@ function DayRow({ day }: { day: ComingUpDay }) {
       {/* Show first 2 sessions with names */}
       <div className="pl-6 space-y-1">
         {day.sessions.slice(0, 2).map((session) => (
-          <div
-            key={session._id}
-            className="flex items-center gap-2 text-xs text-slate-600"
-          >
+          <div key={session._id} className="flex items-center gap-2 text-xs text-slate-600">
             <Clock className="h-3 w-3 text-slate-400" />
             <span className="font-medium">{format(new Date(session.start_at), 'h:mm a')}</span>
             <span className="text-slate-400">-</span>
@@ -91,9 +89,7 @@ function DayRow({ day }: { day: ComingUpDay }) {
           </div>
         ))}
         {sessionCount > 2 && (
-          <div className="text-xs text-slate-400 pl-5">
-            +{sessionCount - 2} more
-          </div>
+          <div className="text-xs text-slate-400 pl-5">+{sessionCount - 2} more</div>
         )}
       </div>
     </div>

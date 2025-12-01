@@ -3,61 +3,61 @@
  * Supports both Mailgun and SendGrid
  */
 
-import formData from 'form-data'
-import Mailgun from 'mailgun.js'
+import formData from 'form-data';
+import Mailgun from 'mailgun.js';
 
-const DEFAULT_DOMAIN = 'mail.ascentful.io'
-const DEFAULT_FROM = 'Ascentful <no-reply@mail.ascentful.io>'
+const DEFAULT_DOMAIN = 'mail.ascentful.io';
+const DEFAULT_FROM = 'Ascentful <no-reply@mail.ascentful.io>';
 
 export interface EmailOptions {
-  to: string | string[]
-  from?: string
-  subject: string
-  text: string
-  html?: string
-  domain?: string
+  to: string | string[];
+  from?: string;
+  subject: string;
+  text: string;
+  html?: string;
+  domain?: string;
 }
 
 interface EmailResult {
-  id: string
-  message: string
-  status: number
-  skipped?: boolean
+  id: string;
+  message: string;
+  status: number;
+  skipped?: boolean;
 }
 
 /**
  * Send email using Mailgun
  */
 async function sendWithMailgun(options: EmailOptions): Promise<EmailResult> {
-  const mailgunKey = process.env.MAILGUN_SENDING_API_KEY || process.env.MAILGUN_API_KEY
+  const mailgunKey = process.env.MAILGUN_SENDING_API_KEY || process.env.MAILGUN_API_KEY;
   if (!mailgunKey) {
-    throw new Error('MAILGUN_API_KEY is not configured')
+    throw new Error('MAILGUN_API_KEY is not configured');
   }
 
-  const mailgun = new Mailgun(formData)
+  const mailgun = new Mailgun(formData);
   const mg = mailgun.client({
     username: 'api',
     key: mailgunKey,
-  })
+  });
 
   const emailData: any = {
     from: options.from || DEFAULT_FROM,
     to: Array.isArray(options.to) ? options.to.join(',') : options.to,
     subject: options.subject,
     text: options.text,
-  }
+  };
 
   if (options.html) {
-    emailData.html = options.html
+    emailData.html = options.html;
   }
 
-  const result = await mg.messages.create(options.domain || DEFAULT_DOMAIN, emailData)
+  const result = await mg.messages.create(options.domain || DEFAULT_DOMAIN, emailData);
 
   return {
     id: result.id || `msg_${Date.now()}`,
     message: result.message || 'Email sent',
     status: 200,
-  }
+  };
 }
 
 /**
@@ -65,11 +65,11 @@ async function sendWithMailgun(options: EmailOptions): Promise<EmailResult> {
  */
 async function sendWithSendGrid(options: EmailOptions): Promise<EmailResult> {
   if (!process.env.SENDGRID_API_KEY) {
-    throw new Error('SENDGRID_API_KEY is not configured')
+    throw new Error('SENDGRID_API_KEY is not configured');
   }
 
-  const sgMail = require('@sendgrid/mail')
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+  const sgMail = require('@sendgrid/mail');
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
   const msg = {
     to: options.to,
@@ -77,15 +77,15 @@ async function sendWithSendGrid(options: EmailOptions): Promise<EmailResult> {
     subject: options.subject,
     text: options.text,
     html: options.html,
-  }
+  };
 
-  const [response] = await sgMail.send(msg)
+  const [response] = await sgMail.send(msg);
 
   return {
     id: response.headers['x-message-id'] || `msg_${Date.now()}`,
     message: 'Email sent',
     status: response.statusCode,
-  }
+  };
 }
 
 /**
@@ -94,21 +94,23 @@ async function sendWithSendGrid(options: EmailOptions): Promise<EmailResult> {
 export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
   // Validate required params
   if (!options.to || !options.subject || !options.text) {
-    throw new Error('Missing required email parameters: to, subject, and text')
+    throw new Error('Missing required email parameters: to, subject, and text');
   }
 
   try {
     // Try Mailgun first, fallback to SendGrid
     if (process.env.MAILGUN_SENDING_API_KEY || process.env.MAILGUN_API_KEY) {
-      return await sendWithMailgun(options)
+      return await sendWithMailgun(options);
     } else if (process.env.SENDGRID_API_KEY) {
-      return await sendWithSendGrid(options)
+      return await sendWithSendGrid(options);
     } else {
-      throw new Error('No email service configured. Set MAILGUN_SENDING_API_KEY or SENDGRID_API_KEY')
+      throw new Error(
+        'No email service configured. Set MAILGUN_SENDING_API_KEY or SENDGRID_API_KEY',
+      );
     }
   } catch (error) {
-    console.error('Email send error:', error)
-    throw error
+    console.error('Email send error:', error);
+    throw error;
   }
 }
 
@@ -118,10 +120,10 @@ export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
 export async function sendActivationEmail(
   email: string,
   name: string,
-  activationUrl: string
+  activationUrl: string,
 ): Promise<EmailResult> {
-  const firstName = name.split(' ')[0]
-  const subject = 'Welcome to Ascentful - Activate Your Account'
+  const firstName = name.split(' ')[0];
+  const subject = 'Welcome to Ascentful - Activate Your Account';
 
   const text = `Hi ${firstName},
 
@@ -145,7 +147,7 @@ If you did not expect this email or have questions, please contact your administ
 Welcome to Ascentful - we're excited to support your career journey!
 
 Best,
-The Ascentful Team`
+The Ascentful Team`;
 
   const html = `
     <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
@@ -222,7 +224,7 @@ The Ascentful Team`
         </p>
       </div>
     </div>
-  `
+  `;
 
   return sendEmail({
     to: email,
@@ -245,7 +247,7 @@ The Ascentful Team`
       };
     }
     throw error;
-  })
+  });
 }
 
 /**
@@ -255,11 +257,11 @@ The Ascentful Team`
 export async function sendUniversityInvitationEmail(
   email: string,
   universityName: string,
-  inviteLink: string
+  inviteLink: string,
 ): Promise<EmailResult> {
-  const firstName = email.split('@')[0] // Extract first part of email as fallback name
+  const firstName = email.split('@')[0]; // Extract first part of email as fallback name
 
-  const subject = `You're Invited to Join ${universityName} on Ascentful 🎓`
+  const subject = `You're Invited to Join ${universityName} on Ascentful 🎓`;
 
   const text = `Hi ${firstName},
 
@@ -285,7 +287,7 @@ We're excited to support your career journey!
 
 Warm regards,
 The Ascentful Team
-www.ascentful.io`
+www.ascentful.io`;
 
   const html = `
     <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
@@ -357,7 +359,7 @@ www.ascentful.io`
         </p>
       </div>
     </div>
-  `
+  `;
 
   return sendEmail({
     to: email,
@@ -366,21 +368,23 @@ www.ascentful.io`
     html,
   }).catch((error) => {
     // Handle email service not configured gracefully
-    const errorMessage = error.message
-    if (errorMessage.includes('No email service configured') ||
-        errorMessage.includes('MAILGUN_SENDING_API_KEY') ||
-        errorMessage.includes('SENDGRID_API_KEY')) {
-      console.warn("Email service not configured - university invitation email not sent")
+    const errorMessage = error.message;
+    if (
+      errorMessage.includes('No email service configured') ||
+      errorMessage.includes('MAILGUN_SENDING_API_KEY') ||
+      errorMessage.includes('SENDGRID_API_KEY')
+    ) {
+      console.warn('Email service not configured - university invitation email not sent');
       return {
         id: `email_not_configured_${Date.now()}`,
-        message: "Email service not configured",
+        message: 'Email service not configured',
         status: 202, // Accepted but skipped
         skipped: true,
-      }
+      };
     }
     // Re-throw other errors
-    throw error
-  })
+    throw error;
+  });
 }
 
 /**
@@ -391,10 +395,10 @@ export async function sendSupportTicketResponseEmail(
   name: string,
   ticketSubject: string,
   responseMessage: string,
-  ticketUrl: string
+  ticketUrl: string,
 ): Promise<EmailResult> {
-  const firstName = name.split(' ')[0]
-  const subject = `Re: ${ticketSubject}`
+  const firstName = name.split(' ')[0];
+  const subject = `Re: ${ticketSubject}`;
 
   const text = `Hi ${firstName},
 
@@ -409,7 +413,7 @@ ${ticketUrl}
 If you have any further questions, please respond through the support portal.
 
 Best regards,
-The Ascentful Support Team`
+The Ascentful Support Team`;
 
   const html = `
     <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
@@ -468,7 +472,7 @@ The Ascentful Support Team`
         </p>
       </div>
     </div>
-  `
+  `;
 
   return sendEmail({
     to: email,
@@ -491,16 +495,16 @@ The Ascentful Support Team`
       };
     }
     throw error;
-  })
+  });
 }
 
 /**
  * Send welcome email to self-registered individual consumers (Email Template #4)
  */
 export async function sendWelcomeEmail(email: string, name: string): Promise<EmailResult> {
-  const firstName = name.split(' ')[0]
-  const subject = 'Welcome to Ascentful - Let\'s Build Your Career OS 🚀'
-  const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/dashboard`
+  const firstName = name.split(' ')[0];
+  const subject = "Welcome to Ascentful - Let's Build Your Career OS 🚀";
+  const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.ascentful.io'}/dashboard`;
 
   const text = `Hi ${firstName},
 
@@ -522,7 +526,7 @@ ${dashboardUrl}
 Need help getting started? Reach out to support@ascentful.io.
 
 We're thrilled to have you on board,
-The Ascentful Team`
+The Ascentful Team`;
 
   const html = `
     <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
@@ -588,7 +592,7 @@ The Ascentful Team`
         </p>
       </div>
     </div>
-  `
+  `;
 
   return sendEmail({
     to: email,
@@ -623,9 +627,9 @@ export async function sendUniversityAdvisorInvitationEmail(
   firstName: string,
   universityAdminName: string,
   role: string,
-  inviteLink: string
+  inviteLink: string,
 ): Promise<EmailResult> {
-  const subject = `You've Been Invited to Join Ascentful's Team`
+  const subject = `You've Been Invited to Join Ascentful's Team`;
 
   const text = `Hi ${firstName},
 
@@ -647,7 +651,7 @@ What You'll Be Able To Do:
 If you have any questions, please contact ${universityAdminName} or reach us at support@ascentful.io.
 
 Welcome aboard,
-The Ascentful Team`
+The Ascentful Team`;
 
   const html = `
     <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
@@ -713,7 +717,7 @@ The Ascentful Team`
         </p>
       </div>
     </div>
-  `
+  `;
 
   return sendEmail({
     to: email,
@@ -747,9 +751,9 @@ export async function sendSuperAdminUniversityInvitationEmail(
   email: string,
   firstName: string,
   universityName: string,
-  inviteLink: string
+  inviteLink: string,
 ): Promise<EmailResult> {
-  const subject = `Your University Has Been Added to Ascentful - Set Up Your Admin Account`
+  const subject = `Your University Has Been Added to Ascentful - Set Up Your Admin Account`;
 
   const text = `Hi ${firstName},
 
@@ -771,7 +775,7 @@ With Your Admin Access, You Can:
 If you have any questions or need help getting started, contact your onboarding manager or reach out to support@ascentful.io.
 
 Welcome to Ascentful,
-The Ascentful Partnerships Team`
+The Ascentful Partnerships Team`;
 
   const html = `
     <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
@@ -836,14 +840,14 @@ The Ascentful Partnerships Team`
         </p>
       </div>
     </div>
-  `
+  `;
 
   return sendEmail({
     to: email,
     subject,
     text,
     html,
-  })
+  });
 }
 
 /**
@@ -853,14 +857,14 @@ export async function sendPaymentConfirmationEmail(
   email: string,
   name: string,
   amount: number,
-  plan: string
+  plan: string,
 ) {
   const formattedAmount = (amount / 100).toLocaleString('en-US', {
     style: 'currency',
     currency: 'USD',
-  })
+  });
 
-  const subject = 'Payment Confirmed - Ascentful Premium'
+  const subject = 'Payment Confirmed - Ascentful Premium';
 
   const text = `Hi [NAME],
 
@@ -883,16 +887,20 @@ You can manage your subscription at https://app.ascentful.io/pricing
 If you have any questions, contact us at support@ascentful.io
 
 Best regards,
-The Ascentful Team`.replace('[NAME]', name).replace('[PLAN]', plan).replace('[AMOUNT]', formattedAmount).replace('[DATE]', new Date().toLocaleDateString())
+The Ascentful Team`
+    .replace('[NAME]', name)
+    .replace('[PLAN]', plan)
+    .replace('[AMOUNT]', formattedAmount)
+    .replace('[DATE]', new Date().toLocaleDateString());
 
-  const html = '<div>Payment confirmation HTML</div>'
+  const html = '<div>Payment confirmation HTML</div>';
 
   return sendEmail({
     to: email,
     subject,
     text,
     html,
-  })
+  });
 }
 
 /**
@@ -902,11 +910,11 @@ export async function sendReviewCompletionEmail(
   email: string,
   studentName: string,
   reviewType: string,
-  reviewUrl: string
+  reviewUrl: string,
 ): Promise<EmailResult> {
-  const trimmedName = studentName?.trim() || ''
-  const firstName = trimmedName.split(' ')[0] || trimmedName || 'there'
-  const subject = `Your ${reviewType} Review is Complete`
+  const trimmedName = studentName?.trim() || '';
+  const firstName = trimmedName.split(' ')[0] || trimmedName || 'there';
+  const subject = `Your ${reviewType} Review is Complete`;
 
   const text = `Hi ${firstName},
 
@@ -920,7 +928,7 @@ ${reviewUrl}
 We recommend reviewing the feedback carefully and taking action on the suggestions provided. If you have questions about the feedback, please reach out to your advisor.
 
 Best regards,
-The Ascentful Team`
+The Ascentful Team`;
 
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1f2937; line-height: 1.6;">
@@ -970,7 +978,7 @@ The Ascentful Team`
         </p>
       </div>
     </div>
-  `
+  `;
 
   return sendEmail({
     to: email,

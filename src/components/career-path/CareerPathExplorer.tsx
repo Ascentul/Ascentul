@@ -1,28 +1,29 @@
-import React, { useRef } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
 import {
+  ArrowRight,
+  Award,
+  BookOpen,
+  Braces,
+  BriefcaseBusiness,
+  Calendar,
   ChevronLeft,
   ChevronRight,
-  ArrowRight,
-  TrendingUp,
-  Sparkles,
-  BriefcaseBusiness,
-  Award,
-  Braces,
   Cpu,
-  LineChart,
-  User,
   Database,
+  DollarSign,
+  GraduationCap,
   Layers,
   Lightbulb,
-  GraduationCap,
-  DollarSign,
-  Calendar,
-  BookOpen
+  LineChart,
+  Sparkles,
+  TrendingUp,
+  User,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useRef } from 'react';
+
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface CareerSkill {
@@ -49,43 +50,43 @@ interface CareerPath {
 }
 
 const iconMap: Record<string, React.ReactNode> = {
-  'braces': <Braces className="h-6 w-6 text-primary" />,
-  'cpu': <Cpu className="h-6 w-6 text-primary" />,
-  'database': <Database className="h-6 w-6 text-primary" />,
-  'briefcase': <BriefcaseBusiness className="h-6 w-6 text-primary" />,
-  'user': <User className="h-6 w-6 text-primary" />,
-  'award': <Award className="h-6 w-6 text-primary" />,
-  'lineChart': <LineChart className="h-6 w-6 text-primary" />,
-  'layers': <Layers className="h-6 w-6 text-primary" />,
-  'graduation': <GraduationCap className="h-6 w-6 text-primary" />,
-  'lightbulb': <Lightbulb className="h-6 w-6 text-primary" />,
-  'book': <BookOpen className="h-6 w-6 text-primary" />,
+  braces: <Braces className="h-6 w-6 text-primary" />,
+  cpu: <Cpu className="h-6 w-6 text-primary" />,
+  database: <Database className="h-6 w-6 text-primary" />,
+  briefcase: <BriefcaseBusiness className="h-6 w-6 text-primary" />,
+  user: <User className="h-6 w-6 text-primary" />,
+  award: <Award className="h-6 w-6 text-primary" />,
+  lineChart: <LineChart className="h-6 w-6 text-primary" />,
+  layers: <Layers className="h-6 w-6 text-primary" />,
+  graduation: <GraduationCap className="h-6 w-6 text-primary" />,
+  lightbulb: <Lightbulb className="h-6 w-6 text-primary" />,
+  book: <BookOpen className="h-6 w-6 text-primary" />,
 };
 
 const LevelBadgeColors: Record<string, string> = {
-  'entry': 'bg-blue-100 text-blue-800',
-  'mid': 'bg-green-100 text-green-800',
-  'senior': 'bg-purple-100 text-purple-800',
-  'lead': 'bg-yellow-100 text-yellow-800',
-  'executive': 'bg-red-100 text-red-800',
+  entry: 'bg-blue-100 text-blue-800',
+  mid: 'bg-green-100 text-green-800',
+  senior: 'bg-purple-100 text-purple-800',
+  lead: 'bg-yellow-100 text-yellow-800',
+  executive: 'bg-red-100 text-red-800',
 };
 
-const GrowthIndicators: Record<string, { icon: React.ReactNode, text: string, color: string }> = {
-  'low': {
+const GrowthIndicators: Record<string, { icon: React.ReactNode; text: string; color: string }> = {
+  low: {
     icon: <TrendingUp className="h-4 w-4" />,
     text: 'Low Growth',
-    color: 'text-amber-500'
+    color: 'text-amber-500',
   },
-  'medium': {
+  medium: {
     icon: <TrendingUp className="h-4 w-4" />,
     text: 'Medium Growth',
-    color: 'text-blue-500'
+    color: 'text-blue-500',
   },
-  'high': {
+  high: {
     icon: <Sparkles className="h-4 w-4" />,
     text: 'High Growth',
-    color: 'text-green-500'
-  }
+    color: 'text-green-500',
+  },
 };
 
 interface CareerPathExplorerProps {
@@ -98,13 +99,14 @@ export const CareerPathExplorer = ({ pathData }: CareerPathExplorerProps) => {
   const handleScroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
       const scrollAmount = 300;
-      const newScrollLeft = direction === 'left'
-        ? scrollContainerRef.current.scrollLeft - scrollAmount
-        : scrollContainerRef.current.scrollLeft + scrollAmount;
+      const newScrollLeft =
+        direction === 'left'
+          ? scrollContainerRef.current.scrollLeft - scrollAmount
+          : scrollContainerRef.current.scrollLeft + scrollAmount;
 
       scrollContainerRef.current.scrollTo({
         left: newScrollLeft,
-        behavior: 'smooth'
+        behavior: 'smooth',
       });
     }
   };
@@ -126,14 +128,16 @@ export const CareerPathExplorer = ({ pathData }: CareerPathExplorerProps) => {
 
     // Handle single path data
     if (data.nodes && Array.isArray(data.nodes)) {
-      return [{
-        id: data.id || 'path-1',
-        name: data.name || 'Career Path',
-        nodes: data.nodes.map((node: any) => ({
-          ...node,
-          icon: node.icon || 'briefcase',
-        })),
-      }];
+      return [
+        {
+          id: data.id || 'path-1',
+          name: data.name || 'Career Path',
+          nodes: data.nodes.map((node: any) => ({
+            ...node,
+            icon: node.icon || 'briefcase',
+          })),
+        },
+      ];
     }
 
     const defaultPath: CareerPath = {
@@ -148,7 +152,7 @@ export const CareerPathExplorer = ({ pathData }: CareerPathExplorerProps) => {
         if (index === 0) level = 'entry';
         else if (index === data.suggestedRoles.length - 1) level = 'executive';
         else if (index < data.suggestedRoles.length / 3) level = 'mid';
-        else if (index < data.suggestedRoles.length * 2 / 3) level = 'senior';
+        else if (index < (data.suggestedRoles.length * 2) / 3) level = 'senior';
         else level = 'lead';
 
         return {
@@ -157,10 +161,11 @@ export const CareerPathExplorer = ({ pathData }: CareerPathExplorerProps) => {
           level,
           salaryRange: role.salaryRange || 'Not specified',
           yearsExperience: role.timeToAchieve || 'Not specified',
-          skills: role.keySkills?.map((skill: string) => ({
-            name: skill,
-            level: 'intermediate' as const
-          })) || [],
+          skills:
+            role.keySkills?.map((skill: string) => ({
+              name: skill,
+              level: 'intermediate' as const,
+            })) || [],
           growthPotential: role.growthPotential || 'medium',
           description: role.description || '',
           icon: role.icon || 'briefcase',
@@ -207,10 +212,7 @@ export const CareerPathExplorer = ({ pathData }: CareerPathExplorerProps) => {
           <div className="absolute top-20 left-0 right-10 h-1 bg-gray-200" />
 
           {activePath.nodes.map((node, index) => (
-            <div
-              key={node.id}
-              className="flex flex-col items-center min-w-[250px] first:pl-4"
-            >
+            <div key={node.id} className="flex flex-col items-center min-w-[250px] first:pl-4">
               <motion.div
                 className="transition-all relative mt-4"
                 initial={{ opacity: 0, y: 20 }}
@@ -221,7 +223,9 @@ export const CareerPathExplorer = ({ pathData }: CareerPathExplorerProps) => {
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-2">
                       <div className="mt-1">
-                        {iconMap[node.icon] || <BriefcaseBusiness className="h-6 w-6 text-primary" />}
+                        {iconMap[node.icon] || (
+                          <BriefcaseBusiness className="h-6 w-6 text-primary" />
+                        )}
                       </div>
                       <Badge className={LevelBadgeColors[node.level]}>
                         {node.level.charAt(0).toUpperCase() + node.level.slice(1)}
@@ -229,11 +233,15 @@ export const CareerPathExplorer = ({ pathData }: CareerPathExplorerProps) => {
                     </div>
                     <h3 className="font-bold text-lg mb-1">{node.title}</h3>
                     <div className="text-sm text-muted-foreground mb-2">{node.salaryRange}</div>
-                    <div className="text-xs text-muted-foreground">Experience: {node.yearsExperience}</div>
-                    <div className={cn(
-                      "flex items-center gap-1 text-xs mt-2",
-                      GrowthIndicators[node.growthPotential].color
-                    )}>
+                    <div className="text-xs text-muted-foreground">
+                      Experience: {node.yearsExperience}
+                    </div>
+                    <div
+                      className={cn(
+                        'flex items-center gap-1 text-xs mt-2',
+                        GrowthIndicators[node.growthPotential].color,
+                      )}
+                    >
                       {GrowthIndicators[node.growthPotential].icon}
                       {GrowthIndicators[node.growthPotential].text}
                     </div>
@@ -269,10 +277,12 @@ export const CareerPathExplorer = ({ pathData }: CareerPathExplorerProps) => {
               <Badge
                 key={`skill-${index}`}
                 className={cn(
-                  "px-3 py-1",
-                  skill.currentProficiency === 'advanced' ? 'bg-green-100 text-green-800' :
-                  skill.currentProficiency === 'intermediate' ? 'bg-blue-100 text-blue-800' :
-                  'bg-amber-100 text-amber-800'
+                  'px-3 py-1',
+                  skill.currentProficiency === 'advanced'
+                    ? 'bg-green-100 text-green-800'
+                    : skill.currentProficiency === 'intermediate'
+                      ? 'bg-blue-100 text-blue-800'
+                      : 'bg-amber-100 text-amber-800',
                 )}
               >
                 {skill.skill}

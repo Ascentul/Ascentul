@@ -15,7 +15,7 @@
  * - Mismatches between related_id and typed field values
  */
 
-import { Id } from "../_generated/dataModel";
+import { Id } from '../_generated/dataModel';
 
 /**
  * Relationship types supported by follow_ups
@@ -28,8 +28,8 @@ export type FollowUpRelatedType = 'application' | 'contact' | 'session' | 'revie
 export interface FollowUpRelationshipInput {
   related_type?: FollowUpRelatedType;
   related_id?: string;
-  application_id?: Id<"applications">;
-  contact_id?: Id<"networking_contacts">;
+  application_id?: Id<'applications'>;
+  contact_id?: Id<'networking_contacts'>;
 }
 
 /**
@@ -62,7 +62,8 @@ export function validateFollowUpRelationship(data: FollowUpRelationshipInput): V
   if (data.related_type === 'application' && !data.application_id) {
     return {
       valid: false,
-      error: "application_id is required when related_type='application'. Both generic and typed fields must be set for consistency.",
+      error:
+        "application_id is required when related_type='application'. Both generic and typed fields must be set for consistency.",
     };
   }
 
@@ -70,7 +71,8 @@ export function validateFollowUpRelationship(data: FollowUpRelationshipInput): V
   if (data.related_type === 'contact' && !data.contact_id) {
     return {
       valid: false,
-      error: "contact_id is required when related_type='contact'. Both generic and typed fields must be set for consistency.",
+      error:
+        "contact_id is required when related_type='contact'. Both generic and typed fields must be set for consistency.",
     };
   }
 
@@ -113,7 +115,7 @@ export function validateFollowUpRelationship(data: FollowUpRelationshipInput): V
   if (data.related_type && !data.related_id) {
     warnings.push(
       `related_id is not set but related_type='${data.related_type}'. ` +
-      `Consider setting related_id for composite index queries.`
+        `Consider setting related_id for composite index queries.`,
     );
   }
 
@@ -148,7 +150,7 @@ export function assertFollowUpRelationshipValid(data: FollowUpRelationshipInput)
  * @param applicationId - The application ID
  * @returns Object with all required relationship fields set consistently
  */
-export function buildApplicationRelationship(applicationId: Id<"applications">) {
+export function buildApplicationRelationship(applicationId: Id<'applications'>) {
   return {
     related_type: 'application' as const,
     related_id: applicationId as string,
@@ -163,7 +165,7 @@ export function buildApplicationRelationship(applicationId: Id<"applications">) 
  * @param contactId - The networking contact ID
  * @returns Object with all required relationship fields set consistently
  */
-export function buildContactRelationship(contactId: Id<"networking_contacts">) {
+export function buildContactRelationship(contactId: Id<'networking_contacts'>) {
   return {
     related_type: 'contact' as const,
     related_id: contactId as string,
@@ -181,7 +183,7 @@ export function buildContactRelationship(contactId: Id<"networking_contacts">) {
  */
 export function buildGenericRelationship(
   relatedType: 'session' | 'review' | 'general',
-  relatedId?: string
+  relatedId?: string,
 ) {
   return {
     related_type: relatedType,

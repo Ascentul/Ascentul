@@ -17,20 +17,17 @@
  * - Easy to reset
  */
 
+import { Calendar, GraduationCap, Layers, X, Zap } from 'lucide-react';
 import React from 'react';
-import { X, Calendar, GraduationCap, Layers, Zap } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import {
-  ApplicationStage,
-  ApplicationFilters,
-  ACTIVE_STAGES,
-  TERMINAL_STAGES,
-} from '../types';
+
+import { ACTIVE_STAGES, ApplicationFilters, ApplicationStage, TERMINAL_STAGES } from '../types';
 
 // ============================================================================
 // Types
@@ -87,16 +84,9 @@ export function AdvancedFiltersPanel({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Advanced Filters</h3>
-          <p className="text-sm text-muted-foreground">
-            Refine your application view
-          </p>
+          <p className="text-sm text-muted-foreground">Refine your application view</p>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClearFilters}
-          className="gap-2"
-        >
+        <Button variant="ghost" size="sm" onClick={onClearFilters} className="gap-2">
           <X className="h-4 w-4" aria-hidden="true" />
           Clear All
         </Button>
@@ -115,8 +105,12 @@ export function AdvancedFiltersPanel({
             variant="outline"
             size="sm"
             onClick={handleQuickFilterActive}
-            className={filters.stages.length === ACTIVE_STAGES.length &&
-              ACTIVE_STAGES.every(s => filters.stages.includes(s)) ? 'bg-primary/10' : ''}
+            className={
+              filters.stages.length === ACTIVE_STAGES.length &&
+              ACTIVE_STAGES.every((s) => filters.stages.includes(s))
+                ? 'bg-primary/10'
+                : ''
+            }
           >
             Active Only
           </Button>
@@ -124,8 +118,12 @@ export function AdvancedFiltersPanel({
             variant="outline"
             size="sm"
             onClick={handleQuickFilterTerminal}
-            className={filters.stages.length === TERMINAL_STAGES.length &&
-              TERMINAL_STAGES.every(s => filters.stages.includes(s)) ? 'bg-primary/10' : ''}
+            className={
+              filters.stages.length === TERMINAL_STAGES.length &&
+              TERMINAL_STAGES.every((s) => filters.stages.includes(s))
+                ? 'bg-primary/10'
+                : ''
+            }
           >
             Terminal Only
           </Button>
@@ -156,7 +154,7 @@ export function AdvancedFiltersPanel({
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {/* Active Stages */}
-          {ACTIVE_STAGES.filter(s => s !== 'Offer').map((stage) => (
+          {ACTIVE_STAGES.filter((s) => s !== 'Offer').map((stage) => (
             <StageCheckbox
               key={stage}
               stage={stage}
@@ -167,7 +165,7 @@ export function AdvancedFiltersPanel({
           ))}
 
           {/* Terminal Stages */}
-          {TERMINAL_STAGES.filter(s => s !== 'Archived').map((stage) => (
+          {TERMINAL_STAGES.filter((s) => s !== 'Archived').map((stage) => (
             <StageCheckbox
               key={stage}
               stage={stage}
@@ -243,9 +241,7 @@ export function AdvancedFiltersPanel({
               <Label className="text-sm font-medium">Applied Date Range</Label>
             </div>
             <div className="rounded-lg border border-dashed border-gray-300 p-4 text-center">
-              <p className="text-sm text-muted-foreground">
-                Date range picker coming soon
-              </p>
+              <p className="text-sm text-muted-foreground">Date range picker coming soon</p>
             </div>
           </div>
           <Separator />
@@ -260,17 +256,12 @@ export function AdvancedFiltersPanel({
             checked={filters.activeOnly}
             onCheckedChange={(checked) => onSetActiveOnly(!!checked)}
           />
-          <Label
-            htmlFor="active-only"
-            className="cursor-pointer text-sm font-medium"
-          >
+          <Label htmlFor="active-only" className="cursor-pointer text-sm font-medium">
             Show only active applications
           </Label>
         </div>
         {filters.activeOnly && (
-          <span className="text-xs text-muted-foreground">
-            {ACTIVE_STAGES.join(', ')}
-          </span>
+          <span className="text-xs text-muted-foreground">{ACTIVE_STAGES.join(', ')}</span>
         )}
       </div>
     </Card>
@@ -306,8 +297,8 @@ function StageCheckbox({ stage, checked, onToggle, variant }: StageCheckboxProps
       type="button"
       onClick={() => onToggle(stage)}
       className={cn(
-        "flex items-center gap-2 rounded-lg border p-2.5 text-left text-sm transition-all pl-3",
-        checked ? checkedStyles[variant] : variantStyles[variant]
+        'flex items-center gap-2 rounded-lg border p-2.5 text-left text-sm transition-all pl-3',
+        checked ? checkedStyles[variant] : variantStyles[variant],
       )}
       aria-pressed={checked}
     >
@@ -332,10 +323,10 @@ function CohortCheckbox({ cohort, checked, onToggle }: CohortCheckboxProps) {
       type="button"
       onClick={() => onToggle(cohort)}
       className={cn(
-        "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all",
+        'flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all',
         checked
           ? 'border-purple-500 bg-purple-100'
-          : 'border-purple-200 bg-purple-50/50 hover:bg-purple-100/50'
+          : 'border-purple-200 bg-purple-50/50 hover:bg-purple-100/50',
       )}
       aria-pressed={checked}
     >

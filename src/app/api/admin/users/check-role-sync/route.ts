@@ -1,13 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth, clerkClient } from '@clerk/nextjs/server'
-import { ConvexHttpClient } from 'convex/browser'
-import { api } from 'convex/_generated/api'
-import { ClerkPublicMetadata } from '@/types/clerk'
+import { auth, clerkClient } from '@clerk/nextjs/server';
+import { api } from 'convex/_generated/api';
+import { ConvexHttpClient } from 'convex/browser';
+import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
+import { ClerkPublicMetadata } from '@/types/clerk';
 
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 
 /**
  * Check role synchronization status between Clerk and Convex
@@ -18,76 +19,64 @@ const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
  */
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await auth()
-    const { userId } = authResult
+    const authResult = await auth();
+    const { userId } = authResult;
 
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Please sign in' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized - Please sign in' }, { status: 401 });
     }
 
     // Verify caller is super_admin
-    const client = await clerkClient()
-    const caller = await client.users.getUser(userId)
-    const callerRole = (caller.publicMetadata as ClerkPublicMetadata)?.role
+    const client = await clerkClient();
+    const caller = await client.users.getUser(userId);
+    const callerRole = (caller.publicMetadata as ClerkPublicMetadata)?.role;
 
     if (callerRole !== 'super_admin') {
       return NextResponse.json(
         { error: 'Forbidden - Only super admins can run diagnostics' },
-        { status: 403 }
-      )
+        { status: 403 },
+      );
     }
 
     if (!convexUrl) {
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
-    const body = await request.json()
-    const { email } = body
+    const body = await request.json();
+    const { email } = body;
 
     if (!email) {
-      return NextResponse.json(
-        { error: 'Email is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
     // Find user in Clerk by email
     const clerkUsers = await client.users.getUserList({
       emailAddress: [email],
-    })
+    });
 
     if (!clerkUsers.data || clerkUsers.data.length === 0) {
-      return NextResponse.json(
-        { error: 'User not found in Clerk' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'User not found in Clerk' }, { status: 404 });
     }
 
     if (clerkUsers.data.length > 1) {
       return NextResponse.json(
         { error: 'Multiple users found with this email. Please use Clerk ID instead.' },
-        { status: 400 }
-      )
+        { status: 400 },
+      );
     }
 
-    const clerkUser = clerkUsers.data[0]
-    const clerkRole = (clerkUser.publicMetadata as ClerkPublicMetadata)?.role || null
+    const clerkUser = clerkUsers.data[0];
+    const clerkRole = (clerkUser.publicMetadata as ClerkPublicMetadata)?.role || null;
 
     // Find user in Convex
-    const convex = new ConvexHttpClient(convexUrl)
-    const convexToken = await authResult.getToken({ template: 'convex' })
+    const convex = new ConvexHttpClient(convexUrl);
+    const convexToken = await authResult.getToken({ template: 'convex' });
     if (convexToken) {
-      convex.setAuth(convexToken)
+      convex.setAuth(convexToken);
     }
     const convexUser = await convex.query(api.users.getUserByClerkId, {
       clerkId: clerkUser.id,
-    })
+    });
 
     if (!convexUser) {
       return NextResponse.json({
@@ -106,31 +95,33 @@ export async function POST(request: NextRequest) {
           'Check webhook configuration',
           'Manually create user in Convex',
         ],
-      })
+      });
     }
 
-    const convexRole = convexUser.role || null
-    const mismatch = clerkRole !== convexRole
+    const convexRole = convexUser.role || null;
+    const mismatch = clerkRole !== convexRole;
 
-    const issues: string[] = []
-    const suggestions: string[] = []
+    const issues: string[] = [];
+    const suggestions: string[] = [];
 
     if (mismatch) {
-      issues.push(`Role mismatch: Clerk has "${clerkRole}", Convex has "${convexRole}"`)
-      issues.push('Authorization decisions use Clerk role, but UI may show incorrect role from Convex')
+      issues.push(`Role mismatch: Clerk has "${clerkRole}", Convex has "${convexRole}"`);
+      issues.push(
+        'Authorization decisions use Clerk role, but UI may show incorrect role from Convex',
+      );
 
       if (!clerkRole) {
-        suggestions.push('Set role in Clerk publicMetadata - this is the source of truth')
-        suggestions.push('After setting in Clerk, webhook will sync to Convex')
+        suggestions.push('Set role in Clerk publicMetadata - this is the source of truth');
+        suggestions.push('After setting in Clerk, webhook will sync to Convex');
       } else if (!convexRole) {
-        suggestions.push('Convex role is missing - webhook may have failed')
-        suggestions.push('Use "Sync to Convex" to update database with Clerk role')
+        suggestions.push('Convex role is missing - webhook may have failed');
+        suggestions.push('Use "Sync to Convex" to update database with Clerk role');
       } else {
-        suggestions.push('Recommended: Sync from Convex to Clerk to preserve existing role')
-        suggestions.push('Alternative: Sync from Clerk to Convex if Clerk role is correct')
+        suggestions.push('Recommended: Sync from Convex to Clerk to preserve existing role');
+        suggestions.push('Alternative: Sync from Clerk to Convex if Clerk role is correct');
       }
     } else {
-      suggestions.push('Roles are in sync - no action needed')
+      suggestions.push('Roles are in sync - no action needed');
     }
 
     return NextResponse.json({
@@ -146,14 +137,14 @@ export async function POST(request: NextRequest) {
       lastSync: convexUser.updated_at || null,
       issues,
       suggestions,
-    })
+    });
   } catch (error) {
-    console.error('[API] Role sync check error:', error)
+    console.error('[API] Role sync check error:', error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'Diagnostic failed',
       },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }

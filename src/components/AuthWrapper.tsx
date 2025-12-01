@@ -1,47 +1,48 @@
-'use client'
+'use client';
 
-import React, { useEffect, useState } from 'react'
-import { useUser, useAuth as useClerkAuth } from '@clerk/nextjs'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/ClerkAuthProvider'
+import { useAuth as useClerkAuth, useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+
+import { useAuth } from '@/contexts/ClerkAuthProvider';
 
 interface AuthWrapperProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 export function AuthWrapper({ children }: AuthWrapperProps) {
-  const { user: clerkUser, isLoaded: clerkLoaded } = useUser()
-  const { isLoaded: authLoaded } = useClerkAuth()
-  const { user: userProfile } = useAuth() // Use context instead of separate query
-  const router = useRouter()
-  const [redirectPath, setRedirectPath] = useState<string | null>(null)
+  const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
+  const { isLoaded: authLoaded } = useClerkAuth();
+  const { user: userProfile } = useAuth(); // Use context instead of separate query
+  const router = useRouter();
+  const [redirectPath, setRedirectPath] = useState<string | null>(null);
 
   useEffect(() => {
     // Wait for all auth states to be loaded
-    if (!clerkLoaded || !authLoaded) return
+    if (!clerkLoaded || !authLoaded) return;
 
     // If we have a user profile, determine the correct redirect
     if (clerkUser && userProfile) {
-      const userRole = userProfile.role
-      let targetPath = '/dashboard'
+      const userRole = userProfile.role;
+      let targetPath = '/dashboard';
 
       // Determine the correct dashboard based on role
       if (userRole === 'super_admin') {
-        targetPath = '/admin'
+        targetPath = '/admin';
       } else if (userRole === 'university_admin' || userRole === 'advisor') {
-        targetPath = '/university'
+        targetPath = '/university';
       }
 
-      setRedirectPath(targetPath)
+      setRedirectPath(targetPath);
     }
-  }, [clerkUser, userProfile, clerkLoaded, authLoaded])
+  }, [clerkUser, userProfile, clerkLoaded, authLoaded]);
 
   // If we need to redirect, do it now
   useEffect(() => {
     if (redirectPath && window.location.pathname !== redirectPath) {
-      router.push(redirectPath)
+      router.push(redirectPath);
     }
-  }, [redirectPath, router])
+  }, [redirectPath, router]);
 
   // Show loading while determining redirect
   if (!clerkLoaded || !authLoaded || (clerkUser && !userProfile)) {
@@ -52,7 +53,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
         authLoaded,
         hasClerkUser: !!clerkUser,
         hasUserProfile: !!userProfile,
-      })
+      });
     }
 
     return (
@@ -62,13 +63,14 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
           <p className="text-muted-foreground">Loading...</p>
           {process.env.NODE_ENV === 'development' && (
             <p className="text-xs text-muted-foreground mt-2">
-              Clerk: {clerkLoaded ? '✓' : '...'} | Auth: {authLoaded ? '✓' : '...'} | User: {clerkUser ? '✓' : '-'} | Profile: {userProfile ? '✓' : '...'}
+              Clerk: {clerkLoaded ? '✓' : '...'} | Auth: {authLoaded ? '✓' : '...'} | User:{' '}
+              {clerkUser ? '✓' : '-'} | Profile: {userProfile ? '✓' : '...'}
             </p>
           )}
         </div>
       </div>
-    )
+    );
   }
 
-  return <>{children}</>
+  return <>{children}</>;
 }

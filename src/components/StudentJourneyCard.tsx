@@ -1,28 +1,28 @@
-'use client'
+'use client';
 
-import { Compass, FileText, Search, Users, ChevronRight, Check } from 'lucide-react'
-import Link from 'next/link'
+import { Check, ChevronRight, Compass, FileText, Search, Users } from 'lucide-react';
+import Link from 'next/link';
 
 interface JourneyStep {
-  id: string
-  label: string
-  description: string
-  icon: React.ElementType
-  href: string
-  isComplete: boolean
+  id: string;
+  label: string;
+  description: string;
+  icon: React.ElementType;
+  href: string;
+  isComplete: boolean;
 }
 
 interface JourneyProgress {
-  careerExploration: { isComplete: boolean; count: number }
-  resumeBuilding: { isComplete: boolean; count: number }
-  jobSearch: { isComplete: boolean; count: number }
-  advising: { isComplete: boolean; count: number; completedCount?: number }
-  completedSteps: number
-  totalSteps: number
+  careerExploration: { isComplete: boolean; count: number };
+  resumeBuilding: { isComplete: boolean; count: number };
+  jobSearch: { isComplete: boolean; count: number };
+  advising: { isComplete: boolean; count: number; completedCount?: number };
+  completedSteps: number;
+  totalSteps: number;
 }
 
 interface StudentJourneyCardProps {
-  journeyProgress?: JourneyProgress
+  journeyProgress?: JourneyProgress;
 }
 
 export function StudentJourneyCard({ journeyProgress }: StudentJourneyCardProps) {
@@ -59,15 +59,15 @@ export function StudentJourneyCard({ journeyProgress }: StudentJourneyCardProps)
       href: '/advising',
       isComplete: journeyProgress?.advising?.isComplete ?? false,
     },
-  ]
+  ];
 
-  const completedSteps = journeyProgress?.completedSteps ?? 0
-  const totalSteps = journeyProgress?.totalSteps ?? 4
+  const completedSteps = journeyProgress?.completedSteps ?? 0;
+  const totalSteps = journeyProgress?.totalSteps ?? 4;
 
   // Find the current step (first incomplete) or last step if all complete
-  const currentStepIndex = steps.findIndex(step => !step.isComplete)
-  const activeStep = currentStepIndex === -1 ? steps[steps.length - 1] : steps[currentStepIndex]
-  const allComplete = completedSteps === totalSteps
+  const currentStepIndex = steps.findIndex((step) => !step.isComplete);
+  const activeStep = currentStepIndex === -1 ? steps[steps.length - 1] : steps[currentStepIndex];
+  const allComplete = completedSteps === totalSteps;
 
   return (
     <Link
@@ -76,40 +76,43 @@ export function StudentJourneyCard({ journeyProgress }: StudentJourneyCardProps)
     >
       {/* Isometric background illustration */}
       <div className="absolute right-0 top-0 bottom-0 w-32 opacity-[0.15] pointer-events-none">
-        <svg viewBox="0 0 120 140" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-full w-full">
+        <svg
+          viewBox="0 0 120 140"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-full w-full"
+        >
           {/* Isometric stacked blocks representing progress */}
-          <path d="M60 130L20 105V75L60 100V130Z" fill="#5371FF"/>
-          <path d="M60 130L100 105V75L60 100V130Z" fill="#3B5BDB"/>
-          <path d="M20 75L60 50L100 75L60 100L20 75Z" fill="#748FFC"/>
+          <path d="M60 130L20 105V75L60 100V130Z" fill="#5371FF" />
+          <path d="M60 130L100 105V75L60 100V130Z" fill="#3B5BDB" />
+          <path d="M20 75L60 50L100 75L60 100L20 75Z" fill="#748FFC" />
 
-          <path d="M60 95L20 70V40L60 65V95Z" fill="#5371FF"/>
-          <path d="M60 95L100 70V40L60 65V95Z" fill="#3B5BDB"/>
-          <path d="M20 40L60 15L100 40L60 65L20 40Z" fill="#748FFC"/>
+          <path d="M60 95L20 70V40L60 65V95Z" fill="#5371FF" />
+          <path d="M60 95L100 70V40L60 65V95Z" fill="#3B5BDB" />
+          <path d="M20 40L60 15L100 40L60 65L20 40Z" fill="#748FFC" />
 
           {/* Top block - highlighted for current step */}
-          <path d="M60 60L30 42V22L60 40V60Z" fill="#5371FF" fillOpacity="0.8"/>
-          <path d="M60 60L90 42V22L60 40V60Z" fill="#3B5BDB" fillOpacity="0.8"/>
-          <path d="M30 22L60 4L90 22L60 40L30 22Z" fill="#748FFC" fillOpacity="0.9"/>
+          <path d="M60 60L30 42V22L60 40V60Z" fill="#5371FF" fillOpacity="0.8" />
+          <path d="M60 60L90 42V22L60 40V60Z" fill="#3B5BDB" fillOpacity="0.8" />
+          <path d="M30 22L60 4L90 22L60 40L30 22Z" fill="#748FFC" fillOpacity="0.9" />
 
           {/* Floating particle effects */}
-          <circle cx="45" cy="30" r="2" fill="#5371FF" fillOpacity="0.6"/>
-          <circle cx="75" cy="55" r="1.5" fill="#5371FF" fillOpacity="0.4"/>
-          <circle cx="35" cy="70" r="1" fill="#5371FF" fillOpacity="0.5"/>
+          <circle cx="45" cy="30" r="2" fill="#5371FF" fillOpacity="0.6" />
+          <circle cx="75" cy="55" r="1.5" fill="#5371FF" fillOpacity="0.4" />
+          <circle cx="35" cy="70" r="1" fill="#5371FF" fillOpacity="0.5" />
         </svg>
       </div>
 
       <div className="relative flex items-start gap-4">
         {/* Icon */}
-        <div className={`flex h-14 w-14 items-center justify-center rounded-xl transition-all flex-shrink-0 ${
-          allComplete
-            ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
-            : "bg-primary-500 text-white shadow-lg shadow-primary-500/30 group-hover:scale-105"
-        }`}>
-          {allComplete ? (
-            <Check className="h-7 w-7" />
-          ) : (
-            <activeStep.icon className="h-7 w-7" />
-          )}
+        <div
+          className={`flex h-14 w-14 items-center justify-center rounded-xl transition-all flex-shrink-0 ${
+            allComplete
+              ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+              : 'bg-primary-500 text-white shadow-lg shadow-primary-500/30 group-hover:scale-105'
+          }`}
+        >
+          {allComplete ? <Check className="h-7 w-7" /> : <activeStep.icon className="h-7 w-7" />}
         </div>
 
         {/* Content */}
@@ -120,10 +123,12 @@ export function StudentJourneyCard({ journeyProgress }: StudentJourneyCardProps)
             </span>
           </div>
           <h3 className="text-base font-semibold text-slate-900 group-hover:text-primary-700 transition-colors mb-1">
-            {allComplete ? "Journey Complete!" : activeStep.label}
+            {allComplete ? 'Journey Complete!' : activeStep.label}
           </h3>
           <p className="text-sm text-slate-500 leading-relaxed">
-            {allComplete ? "You've explored all career areas. Keep building your future!" : activeStep.description}
+            {allComplete
+              ? "You've explored all career areas. Keep building your future!"
+              : activeStep.description}
           </p>
 
           {/* Progress indicator */}
@@ -134,10 +139,10 @@ export function StudentJourneyCard({ journeyProgress }: StudentJourneyCardProps)
                   key={step.id}
                   className={`h-2 w-6 rounded-full transition-all ${
                     step.isComplete
-                      ? "bg-primary-500"
+                      ? 'bg-primary-500'
                       : index === currentStepIndex
-                        ? "bg-primary-300"
-                        : "bg-slate-200"
+                        ? 'bg-primary-300'
+                        : 'bg-slate-200'
                   }`}
                 />
               ))}
@@ -147,5 +152,5 @@ export function StudentJourneyCard({ journeyProgress }: StudentJourneyCardProps)
         </div>
       </div>
     </Link>
-  )
+  );
 }

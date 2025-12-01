@@ -19,8 +19,8 @@
  * Dry run: npx convex run migrations/migrate_user_to_individual:dryRun
  */
 
-import { internalMutation, mutation, query } from "../_generated/server";
-import { requireSuperAdmin } from "../lib/roles";
+import { internalMutation, mutation, query } from '../_generated/server';
+import { requireSuperAdmin } from '../lib/roles';
 
 /**
  * Preview what would be migrated (dry run)
@@ -32,8 +32,8 @@ export const dryRun = query({
     await requireSuperAdmin(ctx);
 
     const usersWithLegacyRole = await ctx.db
-      .query("users")
-      .withIndex("by_role", (q) => q.eq("role", "user"))
+      .query('users')
+      .withIndex('by_role', (q) => q.eq('role', 'user'))
       .collect();
 
     return {
@@ -50,7 +50,8 @@ export const dryRun = query({
         .map((u) => ({
           id: u._id,
           email: u.email,
-          message: "Has university_id - will be skipped (needs manual assignment to student/advisor/university_admin)",
+          message:
+            'Has university_id - will be skipped (needs manual assignment to student/advisor/university_admin)',
         })),
     };
   },
@@ -66,8 +67,8 @@ export const migrate = mutation({
     await requireSuperAdmin(ctx);
 
     const usersWithLegacyRole = await ctx.db
-      .query("users")
-      .withIndex("by_role", (q) => q.eq("role", "user"))
+      .query('users')
+      .withIndex('by_role', (q) => q.eq('role', 'user'))
       .collect();
 
     const now = Date.now();
@@ -85,13 +86,14 @@ export const migrate = mutation({
         results.warnings.push({
           id: user._id,
           email: user.email,
-          reason: "Has university_id - skipped (needs manual assignment to student/advisor/university_admin)",
+          reason:
+            'Has university_id - skipped (needs manual assignment to student/advisor/university_admin)',
         });
         results.skipped++;
         continue;
       }
       await ctx.db.patch(user._id, {
-        role: "individual",
+        role: 'individual',
         updated_at: now,
       });
 
@@ -117,8 +119,8 @@ export const migrateInternal = internalMutation({
   args: {},
   handler: async (ctx) => {
     const usersWithLegacyRole = await ctx.db
-      .query("users")
-      .withIndex("by_role", (q) => q.eq("role", "user"))
+      .query('users')
+      .withIndex('by_role', (q) => q.eq('role', 'user'))
       .collect();
 
     const now = Date.now();
@@ -136,14 +138,15 @@ export const migrateInternal = internalMutation({
         results.warnings.push({
           id: user._id,
           email: user.email,
-          reason: "Has university_id - skipped (needs manual assignment to student/advisor/university_admin)",
+          reason:
+            'Has university_id - skipped (needs manual assignment to student/advisor/university_admin)',
         });
         results.skipped++;
         continue;
       }
 
       await ctx.db.patch(user._id, {
-        role: "individual",
+        role: 'individual',
         updated_at: now,
       });
 
@@ -163,11 +166,11 @@ export const countByRole = query({
     // Require super_admin - role distribution data should not be publicly accessible
     await requireSuperAdmin(ctx);
 
-    const allUsers = await ctx.db.query("users").collect();
+    const allUsers = await ctx.db.query('users').collect();
 
     const counts: Record<string, number> = {};
     for (const user of allUsers) {
-      const role = user.role ?? "unknown";
+      const role = user.role ?? 'unknown';
       counts[role] = (counts[role] || 0) + 1;
     }
 

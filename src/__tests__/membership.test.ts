@@ -1,4 +1,4 @@
-import { requireMembership } from "../../convex/lib/roles";
+import { requireMembership } from '../../convex/lib/roles';
 
 type User = {
   _id: string;
@@ -10,8 +10,8 @@ type Membership = {
   _id: string;
   user_id: string;
   university_id: string;
-  role: "student" | "advisor" | "university_admin";
-  status: "active" | "inactive" | "revoked";
+  role: 'student' | 'advisor' | 'university_admin';
+  status: 'active' | 'inactive' | 'revoked';
 };
 
 class QueryMock {
@@ -31,8 +31,8 @@ class QueryMock {
     if (fn) {
       const queryApi: any = {
         eq: (_field: string, value: any) => {
-          if (_field === "user_id") this.userIdFilter = value;
-          if (_field === "role") this.roleFilter = value;
+          if (_field === 'user_id') this.userIdFilter = value;
+          if (_field === 'role') this.roleFilter = value;
           return queryApi; // allow chaining
         },
       };
@@ -44,7 +44,7 @@ class QueryMock {
   filter(fn: (q: any) => any) {
     const api = {
       eq: (_field: string, value: any) => {
-        if (_field === "role") this.roleFilter = value;
+        if (_field === 'role') this.roleFilter = value;
         return true;
       },
     };
@@ -53,19 +53,19 @@ class QueryMock {
   }
 
   async unique() {
-    if (this.table === "users") {
+    if (this.table === 'users') {
       return this.user;
     }
     return null;
   }
 
   async first() {
-    if (this.table === "memberships") {
+    if (this.table === 'memberships') {
       const match = this.memberships.find(
         (m) =>
           m.user_id === (this.userIdFilter || this.user._id) &&
           (!this.roleFilter || m.role === this.roleFilter) &&
-          m.status === "active"
+          m.status === 'active',
       );
       return match || null;
     }
@@ -86,34 +86,34 @@ function makeCtx(user: User, memberships: Membership[]) {
   } as any;
 }
 
-describe("requireMembership", () => {
-  const user: User = { _id: "user1", clerkId: "clerk-user1", role: "student" };
+describe('requireMembership', () => {
+  const user: User = { _id: 'user1', clerkId: 'clerk-user1', role: 'student' };
   const baseMembership: Membership = {
-    _id: "m1",
-    user_id: "user1",
-    university_id: "uni1",
-    role: "student",
-    status: "active",
+    _id: 'm1',
+    user_id: 'user1',
+    university_id: 'uni1',
+    role: 'student',
+    status: 'active',
   };
 
-  it("returns membership when active and role matches", async () => {
+  it('returns membership when active and role matches', async () => {
     const ctx = makeCtx(user, [baseMembership]);
-    const result = await requireMembership(ctx, { role: "student" });
+    const result = await requireMembership(ctx, { role: 'student' });
     expect(result.membership).toBeDefined();
-    expect(result.membership.university_id).toBe("uni1");
+    expect(result.membership.university_id).toBe('uni1');
   });
 
-  it("throws when membership missing", async () => {
+  it('throws when membership missing', async () => {
     const ctx = makeCtx(user, []);
-    await expect(requireMembership(ctx, { role: "student" })).rejects.toThrow(
-      /Membership not found/
+    await expect(requireMembership(ctx, { role: 'student' })).rejects.toThrow(
+      /Membership not found/,
     );
   });
 
-  it("throws when membership role mismatches", async () => {
-    const ctx = makeCtx(user, [{ ...baseMembership, role: "advisor" } as Membership]);
-    await expect(requireMembership(ctx, { role: "student" })).rejects.toThrow(
-      /Membership not found/
+  it('throws when membership role mismatches', async () => {
+    const ctx = makeCtx(user, [{ ...baseMembership, role: 'advisor' } as Membership]);
+    await expect(requireMembership(ctx, { role: 'student' })).rejects.toThrow(
+      /Membership not found/,
     );
   });
 });

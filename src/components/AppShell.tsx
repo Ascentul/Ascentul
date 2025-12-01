@@ -1,11 +1,12 @@
-'use client'
+'use client';
 
-import { ReactNode } from 'react'
-import { NotificationButtons } from '@/components/layout/NotificationButtons'
+import { ReactNode } from 'react';
+
+import { NotificationButtons } from '@/components/layout/NotificationButtons';
 
 interface AppShellProps {
-  sidebar: ReactNode
-  children: ReactNode
+  sidebar: ReactNode;
+  children: ReactNode;
 }
 
 /**
@@ -23,9 +24,7 @@ export function AppShell({ sidebar, children }: AppShellProps) {
   return (
     <div className="flex min-h-screen gap-3 bg-[#F1F3F9]">
       {/* Sidebar - lives on grey background, sticky position */}
-      <aside className="sticky top-0 hidden h-screen md:block">
-        {sidebar}
-      </aside>
+      <aside className="sticky top-0 hidden h-screen md:block">{sidebar}</aside>
 
       {/* Main Content Area - white card floating on top of grey background, scrollable */}
       <main className="min-h-screen flex-1 pl-0 pr-6 pt-[20px] pb-6 transition-all duration-300 ease-in-out">
@@ -34,10 +33,8 @@ export function AppShell({ sidebar, children }: AppShellProps) {
           <NotificationButtons />
         </div>
 
-        <div className="mx-auto rounded-3xl bg-white p-6 shadow-sm">
-          {children}
-        </div>
+        <div className="mx-auto rounded-3xl bg-white p-6 shadow-sm">{children}</div>
       </main>
     </div>
-  )
+  );
 }

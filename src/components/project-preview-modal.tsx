@@ -1,42 +1,38 @@
-'use client'
+'use client';
 
-import React from 'react'
-import Image from 'next/image'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { ExternalLink, Github, Calendar, MapPin } from 'lucide-react'
+import { Calendar, ExternalLink, Github, MapPin } from 'lucide-react';
+import Image from 'next/image';
+import React from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Project {
-  _id: string
-  title: string
-  description?: string
-  technologies: string[]
-  url?: string
-  github_url?: string
-  image_url?: string
-  role?: string
-  start_date?: number
-  end_date?: number
-  company?: string
+  _id: string;
+  title: string;
+  description?: string;
+  technologies: string[];
+  url?: string;
+  github_url?: string;
+  image_url?: string;
+  role?: string;
+  start_date?: number;
+  end_date?: number;
+  company?: string;
 }
 
 interface ProjectPreviewModalProps {
-  open: boolean
-  onClose: () => void
-  project: Project
+  open: boolean;
+  onClose: () => void;
+  project: Project;
 }
 
 export function ProjectPreviewModal({ open, onClose, project }: ProjectPreviewModalProps) {
   const formatDate = (timestamp?: number) => {
-    if (!timestamp) return 'Present'
-    return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-  }
+    if (!timestamp) return 'Present';
+    return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -49,12 +45,7 @@ export function ProjectPreviewModal({ open, onClose, project }: ProjectPreviewMo
           {/* Project Image */}
           {project.image_url && (
             <div className="w-full h-64 bg-muted relative rounded-lg overflow-hidden">
-              <Image
-                src={project.image_url}
-                alt={project.title}
-                fill
-                className="object-cover"
-              />
+              <Image src={project.image_url} alt={project.title} fill className="object-cover" />
             </div>
           )}
 
@@ -74,14 +65,18 @@ export function ProjectPreviewModal({ open, onClose, project }: ProjectPreviewMo
             )}
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              <span>{formatDate(project.start_date)} - {formatDate(project.end_date)}</span>
+              <span>
+                {formatDate(project.start_date)} - {formatDate(project.end_date)}
+              </span>
             </div>
           </div>
 
           {/* Description */}
           {project.description && (
             <div className="prose prose-sm max-w-none">
-              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{project.description}</p>
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {project.description}
+              </p>
             </div>
           )}
 
@@ -123,5 +118,5 @@ export function ProjectPreviewModal({ open, onClose, project }: ProjectPreviewMo
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

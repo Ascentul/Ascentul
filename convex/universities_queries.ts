@@ -1,6 +1,7 @@
-import { v } from "convex/values";
-import { query } from "./_generated/server";
-import { requireSuperAdmin } from "./lib/roles";
+import { v } from 'convex/values';
+
+import { query } from './_generated/server';
+import { requireSuperAdmin } from './lib/roles';
 
 export const getUniversitySettings = query({
   args: {
@@ -8,35 +9,35 @@ export const getUniversitySettings = query({
   },
   handler: async (ctx, args) => {
     const currentUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!currentUser) throw new Error("User not found");
+    if (!currentUser) throw new Error('User not found');
 
     if (currentUser.university_id) {
       return await ctx.db.get(currentUser.university_id);
     }
 
     return null;
-  }
+  },
 });
 
 export const getUniversity = query({
-  args: { universityId: v.id("universities") },
+  args: { universityId: v.id('universities') },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.universityId);
-  }
+  },
 });
 
 export const getUniversityBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
-      .query("universities")
-      .withIndex("by_slug", q => q.eq("slug", args.slug))
+      .query('universities')
+      .withIndex('by_slug', (q) => q.eq('slug', args.slug))
       .unique();
-  }
+  },
 });
 
 export const getUniversityByAdminEmail = query({
@@ -47,10 +48,10 @@ export const getUniversityByAdminEmail = query({
     await requireSuperAdmin(ctx);
 
     return await ctx.db
-      .query("universities")
-      .withIndex("by_admin_email", q => q.eq("admin_email", args.email))
+      .query('universities')
+      .withIndex('by_admin_email', (q) => q.eq('admin_email', args.email))
       .unique();
-  }
+  },
 });
 
 export const getUniversityAdminCounts = query({
@@ -60,8 +61,8 @@ export const getUniversityAdminCounts = query({
     await requireSuperAdmin(ctx);
 
     const admins = await ctx.db
-      .query("users")
-      .filter((q) => q.eq(q.field("role"), "university_admin"))
+      .query('users')
+      .filter((q) => q.eq(q.field('role'), 'university_admin'))
       .collect();
 
     const counts: Record<string, number> = {};
@@ -73,5 +74,5 @@ export const getUniversityAdminCounts = query({
     }
 
     return counts;
-  }
+  },
 });

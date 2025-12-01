@@ -8,14 +8,15 @@
  * - Review queue snapshot
  */
 
-import { query } from "./_generated/server";
-import { v } from "convex/values";
+import { v } from 'convex/values';
+
+import { query } from './_generated/server';
 import {
   getCurrentUser,
+  getOwnedStudentIds,
   requireAdvisorRole,
   requireTenant,
-  getOwnedStudentIds,
-} from "./advisor_auth";
+} from './advisor_auth';
 import { ACTIVE_STAGES } from './advisor_constants';
 
 /**
@@ -37,24 +38,18 @@ export const getDashboardStats = query({
 
     // Load all advisor-assigned applications once for aggregation
     const advisorApplications = await ctx.db
-      .query("applications")
-      .withIndex("by_advisor", (q) =>
-        q.eq("assigned_advisor_id", sessionCtx.userId),
-      )
+      .query('applications')
+      .withIndex('by_advisor', (q) => q.eq('assigned_advisor_id', sessionCtx.userId))
       .collect();
 
     const activeStages = new Set(ACTIVE_STAGES);
     let activeApplicationsCount = 0;
-    const perStudentAppStats = new Map<
-      string,
-      { total: number; hasOffer: boolean }
-    >();
+    const perStudentAppStats = new Map<string, { total: number; hasOffer: boolean }>();
 
     for (const application of advisorApplications) {
       if (!studentIdSet.has(application.user_id)) continue;
       const key = application.user_id;
-      const stats =
-        perStudentAppStats.get(key) ?? { total: 0, hasOffer: false };
+      const stats = perStudentAppStats.get(key) ?? { total: 0, hasOffer: false };
       stats.total += 1;
       if (application.stage && activeStages.has(application.stage)) {
         activeApplicationsCount += 1;
@@ -62,9 +57,9 @@ export const getDashboardStats = query({
       // Check for offers using stage with status fallback during migration
       // See docs/TECH_DEBT_APPLICATION_STATUS_STAGE.md
       if (
-        application.stage === "Offer" ||
-        application.stage === "Accepted" ||
-        (!application.stage && application.status === "offer")
+        application.stage === 'Offer' ||
+        application.stage === 'Accepted' ||
+        (!application.stage && application.status === 'offer')
       ) {
         stats.hasOffer = true;
       }
@@ -75,20 +70,18 @@ export const getDashboardStats = query({
     const now = Date.now();
     const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
     const sessionsThisWeek = await ctx.db
-      .query("advisor_sessions")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
+      .query('advisor_sessions')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
-      .filter((q) => q.gte(q.field("start_at"), oneWeekAgo))
+      .filter((q) => q.gte(q.field('start_at'), oneWeekAgo))
       .collect();
 
     // Count pending reviews (status = "waiting") scoped to caseload students
     // OPTIMIZED: Single query using by_status index instead of N+1 pattern
     const allPendingReviews = await ctx.db
-      .query("advisor_reviews")
-      .withIndex("by_status", (q) =>
-        q.eq("status", "waiting").eq("university_id", universityId),
-      )
+      .query('advisor_reviews')
+      .withIndex('by_status', (q) => q.eq('status', 'waiting').eq('university_id', universityId))
       .collect();
 
     // Filter to only reviews for students in this advisor's caseload
@@ -100,8 +93,7 @@ export const getDashboardStats = query({
     // NOTE: This differs from engagement-based at-risk in advisor_students.ts (60+ days inactive)
     // Dashboard shows outcome risk, student list shows engagement risk
     const atRiskNoOfferCount = Array.from(perStudentAppStats.values()).reduce(
-      (total, stats) =>
-        stats.total > 5 && !stats.hasOffer ? total + 1 : total,
+      (total, stats) => (stats.total > 5 && !stats.hasOffer ? total + 1 : total),
       0,
     );
 
@@ -146,43 +138,36 @@ export const getUpcomingItems = query({
 
     // Get upcoming sessions
     const sessions = await ctx.db
-      .query("advisor_sessions")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
+      .query('advisor_sessions')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
       .filter((q) =>
-        q.and(
-          q.gte(q.field("start_at"), now),
-          q.lte(q.field("start_at"), oneWeekFromNow),
-        ),
+        q.and(q.gte(q.field('start_at'), now), q.lte(q.field('start_at'), oneWeekFromNow)),
       )
       .collect();
 
     // Get upcoming follow-ups (using unified follow_ups table)
     // Query by university and filter for advisor-created tasks
     const allFollowUps = await ctx.db
-      .query("follow_ups")
-      .withIndex("by_university", (q) =>
-        q.eq("university_id", universityId),
-      )
+      .query('follow_ups')
+      .withIndex('by_university', (q) => q.eq('university_id', universityId))
       .filter((q) =>
         q.and(
           // Only advisor-created follow-ups for this advisor
-          q.eq(q.field("created_by_id"), sessionCtx.userId),
-          q.eq(q.field("created_by_type"), "advisor"),
+          q.eq(q.field('created_by_id'), sessionCtx.userId),
+          q.eq(q.field('created_by_type'), 'advisor'),
           // Due within next week
-          q.gte(q.field("due_at"), now),
-          q.lte(q.field("due_at"), oneWeekFromNow),
+          q.gte(q.field('due_at'), now),
+          q.lte(q.field('due_at'), oneWeekFromNow),
           // Open status only
-          q.eq(q.field("status"), "open"),
+          q.eq(q.field('status'), 'open'),
         ),
       )
       .collect();
 
     // Filter to only students in this advisor's caseload
-    const followUps = allFollowUps.filter((followUp) =>
-      studentIdSet.has(followUp.user_id),
-    );
+    const followUps = allFollowUps.filter((followUp) => studentIdSet.has(followUp.user_id));
 
     // Enrich with student names
     const enrichedSessions = await Promise.all(
@@ -190,10 +175,10 @@ export const getUpcomingItems = query({
         const student = await ctx.db.get(session.student_id);
         return {
           _id: session._id,
-          type: "session" as const,
+          type: 'session' as const,
           student_id: session.student_id,
-          student_name: student?.name || "Unknown",
-          title: session.title || session.session_type || "Advising Session",
+          student_name: student?.name || 'Unknown',
+          title: session.title || session.session_type || 'Advising Session',
           date: session.start_at,
         };
       }),
@@ -206,9 +191,9 @@ export const getUpcomingItems = query({
         const student = await ctx.db.get(followUp.user_id);
         return {
           _id: followUp._id,
-          type: "followup" as const,
+          type: 'followup' as const,
           student_id: followUp.user_id,
-          student_name: student?.name || "Unknown",
+          student_name: student?.name || 'Unknown',
           title: followUp.title,
           date: followUp.due_at,
           priority: followUp.priority,
@@ -218,9 +203,10 @@ export const getUpcomingItems = query({
     );
 
     // Combine and sort by date
-    const allItems = [...enrichedSessions, ...enrichedFollowUps.filter((f): f is NonNullable<typeof f> => f !== null)].sort(
-      (a, b) => a.date - b.date,
-    );
+    const allItems = [
+      ...enrichedSessions,
+      ...enrichedFollowUps.filter((f): f is NonNullable<typeof f> => f !== null),
+    ].sort((a, b) => a.date - b.date);
 
     return allItems;
   },
@@ -247,11 +233,11 @@ export const getActivityChart = query({
     const fourWeeksAgo = now - 28 * 24 * 60 * 60 * 1000;
 
     const sessions = await ctx.db
-      .query("advisor_sessions")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
+      .query('advisor_sessions')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
-      .filter((q) => q.gte(q.field("start_at"), fourWeeksAgo))
+      .filter((q) => q.gte(q.field('start_at'), fourWeeksAgo))
       .collect();
 
     // Default to Monday (1) as week start, or use provided value
@@ -273,7 +259,7 @@ export const getActivityChart = query({
       const daysToSubtract = (dayOfWeek - weekStart + 7) % 7;
       clientTime.setUTCDate(clientTime.getUTCDate() - daysToSubtract);
 
-      const weekKey = clientTime.toISOString().split("T")[0];
+      const weekKey = clientTime.toISOString().split('T')[0];
       weeks[weekKey] = (weeks[weekKey] || 0) + 1;
     }
 
@@ -310,10 +296,8 @@ export const getReviewQueueSnapshot = query({
 
     // OPTIMIZED: Single query using by_status index instead of N+1 pattern
     const allPendingReviews = await ctx.db
-      .query("advisor_reviews")
-      .withIndex("by_status", (q) =>
-        q.eq("status", "waiting").eq("university_id", universityId),
-      )
+      .query('advisor_reviews')
+      .withIndex('by_status', (q) => q.eq('status', 'waiting').eq('university_id', universityId))
       .collect();
 
     // Filter to only reviews for students in this advisor's caseload
@@ -328,16 +312,17 @@ export const getReviewQueueSnapshot = query({
       caseloadReviews.map(async (review) => {
         const student = await ctx.db.get(review.student_id);
         // Determine the asset_id based on asset_type
-        const asset_id = review.asset_type === "resume"
-          ? review.resume_id
-          : review.asset_type === "cover_letter"
-            ? review.cover_letter_id
-            : undefined;
+        const asset_id =
+          review.asset_type === 'resume'
+            ? review.resume_id
+            : review.asset_type === 'cover_letter'
+              ? review.cover_letter_id
+              : undefined;
 
         return {
           _id: review._id,
           student_id: review.student_id,
-          student_name: student?.name || "Unknown",
+          student_name: student?.name || 'Unknown',
           asset_type: review.asset_type,
           asset_id,
           status: review.status,

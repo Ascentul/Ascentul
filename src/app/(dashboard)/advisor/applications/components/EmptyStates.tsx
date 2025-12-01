@@ -13,8 +13,9 @@
  * - Accessible and keyboard-navigable
  */
 
+import { CheckCircle2, FileText, Filter, Users } from 'lucide-react';
 import React from 'react';
-import { FileText, Filter, CheckCircle2, Users } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
@@ -78,12 +79,10 @@ function NoApplicationsState({
 
         {/* Heading */}
         <div className="space-y-2">
-          <h3 className="text-xl font-semibold text-gray-900">
-            No applications yet
-          </h3>
+          <h3 className="text-xl font-semibold text-gray-900">No applications yet</h3>
           <p className="text-sm text-gray-600">
-            Your students haven&apos;t started tracking applications yet. Once they
-            add applications to their dashboard, you&apos;ll see them here.
+            Your students haven&apos;t started tracking applications yet. Once they add applications
+            to their dashboard, you&apos;ll see them here.
           </p>
         </div>
 
@@ -92,15 +91,24 @@ function NoApplicationsState({
           <p className="text-sm font-medium text-gray-700">What you can do:</p>
           <ul className="space-y-2 text-left text-sm text-gray-600">
             <li className="flex items-start gap-2">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" aria-hidden="true" />
+              <CheckCircle2
+                className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600"
+                aria-hidden="true"
+              />
               <span>Encourage students to start tracking their job search</span>
             </li>
             <li className="flex items-start gap-2">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" aria-hidden="true" />
+              <CheckCircle2
+                className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600"
+                aria-hidden="true"
+              />
               <span>Share best practices for application tracking</span>
             </li>
             <li className="flex items-start gap-2">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" aria-hidden="true" />
+              <CheckCircle2
+                className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600"
+                aria-hidden="true"
+              />
               <span>Set up check-ins to review their progress</span>
             </li>
           </ul>
@@ -109,11 +117,7 @@ function NoApplicationsState({
         {/* Action Button */}
         {onViewAllStudents && (
           <div className="pt-4">
-            <Button
-              onClick={onViewAllStudents}
-              variant="outline"
-              className="gap-2"
-            >
+            <Button onClick={onViewAllStudents} variant="outline" className="gap-2">
               <Users className="h-4 w-4" aria-hidden="true" />
               View All Students
             </Button>
@@ -149,8 +153,7 @@ function NoResultsState({
             No applications match your filters
           </h3>
           <p className="text-sm text-gray-600">
-            Try adjusting your search criteria or clearing filters to see more
-            results.
+            Try adjusting your search criteria or clearing filters to see more results.
           </p>
         </div>
 
@@ -176,11 +179,7 @@ function NoResultsState({
         {/* Action Button */}
         {onClearFilters && (
           <div className="pt-4">
-            <Button
-              onClick={onClearFilters}
-              variant="default"
-              className="gap-2"
-            >
+            <Button onClick={onClearFilters} variant="default" className="gap-2">
               <Filter className="h-4 w-4" aria-hidden="true" />
               Clear All Filters
             </Button>
@@ -207,12 +206,10 @@ function NoActionNeededState({ className }: { className?: string }) {
 
         {/* Heading */}
         <div className="space-y-2">
-          <h3 className="text-xl font-semibold text-gray-900">
-            All caught up!
-          </h3>
+          <h3 className="text-xl font-semibold text-gray-900">All caught up!</h3>
           <p className="text-sm text-gray-600">
-            Great work! No applications need immediate attention right now.
-            All active applications have clear next steps and are on track.
+            Great work! No applications need immediate attention right now. All active applications
+            have clear next steps and are on track.
           </p>
         </div>
 
@@ -221,15 +218,24 @@ function NoActionNeededState({ className }: { className?: string }) {
           <p className="text-sm font-medium text-gray-700">Your students are set up for success:</p>
           <ul className="space-y-2 text-left text-sm text-gray-600">
             <li className="flex items-start gap-2">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" aria-hidden="true" />
+              <CheckCircle2
+                className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600"
+                aria-hidden="true"
+              />
               <span>All applications have defined next steps</span>
             </li>
             <li className="flex items-start gap-2">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" aria-hidden="true" />
+              <CheckCircle2
+                className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600"
+                aria-hidden="true"
+              />
               <span>No overdue tasks or stale applications</span>
             </li>
             <li className="flex items-start gap-2">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" aria-hidden="true" />
+              <CheckCircle2
+                className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600"
+                aria-hidden="true"
+              />
               <span>Students are making consistent progress</span>
             </li>
           </ul>
@@ -238,8 +244,7 @@ function NoActionNeededState({ className }: { className?: string }) {
         {/* Subtle encouragement */}
         <div className="rounded-lg bg-green-50 p-4">
           <p className="text-sm text-green-800">
-            Keep up the great advising! Check back regularly to stay on top of
-            new developments.
+            Keep up the great advising! Check back regularly to stay on top of new developments.
           </p>
         </div>
       </div>
@@ -291,7 +296,11 @@ function TableLoadingSkeleton() {
 
 function KanbanLoadingSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4" role="status" aria-label="Loading kanban board">
+    <div
+      className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4"
+      role="status"
+      aria-label="Loading kanban board"
+    >
       {[1, 2, 3, 4].map((col) => (
         <div key={col} className="space-y-3">
           {/* Column header */}

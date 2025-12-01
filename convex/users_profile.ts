@@ -1,10 +1,11 @@
-import { v } from "convex/values";
-import { mutation } from "./_generated/server";
-import { api } from "./_generated/api";
-import { getActingUser, logRoleChange } from "./users_core";
-import { isServiceRequest } from "./lib/roles";
-import { validateRoleTransition, type UserRole } from "./lib/roleValidation";
-import { maskEmail, maskId } from "./lib/piiSafe";
+import { v } from 'convex/values';
+
+import { api } from './_generated/api';
+import { mutation } from './_generated/server';
+import { maskEmail, maskId } from './lib/piiSafe';
+import { isServiceRequest } from './lib/roles';
+import { type UserRole, validateRoleTransition } from './lib/roleValidation';
+import { getActingUser, logRoleChange } from './users_core';
 
 // Create or update user from Clerk webhook
 export const createUser = mutation({
@@ -17,64 +18,60 @@ export const createUser = mutation({
     serviceToken: v.optional(v.string()),
     role: v.optional(
       v.union(
-        v.literal("individual"),
-        v.literal("user"),
-        v.literal("student"),
-        v.literal("staff"),
-        v.literal("university_admin"),
-        v.literal("advisor"),
-        v.literal("super_admin"),
+        v.literal('individual'),
+        v.literal('user'),
+        v.literal('student'),
+        v.literal('staff'),
+        v.literal('university_admin'),
+        v.literal('advisor'),
+        v.literal('super_admin'),
       ),
     ),
-    subscription_plan: v.optional(v.union(
-      v.literal("free"),
-      v.literal("premium"),
-      v.literal("university"),
-    )),
-    subscription_status: v.optional(v.union(
-      v.literal("active"),
-      v.literal("inactive"),
-      v.literal("cancelled"),
-      v.literal("past_due"),
-    )),
+    subscription_plan: v.optional(
+      v.union(v.literal('free'), v.literal('premium'), v.literal('university')),
+    ),
+    subscription_status: v.optional(
+      v.union(
+        v.literal('active'),
+        v.literal('inactive'),
+        v.literal('cancelled'),
+        v.literal('past_due'),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     const isService = isServiceRequest(args.serviceToken);
 
     if (!identity && !isService) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     if (!isService && identity!.subject !== args.clerkId) {
-      throw new Error("Unauthorized: Clerk identity mismatch");
+      throw new Error('Unauthorized: Clerk identity mismatch');
     }
 
     const actingUser = !isService
       ? await ctx.db
-        .query("users")
-        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity!.subject))
-        .unique()
+          .query('users')
+          .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity!.subject))
+          .unique()
       : null;
 
-    const privilegedRoles = new Set([
-      "super_admin",
-      "university_admin",
-      "advisor",
-      "staff",
-    ]);
+    const privilegedRoles = new Set(['super_admin', 'university_admin', 'advisor', 'staff']);
 
-    const canAssignPrivileged = actingUser?.role === "super_admin";
+    const canAssignPrivileged = actingUser?.role === 'super_admin';
     const requestedRole = args.role;
-    const safeRole = requestedRole && (canAssignPrivileged || !privilegedRoles.has(requestedRole))
-      ? requestedRole
-      : undefined;
+    const safeRole =
+      requestedRole && (canAssignPrivileged || !privilegedRoles.has(requestedRole))
+        ? requestedRole
+        : undefined;
 
-    const resolvedRole = safeRole ?? "user";
+    const resolvedRole = safeRole ?? 'user';
 
     const existingUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (existingUser) {
@@ -92,12 +89,11 @@ export const createUser = mutation({
     }
 
     const pendingUser = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
-      .filter((q) => q.or(
-        q.eq(q.field("clerkId"), ""),
-        q.eq(q.field("account_status"), "pending_activation")
-      ))
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', args.email))
+      .filter((q) =>
+        q.or(q.eq(q.field('clerkId'), ''), q.eq(q.field('account_status'), 'pending_activation')),
+      )
       .first();
 
     if (pendingUser) {
@@ -106,9 +102,10 @@ export const createUser = mutation({
         name: args.name,
         username: args.username || pendingUser.username,
         profile_image: args.profile_image,
-        account_status: "active",
-        subscription_plan: args.subscription_plan || pendingUser.subscription_plan || "free",
-        subscription_status: args.subscription_status || pendingUser.subscription_status || "active",
+        account_status: 'active',
+        subscription_plan: args.subscription_plan || pendingUser.subscription_plan || 'free',
+        subscription_status:
+          args.subscription_status || pendingUser.subscription_status || 'active',
         updated_at: Date.now(),
       });
 
@@ -116,28 +113,28 @@ export const createUser = mutation({
       return pendingUser._id;
     }
 
-    const userId = await ctx.db.insert("users", {
+    const userId = await ctx.db.insert('users', {
       clerkId: args.clerkId,
       email: args.email,
       name: args.name,
       username: args.username || `user_${Date.now()}`,
       profile_image: args.profile_image,
       role: resolvedRole,
-      subscription_plan: args.subscription_plan ?? "free",
-      subscription_status: args.subscription_status ?? "active",
+      subscription_plan: args.subscription_plan ?? 'free',
+      subscription_status: args.subscription_status ?? 'active',
       onboarding_completed: false,
       created_at: Date.now(),
       updated_at: Date.now(),
     });
 
-    if (!args.role || args.role === "user") {
+    if (!args.role || args.role === 'user') {
       try {
         await ctx.scheduler.runAfter(0, api.email.sendWelcomeEmail, {
           email: args.email,
           name: args.name,
-        })
+        });
       } catch (emailError) {
-        console.warn("Failed to schedule welcome email:", emailError)
+        console.warn('Failed to schedule welcome email:', emailError);
       }
     }
 
@@ -232,38 +229,30 @@ export const updateUser = mutation({
       onboarding_completed: v.optional(v.boolean()),
       role: v.optional(
         v.union(
-          v.literal("individual"),
-          v.literal("user"),
-          v.literal("student"),
-          v.literal("staff"),
-          v.literal("university_admin"),
-          v.literal("advisor"),
-          v.literal("super_admin"),
+          v.literal('individual'),
+          v.literal('user'),
+          v.literal('student'),
+          v.literal('staff'),
+          v.literal('university_admin'),
+          v.literal('advisor'),
+          v.literal('super_admin'),
         ),
       ),
       subscription_plan: v.optional(
-        v.union(
-          v.literal("free"),
-          v.literal("premium"),
-          v.literal("university"),
-        ),
+        v.union(v.literal('free'), v.literal('premium'), v.literal('university')),
       ),
       subscription_status: v.optional(
         v.union(
-          v.literal("active"),
-          v.literal("inactive"),
-          v.literal("cancelled"),
-          v.literal("past_due"),
+          v.literal('active'),
+          v.literal('inactive'),
+          v.literal('cancelled'),
+          v.literal('past_due'),
         ),
       ),
-      university_id: v.optional(v.id("universities")),
-      department_id: v.optional(v.id("departments")),
+      university_id: v.optional(v.id('universities')),
+      department_id: v.optional(v.id('departments')),
       account_status: v.optional(
-        v.union(
-          v.literal("active"),
-          v.literal("suspended"),
-          v.literal("pending_activation"),
-        ),
+        v.union(v.literal('active'), v.literal('suspended'), v.literal('pending_activation')),
       ),
       stripe_customer_id: v.optional(v.string()),
       stripe_subscription_id: v.optional(v.string()),
@@ -272,12 +261,12 @@ export const updateUser = mutation({
   handler: async (ctx, args) => {
     const { actingUser, isService } = await getActingUser(ctx, args.serviceToken);
     const targetUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!targetUser) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     const isSelf = !isService && actingUser._id === targetUser._id;
@@ -286,33 +275,34 @@ export const updateUser = mutation({
       actingUser.university_id &&
       targetUser.university_id &&
       actingUser.university_id === targetUser.university_id;
-    const canManageTenant = isService ||
-      actingUser.role === "super_admin" ||
-      (actingUser.role === "university_admin" && sameUniversity);
+    const canManageTenant =
+      isService ||
+      actingUser.role === 'super_admin' ||
+      (actingUser.role === 'university_admin' && sameUniversity);
 
     if (!isSelf && !canManageTenant) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     const protectedFields = new Set([
-      "role",
-      "university_id",
-      "subscription_plan",
-      "subscription_status",
-      "account_status",
-      "department_id",
+      'role',
+      'university_id',
+      'subscription_plan',
+      'subscription_status',
+      'account_status',
+      'department_id',
     ]);
 
     const cleanUpdates = Object.fromEntries(
-      Object.entries(args.updates).filter(([_, value]) => value !== undefined)
+      Object.entries(args.updates).filter(([_, value]) => value !== undefined),
     );
 
     if (
       !isService &&
-      actingUser.role !== "super_admin" &&
+      actingUser.role !== 'super_admin' &&
       Object.keys(cleanUpdates).some((key) => protectedFields.has(key))
     ) {
-      throw new Error("Unauthorized to change restricted fields");
+      throw new Error('Unauthorized to change restricted fields');
     }
 
     const roleChanged = args.updates.role && args.updates.role !== targetUser.role;
@@ -325,24 +315,25 @@ export const updateUser = mutation({
       if (!isService) {
         console.warn(
           `[updateUser] ⚠️ Direct role change for ${args.clerkId}: ${oldRole} → ${newRole}. ` +
-          `Consider updating Clerk publicMetadata.role first to maintain sync.`
+            `Consider updating Clerk publicMetadata.role first to maintain sync.`,
         );
       }
 
-      const targetUniversityId = args.updates.university_id !== undefined
-        ? args.updates.university_id
-        : targetUser.university_id;
+      const targetUniversityId =
+        args.updates.university_id !== undefined
+          ? args.updates.university_id
+          : targetUser.university_id;
 
       const validation = await validateRoleTransition(
         ctx,
         targetUser.clerkId,
         oldRole as UserRole,
         newRole as UserRole,
-        targetUniversityId ?? undefined
+        targetUniversityId ?? undefined,
       );
 
       if (!validation.valid) {
-        throw new Error(validation.error || "Invalid role transition");
+        throw new Error(validation.error || 'Invalid role transition');
       }
     }
 
@@ -379,7 +370,7 @@ export const updateUser = mutation({
  */
 export const updateUserById = mutation({
   args: {
-    id: v.id("users"),
+    id: v.id('users'),
     serviceToken: v.optional(v.string()),
     updates: v.object({
       name: v.optional(v.string()),
@@ -447,38 +438,30 @@ export const updateUserById = mutation({
       onboarding_completed: v.optional(v.boolean()),
       role: v.optional(
         v.union(
-          v.literal("individual"),
-          v.literal("user"),
-          v.literal("student"),
-          v.literal("staff"),
-          v.literal("university_admin"),
-          v.literal("advisor"),
-          v.literal("super_admin"),
+          v.literal('individual'),
+          v.literal('user'),
+          v.literal('student'),
+          v.literal('staff'),
+          v.literal('university_admin'),
+          v.literal('advisor'),
+          v.literal('super_admin'),
         ),
       ),
       subscription_plan: v.optional(
-        v.union(
-          v.literal("free"),
-          v.literal("premium"),
-          v.literal("university"),
-        ),
+        v.union(v.literal('free'), v.literal('premium'), v.literal('university')),
       ),
       subscription_status: v.optional(
         v.union(
-          v.literal("active"),
-          v.literal("inactive"),
-          v.literal("cancelled"),
-          v.literal("past_due"),
+          v.literal('active'),
+          v.literal('inactive'),
+          v.literal('cancelled'),
+          v.literal('past_due'),
         ),
       ),
-      university_id: v.optional(v.id("universities")),
-      department_id: v.optional(v.id("departments")),
+      university_id: v.optional(v.id('universities')),
+      department_id: v.optional(v.id('departments')),
       account_status: v.optional(
-        v.union(
-          v.literal("active"),
-          v.literal("suspended"),
-          v.literal("pending_activation"),
-        ),
+        v.union(v.literal('active'), v.literal('suspended'), v.literal('pending_activation')),
       ),
       university_admin_notes: v.optional(v.string()),
       stripe_customer_id: v.optional(v.string()),
@@ -490,41 +473,43 @@ export const updateUserById = mutation({
     const user = await ctx.db.get(args.id);
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     const isSelf = !isService && actingUser._id === user._id;
     const sameUniversity =
       !isService &&
-      actingUser.university_id && user.university_id &&
+      actingUser.university_id &&
+      user.university_id &&
       actingUser.university_id === user.university_id;
-    const canManageTenant = isService ||
-      actingUser.role === "super_admin" ||
-      (actingUser.role === "university_admin" && sameUniversity);
+    const canManageTenant =
+      isService ||
+      actingUser.role === 'super_admin' ||
+      (actingUser.role === 'university_admin' && sameUniversity);
 
     if (!isSelf && !canManageTenant) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     const protectedFields = new Set([
-      "role",
-      "university_id",
-      "subscription_plan",
-      "subscription_status",
-      "account_status",
-      "department_id",
+      'role',
+      'university_id',
+      'subscription_plan',
+      'subscription_status',
+      'account_status',
+      'department_id',
     ]);
 
     const cleanUpdates = Object.fromEntries(
-      Object.entries(args.updates).filter(([_, value]) => value !== undefined)
+      Object.entries(args.updates).filter(([_, value]) => value !== undefined),
     );
 
     if (
       !isService &&
-      actingUser.role !== "super_admin" &&
+      actingUser.role !== 'super_admin' &&
       Object.keys(cleanUpdates).some((key) => protectedFields.has(key))
     ) {
-      throw new Error("Unauthorized to change restricted fields");
+      throw new Error('Unauthorized to change restricted fields');
     }
 
     const roleChanged = args.updates.role && args.updates.role !== user.role;
@@ -538,25 +523,24 @@ export const updateUserById = mutation({
       if (!isService) {
         console.warn(
           `[updateUserById] ⚠️ Direct role change for user ${args.id}: ${oldRole} → ${newRole}. ` +
-          `Consider updating Clerk publicMetadata.role first to maintain sync.`
+            `Consider updating Clerk publicMetadata.role first to maintain sync.`,
         );
       }
 
       // Use the university_id from updates if provided, otherwise use existing
-      const targetUniversityId = args.updates.university_id !== undefined
-        ? args.updates.university_id
-        : user.university_id;
+      const targetUniversityId =
+        args.updates.university_id !== undefined ? args.updates.university_id : user.university_id;
 
       const validation = await validateRoleTransition(
         ctx,
         user.clerkId,
         oldRole as UserRole,
         newRole as UserRole,
-        targetUniversityId ?? undefined
+        targetUniversityId ?? undefined,
       );
 
       if (!validation.valid) {
-        throw new Error(validation.error || "Invalid role transition");
+        throw new Error(validation.error || 'Invalid role transition');
       }
     }
 
@@ -577,7 +561,7 @@ export const deleteUser = mutation({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
     throw new Error(
-      "deleteUser is deprecated. Use admin_users:softDeleteUser or admin_users:hardDeleteUser instead."
+      'deleteUser is deprecated. Use admin_users:softDeleteUser or admin_users:hardDeleteUser instead.',
     );
   },
 });
@@ -592,12 +576,8 @@ export const deleteUser = mutation({
 export const ensureMembership = mutation({
   args: {
     clerkId: v.string(),
-    role: v.union(
-      v.literal("student"),
-      v.literal("advisor"),
-      v.literal("university_admin"),
-    ),
-    universityId: v.id("universities"),
+    role: v.union(v.literal('student'), v.literal('advisor'), v.literal('university_admin')),
+    universityId: v.id('universities'),
     serviceToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -607,61 +587,68 @@ export const ensureMembership = mutation({
     // Verify caller is super_admin unless using trusted service token (webhook)
     if (!isService) {
       if (!identity) {
-        throw new Error("Unauthorized: User not authenticated");
+        throw new Error('Unauthorized: User not authenticated');
       }
 
       const callingUser = await ctx.db
-        .query("users")
-        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+        .query('users')
+        .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
         .unique();
 
-      if (!callingUser || callingUser.role !== "super_admin") {
-        throw new Error("Forbidden: Only super admins can manage memberships");
+      if (!callingUser || callingUser.role !== 'super_admin') {
+        throw new Error('Forbidden: Only super admins can manage memberships');
       }
     }
 
     // Get target user by clerkId
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Check for existing membership with this role
     const existingMembership = await ctx.db
-      .query("memberships")
-      .withIndex("by_user_role", (q) => q.eq("user_id", user._id).eq("role", args.role))
+      .query('memberships')
+      .withIndex('by_user_role', (q) => q.eq('user_id', user._id).eq('role', args.role))
       .first();
 
     const now = Date.now();
 
     if (existingMembership) {
       // Update if university changed or status is not active
-      if (existingMembership.university_id !== args.universityId || existingMembership.status !== "active") {
+      if (
+        existingMembership.university_id !== args.universityId ||
+        existingMembership.status !== 'active'
+      ) {
         await ctx.db.patch(existingMembership._id, {
           university_id: args.universityId,
-          status: "active",
+          status: 'active',
           updated_at: now,
         });
-        console.log(`[ensureMembership] Updated membership for user ${maskId(args.clerkId)} with role ${args.role}`);
+        console.log(
+          `[ensureMembership] Updated membership for user ${maskId(args.clerkId)} with role ${args.role}`,
+        );
       }
       return existingMembership._id;
     }
 
     // Create new membership
-    const membershipId = await ctx.db.insert("memberships", {
+    const membershipId = await ctx.db.insert('memberships', {
       user_id: user._id,
       university_id: args.universityId,
       role: args.role,
-      status: "active",
+      status: 'active',
       created_at: now,
       updated_at: now,
     });
 
-    console.log(`[ensureMembership] Created membership for user ${maskId(args.clerkId)} with role ${args.role}`);
+    console.log(
+      `[ensureMembership] Created membership for user ${maskId(args.clerkId)} with role ${args.role}`,
+    );
     return membershipId;
   },
 });
@@ -695,48 +682,38 @@ export const updateUserWithMembership = mutation({
       profile_image: v.optional(v.string()),
       role: v.optional(
         v.union(
-          v.literal("individual"),
-          v.literal("user"),
-          v.literal("student"),
-          v.literal("staff"),
-          v.literal("university_admin"),
-          v.literal("advisor"),
-          v.literal("super_admin"),
+          v.literal('individual'),
+          v.literal('user'),
+          v.literal('student'),
+          v.literal('staff'),
+          v.literal('university_admin'),
+          v.literal('advisor'),
+          v.literal('super_admin'),
         ),
       ),
       subscription_plan: v.optional(
-        v.union(
-          v.literal("free"),
-          v.literal("premium"),
-          v.literal("university"),
-        ),
+        v.union(v.literal('free'), v.literal('premium'), v.literal('university')),
       ),
       subscription_status: v.optional(
         v.union(
-          v.literal("active"),
-          v.literal("inactive"),
-          v.literal("cancelled"),
-          v.literal("past_due"),
+          v.literal('active'),
+          v.literal('inactive'),
+          v.literal('cancelled'),
+          v.literal('past_due'),
         ),
       ),
-      university_id: v.optional(v.id("universities")),
+      university_id: v.optional(v.id('universities')),
       account_status: v.optional(
-        v.union(
-          v.literal("active"),
-          v.literal("suspended"),
-          v.literal("pending_activation"),
-        ),
+        v.union(v.literal('active'), v.literal('suspended'), v.literal('pending_activation')),
       ),
     }),
     // Membership data - only required for university roles
-    membership: v.optional(v.object({
-      role: v.union(
-        v.literal("student"),
-        v.literal("advisor"),
-        v.literal("university_admin"),
-      ),
-      universityId: v.id("universities"),
-    })),
+    membership: v.optional(
+      v.object({
+        role: v.union(v.literal('student'), v.literal('advisor'), v.literal('university_admin')),
+        universityId: v.id('universities'),
+      }),
+    ),
     serviceToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -745,7 +722,7 @@ export const updateUserWithMembership = mutation({
 
     // Service token required for webhook calls
     if (!identity && !isService) {
-      throw new Error("Unauthorized: Authentication required");
+      throw new Error('Unauthorized: Authentication required');
     }
 
     let callingUser: any = null;
@@ -753,36 +730,36 @@ export const updateUserWithMembership = mutation({
     // For non-service calls, ensure caller is authorized (super_admin)
     if (!isService && identity) {
       callingUser = await ctx.db
-        .query("users")
-        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+        .query('users')
+        .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
         .unique();
 
-      if (!callingUser || callingUser.role !== "super_admin") {
-        throw new Error("Forbidden: Only super admins can update users with membership");
+      if (!callingUser || callingUser.role !== 'super_admin') {
+        throw new Error('Forbidden: Only super admins can update users with membership');
       }
     }
 
     const protectedFields = new Set([
-      "role",
-      "university_id",
-      "subscription_plan",
-      "subscription_status",
-      "account_status",
-      "department_id",
+      'role',
+      'university_id',
+      'subscription_plan',
+      'subscription_status',
+      'account_status',
+      'department_id',
     ]);
 
     if (
       !isService &&
-      callingUser?.role !== "super_admin" &&
+      callingUser?.role !== 'super_admin' &&
       Object.keys(args.updates).some((key) => protectedFields.has(key))
     ) {
-      throw new Error("Unauthorized to change restricted fields");
+      throw new Error('Unauthorized to change restricted fields');
     }
 
     // Get target user by clerkId
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
     if (!user) {
@@ -793,17 +770,13 @@ export const updateUserWithMembership = mutation({
 
     // Filter out undefined values from updates
     const cleanUpdates = Object.fromEntries(
-      Object.entries(args.updates).filter(([_, value]) => value !== undefined)
+      Object.entries(args.updates).filter(([_, value]) => value !== undefined),
     );
 
     // Validate that role and membership role (if provided) are consistent
-    if (
-      args.updates.role &&
-      args.membership &&
-      args.updates.role !== args.membership.role
-    ) {
+    if (args.updates.role && args.membership && args.updates.role !== args.membership.role) {
       throw new Error(
-        `Role mismatch: updates.role (${args.updates.role}) does not match membership.role (${args.membership.role})`
+        `Role mismatch: updates.role (${args.updates.role}) does not match membership.role (${args.membership.role})`,
       );
     }
 
@@ -819,25 +792,25 @@ export const updateUserWithMembership = mutation({
       if (!isService) {
         console.warn(
           `[updateUserWithMembership] ⚠️ Direct role change for ${args.clerkId}: ${oldRole} → ${newRole}. ` +
-          `Consider updating Clerk publicMetadata.role first to maintain sync.`
+            `Consider updating Clerk publicMetadata.role first to maintain sync.`,
         );
       }
 
       const targetUniversityId =
         args.updates.university_id !== undefined
           ? args.updates.university_id
-          : args.membership?.universityId ?? user.university_id;
+          : (args.membership?.universityId ?? user.university_id);
 
       const validation = await validateRoleTransition(
         ctx,
         user.clerkId,
         oldRole as UserRole,
         newRole as UserRole,
-        targetUniversityId ?? undefined
+        targetUniversityId ?? undefined,
       );
 
       if (!validation.valid) {
-        throw new Error(validation.error || "Invalid role transition");
+        throw new Error(validation.error || 'Invalid role transition');
       }
     }
 
@@ -852,9 +825,9 @@ export const updateUserWithMembership = mutation({
     if (args.membership) {
       // Check for existing membership with this role
       const existingMembership = await ctx.db
-        .query("memberships")
-        .withIndex("by_user_role", (q) =>
-          q.eq("user_id", user._id).eq("role", args.membership!.role)
+        .query('memberships')
+        .withIndex('by_user_role', (q) =>
+          q.eq('user_id', user._id).eq('role', args.membership!.role),
         )
         .first();
 
@@ -862,28 +835,32 @@ export const updateUserWithMembership = mutation({
         // Update if university changed or status is not active
         if (
           existingMembership.university_id !== args.membership.universityId ||
-          existingMembership.status !== "active"
+          existingMembership.status !== 'active'
         ) {
           await ctx.db.patch(existingMembership._id, {
             university_id: args.membership.universityId,
             // Reactivate membership when webhook confirms role assignment
-            status: "active",
+            status: 'active',
             updated_at: now,
           });
-          console.log(`[updateUserWithMembership] Updated membership for user ${maskId(args.clerkId)} with role ${args.membership.role}`);
+          console.log(
+            `[updateUserWithMembership] Updated membership for user ${maskId(args.clerkId)} with role ${args.membership.role}`,
+          );
         }
         membershipId = existingMembership._id;
       } else {
         // Create new membership
-        membershipId = await ctx.db.insert("memberships", {
+        membershipId = await ctx.db.insert('memberships', {
           user_id: user._id,
           university_id: args.membership.universityId,
           role: args.membership.role,
-          status: "active",
+          status: 'active',
           created_at: now,
           updated_at: now,
         });
-        console.log(`[updateUserWithMembership] Created membership for user ${maskId(args.clerkId)} with role ${args.membership.role}`);
+        console.log(
+          `[updateUserWithMembership] Created membership for user ${maskId(args.clerkId)} with role ${args.membership.role}`,
+        );
       }
     }
 
@@ -892,7 +869,9 @@ export const updateUserWithMembership = mutation({
       await logRoleChange(ctx, user, oldRole, newRole!);
     }
 
-    console.log(`[updateUserWithMembership] Updated user ${maskId(args.clerkId)}${membershipId ? ` with membership ${maskId(membershipId)}` : ''}`);
+    console.log(
+      `[updateUserWithMembership] Updated user ${maskId(args.clerkId)}${membershipId ? ` with membership ${maskId(membershipId)}` : ''}`,
+    );
 
     return {
       userId: user._id,

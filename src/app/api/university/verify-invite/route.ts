@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { api } from 'convex/_generated/api';
+import { NextRequest, NextResponse } from 'next/server';
+
 import { convexServer } from '@/lib/convex-server';
 
 /**

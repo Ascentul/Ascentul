@@ -1,65 +1,71 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react'
-import { useSignIn } from '@clerk/nextjs'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Mail, ArrowLeft, KeyRound } from 'lucide-react'
+import { useSignIn } from '@clerk/nextjs';
+import { ArrowLeft, KeyRound, Mail } from 'lucide-react';
+import React, { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface ForgotPasswordFormProps {
-  onBack: () => void,
-  onSuccess: (email: string) => void,
+  onBack: () => void;
+  onSuccess: (email: string) => void;
 }
 
-export function ForgotPasswordForm({
-  onBack,
-  onSuccess,
-}: ForgotPasswordFormProps) {
-  const { isLoaded, signIn } = useSignIn()
+export function ForgotPasswordForm({ onBack, onSuccess }: ForgotPasswordFormProps) {
+  const { isLoaded, signIn } = useSignIn();
 
-  const [email, setEmail] = useState('')
-  const [sendingReset, setSendingReset] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [email, setEmail] = useState('');
+  const [sendingReset, setSendingReset] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    if (!isLoaded) return
+    e.preventDefault();
+    setError(null);
+    if (!isLoaded) return;
 
     if (!email.trim()) {
-      setError('Please enter your email address')
-      return
+      setError('Please enter your email address');
+      return;
     }
 
     try {
-      setSendingReset(true)
+      setSendingReset(true);
       await signIn.create({
         strategy: 'reset_password_email_code',
         identifier: email,
-      })
-      onSuccess(email)
+      });
+      onSuccess(email);
     } catch (err: unknown) {
-      const clerkError = err as { errors?: Array<{ code?: string; longMessage?: string }>; message?: string }
-      const code = clerkError?.errors?.[0]?.code
+      const clerkError = err as {
+        errors?: Array<{ code?: string; longMessage?: string }>;
+        message?: string;
+      };
+      const code = clerkError?.errors?.[0]?.code;
       if (code === 'form_identifier_not_found') {
-        setError('No account found with this email address. Please check your email or sign up.')
+        setError('No account found with this email address. Please check your email or sign up.');
       } else {
-        const msg = clerkError?.errors?.[0]?.longMessage || clerkError?.message || 'Failed to send reset email'
-        setError(msg)
+        const msg =
+          clerkError?.errors?.[0]?.longMessage ||
+          clerkError?.message ||
+          'Failed to send reset email';
+        setError(msg);
       }
     } finally {
-      setSendingReset(false)
+      setSendingReset(false);
     }
-  }
+  };
 
   return (
     <Card className="border-neutral-200/80 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl">
       <CardHeader className="space-y-1 pb-6">
         <div className="flex items-center gap-2 text-center justify-center">
           <KeyRound className="h-5 w-5 text-brand-blue" />
-          <CardTitle className="text-2xl font-semibold text-zinc-900">Reset your password</CardTitle>
+          <CardTitle className="text-2xl font-semibold text-zinc-900">
+            Reset your password
+          </CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -105,17 +111,12 @@ export function ForgotPasswordForm({
         </form>
 
         <div className="text-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onBack}
-            className="text-muted-foreground"
-          >
+          <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to sign in
           </Button>
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

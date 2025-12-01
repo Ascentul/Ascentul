@@ -8,17 +8,24 @@
  * - Student ownership (via student_advisors.is_owner)
  */
 
-import type { QueryCtx, MutationCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
+import type { Id } from './_generated/dataModel';
+import type { MutationCtx, QueryCtx } from './_generated/server';
 
 /**
  * Session context extracted from Clerk JWT and Convex user record
  */
 export interface AdvisorSessionContext {
-  userId: Id<"users">;
+  userId: Id<'users'>;
   clerkId: string;
-  role: "advisor" | "university_admin" | "super_admin" | "student" | "individual" | "user" | "staff";
-  universityId: Id<"universities"> | undefined;
+  role:
+    | 'advisor'
+    | 'university_admin'
+    | 'super_admin'
+    | 'student'
+    | 'individual'
+    | 'user'
+    | 'staff';
+  universityId: Id<'universities'> | undefined;
   email: string;
 }
 
@@ -31,20 +38,20 @@ export async function getCurrentUser(
 ): Promise<AdvisorSessionContext> {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
-    throw new Error("Not authenticated");
+    throw new Error('Not authenticated');
   }
 
   if (clerkId && identity.subject !== clerkId) {
-    throw new Error("Unauthorized: clerk session mismatch");
+    throw new Error('Unauthorized: clerk session mismatch');
   }
 
   const user = await ctx.db
-    .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+    .query('users')
+    .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
     .unique();
 
   if (!user) {
-    throw new Error("User not found");
+    throw new Error('User not found');
   }
 
   return {
@@ -60,9 +67,9 @@ export async function getCurrentUser(
  * Require user to have a university_id (tenant scope)
  * Throws if user is not associated with a university
  */
-export function requireTenant(sessionCtx: AdvisorSessionContext): Id<"universities"> {
+export function requireTenant(sessionCtx: AdvisorSessionContext): Id<'universities'> {
   if (!sessionCtx.universityId) {
-    throw new Error("Missing tenant: User must be associated with a university");
+    throw new Error('Missing tenant: User must be associated with a university');
   }
   return sessionCtx.universityId;
 }
@@ -72,11 +79,7 @@ export function requireTenant(sessionCtx: AdvisorSessionContext): Id<"universiti
  * Throws if user role is not advisor, university_admin, or super_admin
  */
 export function requireAdvisorRole(sessionCtx: AdvisorSessionContext): void {
-  const allowedRoles: typeof sessionCtx.role[] = [
-    "advisor",
-    "university_admin",
-    "super_admin",
-  ];
+  const allowedRoles: (typeof sessionCtx.role)[] = ['advisor', 'university_admin', 'super_admin'];
 
   if (!allowedRoles.includes(sessionCtx.role)) {
     throw new Error(
@@ -99,12 +102,12 @@ export function requireAdvisorRole(sessionCtx: AdvisorSessionContext): void {
 export async function assertCanAccessStudent(
   ctx: QueryCtx | MutationCtx,
   sessionCtx: AdvisorSessionContext,
-  studentId: Id<"users">,
+  studentId: Id<'users'>,
 ) {
   // super_admin can access any student (no tenant requirement)
-  if (sessionCtx.role === "super_admin") {
+  if (sessionCtx.role === 'super_admin') {
     const student = await ctx.db.get(studentId);
-    if (!student) throw new Error("Student not found");
+    if (!student) throw new Error('Student not found');
     return student;
   }
 
@@ -115,51 +118,38 @@ export async function assertCanAccessStudent(
   const student = await ctx.db.get(studentId);
 
   if (!student) {
-    throw new Error("Student not found");
+    throw new Error('Student not found');
   }
 
   // Check tenant isolation - student must be in same university
   // SECURITY: Reject if student has no university_id OR belongs to different university
   if (!student.university_id || student.university_id !== universityId) {
-    throw new Error(
-      "Unauthorized: Student is not in your university (tenant isolation)",
-    );
+    throw new Error('Unauthorized: Student is not in your university (tenant isolation)');
   }
 
-
-
   // University admin can access all students in their university
-  if (sessionCtx.role === "university_admin") {
+  if (sessionCtx.role === 'university_admin') {
     return student;
   }
 
   // Advisors must have ownership relationship
-  if (sessionCtx.role === "advisor") {
+  if (sessionCtx.role === 'advisor') {
     const ownership = await ctx.db
-      .query("student_advisors")
-      .withIndex("by_advisor", (q) =>
-        q.eq("advisor_id", sessionCtx.userId).eq("university_id", universityId),
+      .query('student_advisors')
+      .withIndex('by_advisor', (q) =>
+        q.eq('advisor_id', sessionCtx.userId).eq('university_id', universityId),
       )
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("student_id"), studentId),
-          q.eq(q.field("is_owner"), true),
-        ),
-      )
+      .filter((q) => q.and(q.eq(q.field('student_id'), studentId), q.eq(q.field('is_owner'), true)))
       .first();
 
     if (!ownership) {
-      throw new Error(
-        "Unauthorized: Advisor is not the primary owner for this student",
-      );
+      throw new Error('Unauthorized: Advisor is not the primary owner for this student');
     }
 
     return student;
   }
 
-  throw new Error(
-    `Unauthorized: Role "${sessionCtx.role}" cannot access student data`,
-  );
+  throw new Error(`Unauthorized: Role "${sessionCtx.role}" cannot access student data`);
 }
 
 /**
@@ -169,21 +159,21 @@ export async function assertCanAccessStudent(
 export async function canAccessStudent(
   ctx: QueryCtx | MutationCtx,
   sessionCtx: AdvisorSessionContext,
-  studentId: Id<"users">,
+  studentId: Id<'users'>,
 ): Promise<boolean> {
   try {
     await assertCanAccessStudent(ctx, sessionCtx, studentId);
     return true;
   } catch (error) {
     // Expected authorization errors - return false
-    if (error instanceof Error && (
-      error.message.startsWith("Unauthorized") ||
-      error.message === "Student not found"
-    )) {
+    if (
+      error instanceof Error &&
+      (error.message.startsWith('Unauthorized') || error.message === 'Student not found')
+    ) {
       return false;
     }
     // Unexpected errors - log and rethrow for visibility
-    console.error("Unexpected error in canAccessStudent:", error);
+    console.error('Unexpected error in canAccessStudent:', error);
     throw error;
   }
 }
@@ -203,7 +193,7 @@ const MAX_STUDENT_PAGE_SIZE = 500;
  * Paginated result type for student ID queries
  */
 export interface PaginatedStudentIds {
-  studentIds: Id<"users">[];
+  studentIds: Id<'users'>[];
   cursor: string | null; // null means no more results
   hasMore: boolean;
   totalEstimate?: number; // Approximate total count (when available)
@@ -226,16 +216,11 @@ export async function getOwnedStudentIdsPaginated(
     cursor?: string;
   },
 ): Promise<PaginatedStudentIds> {
-  const limit = Math.min(
-    options?.limit ?? DEFAULT_STUDENT_PAGE_SIZE,
-    MAX_STUDENT_PAGE_SIZE,
-  );
+  const limit = Math.min(options?.limit ?? DEFAULT_STUDENT_PAGE_SIZE, MAX_STUDENT_PAGE_SIZE);
 
   // Super admin can access all students (no tenant restriction)
-  if (sessionCtx.role === "super_admin") {
-    let query = ctx.db
-      .query("users")
-      .withIndex("by_role", (q) => q.eq("role", "student"));
+  if (sessionCtx.role === 'super_admin') {
+    const query = ctx.db.query('users').withIndex('by_role', (q) => q.eq('role', 'student'));
 
     const result = await query.paginate({
       numItems: limit,
@@ -252,12 +237,12 @@ export async function getOwnedStudentIdsPaginated(
   const universityId = requireTenant(sessionCtx);
 
   // University admin can access all students in their university
-  if (sessionCtx.role === "university_admin") {
+  if (sessionCtx.role === 'university_admin') {
     // Note: We can't directly paginate with a filter, so we use a workaround
     // by fetching more items and filtering client-side
     const query = ctx.db
-      .query("users")
-      .withIndex("by_university", (q) => q.eq("university_id", universityId));
+      .query('users')
+      .withIndex('by_university', (q) => q.eq('university_id', universityId));
 
     const result = await query.paginate({
       numItems: limit * 2, // Fetch extra to account for non-students
@@ -265,7 +250,7 @@ export async function getOwnedStudentIdsPaginated(
     });
 
     // Filter to students only
-    const students = result.page.filter((u) => u.role === "student");
+    const students = result.page.filter((u) => u.role === 'student');
 
     // Note: This pagination approach has a known limitation - if the ratio of
     // students to non-students is low, pages may return fewer than `limit` items.
@@ -278,14 +263,14 @@ export async function getOwnedStudentIdsPaginated(
   }
 
   // Advisors only get students they own
-  if (sessionCtx.role === "advisor") {
+  if (sessionCtx.role === 'advisor') {
     const query = ctx.db
-      .query("student_advisors")
-      .withIndex("by_advisor_owner", (q) =>
+      .query('student_advisors')
+      .withIndex('by_advisor_owner', (q) =>
         q
-          .eq("advisor_id", sessionCtx.userId)
-          .eq("is_owner", true)
-          .eq("university_id", universityId),
+          .eq('advisor_id', sessionCtx.userId)
+          .eq('is_owner', true)
+          .eq('university_id', universityId),
       );
 
     const result = await query.paginate({
@@ -328,19 +313,19 @@ export async function getOwnedStudentIds(
   options?: {
     limit?: number; // Max students to return (default: 1000)
   },
-): Promise<Id<"users">[]> {
+): Promise<Id<'users'>[]> {
   const maxLimit = options?.limit ?? 1000;
 
   // For advisors, typically small caseloads - collect all
-  if (sessionCtx.role === "advisor") {
+  if (sessionCtx.role === 'advisor') {
     const universityId = requireTenant(sessionCtx);
     const assignments = await ctx.db
-      .query("student_advisors")
-      .withIndex("by_advisor_owner", (q) =>
+      .query('student_advisors')
+      .withIndex('by_advisor_owner', (q) =>
         q
-          .eq("advisor_id", sessionCtx.userId)
-          .eq("is_owner", true)
-          .eq("university_id", universityId),
+          .eq('advisor_id', sessionCtx.userId)
+          .eq('is_owner', true)
+          .eq('university_id', universityId),
       )
       .take(maxLimit);
 
@@ -348,7 +333,7 @@ export async function getOwnedStudentIds(
   }
 
   // For super_admin and university_admin, use paginated approach with limit
-  const allStudentIds: Id<"users">[] = [];
+  const allStudentIds: Id<'users'>[] = [];
   let cursor: string | null = null;
 
   do {
@@ -379,31 +364,28 @@ export async function getOwnedStudentIds(
  */
 export function canViewPrivateContent(
   sessionCtx: AdvisorSessionContext,
-  visibility: "shared" | "advisor_only",
-  authorId?: Id<"users">,
+  visibility: 'shared' | 'advisor_only',
+  authorId?: Id<'users'>,
 ): boolean {
   // Shared content is visible to everyone
-  if (visibility === "shared") {
+  if (visibility === 'shared') {
     return true;
   }
 
   // Private content rules
-  if (visibility === "advisor_only") {
+  if (visibility === 'advisor_only') {
     // Students cannot see advisor-only content
-    if (sessionCtx.role === "student" || sessionCtx.role === "user") {
+    if (sessionCtx.role === 'student' || sessionCtx.role === 'user') {
       return false;
     }
 
     // Supervisors can see all private content
-    if (
-      sessionCtx.role === "super_admin" ||
-      sessionCtx.role === "university_admin"
-    ) {
+    if (sessionCtx.role === 'super_admin' || sessionCtx.role === 'university_admin') {
       return true;
     }
 
     // Advisors can see their own private content
-    if (sessionCtx.role === "advisor") {
+    if (sessionCtx.role === 'advisor') {
       // Require authorId to be specified; default to hiding if unknown
       return authorId !== undefined && authorId === sessionCtx.userId;
     }
@@ -419,19 +401,19 @@ export function canViewPrivateContent(
 export async function createAuditLog(
   ctx: MutationCtx,
   params: {
-    actorId: Id<"users">;
-    universityId: Id<"universities"> | undefined;
+    actorId: Id<'users'>;
+    universityId: Id<'universities'> | undefined;
     action: string;
     entityType: string;
     entityId: string;
-    studentId?: Id<"users">;
+    studentId?: Id<'users'>;
     previousValue?: unknown;
     newValue?: unknown;
     ipAddress?: string; // Optional - Convex backend doesn't have access to client IP
     userAgent?: string;
   },
-): Promise<Id<"audit_logs">> {
-  return await ctx.db.insert("audit_logs", {
+): Promise<Id<'audit_logs'>> {
+  return await ctx.db.insert('audit_logs', {
     actor_id: params.actorId,
     university_id: params.universityId,
     action: params.action,

@@ -1,12 +1,12 @@
-'use client'
+'use client';
 
-import React from 'react'
-import Image from 'next/image'
+import Image from 'next/image';
+import React from 'react';
 
 interface AuthLayoutProps {
-  children: React.ReactNode
-  marketingTitle: React.ReactNode
-  marketingContent: React.ReactNode,
+  children: React.ReactNode;
+  marketingTitle: React.ReactNode;
+  marketingContent: React.ReactNode;
 }
 
 export function AuthLayout({ children, marketingTitle, marketingContent }: AuthLayoutProps) {
@@ -37,5 +37,5 @@ export function AuthLayout({ children, marketingTitle, marketingContent }: AuthL
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -7,13 +7,10 @@
  * - Month view (28-31 days)
  */
 
-import { query } from './_generated/server';
 import { v } from 'convex/values';
-import {
-  getCurrentUser,
-  requireAdvisorRole,
-  requireTenant,
-} from './advisor_auth';
+
+import { query } from './_generated/server';
+import { getCurrentUser, requireAdvisorRole, requireTenant } from './advisor_auth';
 
 /**
  * Get sessions for a date range (used by all calendar views)
@@ -40,10 +37,7 @@ export const getSessionsInRange = query({
           q.lte(q.field('start_at'), args.endDate),
           q.or(
             q.gte(q.field('end_at'), args.startDate),
-            q.and(
-              q.eq(q.field('end_at'), undefined),
-              q.gte(q.field('start_at'), args.startDate)
-            )
+            q.and(q.eq(q.field('end_at'), undefined), q.gte(q.field('start_at'), args.startDate)),
           ),
         ),
       )
@@ -59,13 +53,13 @@ export const getSessionsInRange = query({
         const student = await ctx.db.get(id);
         // Use String() for consistent Map key type (Id objects may not match as keys)
         return [String(id), student] as const;
-      })
+      }),
     );
 
     const studentsMap = new Map<string, any>(
       studentFetchResults
         .filter((result) => result.status === 'fulfilled')
-        .map((result) => (result as PromiseFulfilledResult<any>).value)
+        .map((result) => (result as PromiseFulfilledResult<any>).value),
     );
 
     const enrichedSessions = sessions.map((session) => {
@@ -129,13 +123,13 @@ export const getFollowUpsInRange = query({
         const student = await ctx.db.get(id);
         // Use String() for consistent Map key type (Id objects may not match as keys)
         return [String(id), student] as const;
-      })
+      }),
     );
 
     const studentsMap = new Map<string, any>(
       studentFetchResults
         .filter((result) => result.status === 'fulfilled')
-        .map((result) => (result as PromiseFulfilledResult<any>).value)
+        .map((result) => (result as PromiseFulfilledResult<any>).value),
     );
 
     const enrichedFollowUps = followUps.map((followUp) => {
@@ -182,10 +176,7 @@ export const getCalendarStats = query({
           q.lte(q.field('start_at'), args.endDate),
           q.or(
             q.gte(q.field('end_at'), args.startDate),
-            q.and(
-              q.eq(q.field('end_at'), undefined),
-              q.gte(q.field('start_at'), args.startDate)
-            )
+            q.and(q.eq(q.field('end_at'), undefined), q.gte(q.field('start_at'), args.startDate)),
           ),
         ),
       )
@@ -207,24 +198,15 @@ export const getCalendarStats = query({
       .collect();
 
     const now = Date.now();
-    const completedSessions = sessions.filter(
-      (s) => s.status === 'completed',
-    ).length;
-    const upcomingSessions = sessions.filter(
-      (s) => s.start_at > now
-    ).length;
+    const completedSessions = sessions.filter((s) => s.status === 'completed').length;
+    const upcomingSessions = sessions.filter((s) => s.start_at > now).length;
     const inProgressSessions = sessions.filter(
-      (s) => s.status !== 'completed' && s.start_at <= now && (!s.end_at || s.end_at >= now)
+      (s) => s.status !== 'completed' && s.start_at <= now && (!s.end_at || s.end_at >= now),
     ).length;
-    const overdueFollowUps = followUps.filter(
-      (f) => f.due_at && f.due_at < now,
-    ).length;
+    const overdueFollowUps = followUps.filter((f) => f.due_at && f.due_at < now).length;
 
     // Calculate total session hours
-    const totalHours = sessions.reduce(
-      (sum, s) => sum + (s.duration_minutes || 0) / 60,
-      0,
-    );
+    const totalHours = sessions.reduce((sum, s) => sum + (s.duration_minutes || 0) / 60, 0);
 
     // Get unique students
     const uniqueStudents = new Set(sessions.map((s) => s.student_id));

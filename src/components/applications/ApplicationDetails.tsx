@@ -1,45 +1,38 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
+import { Calendar, Check, Clock, ExternalLink, Loader2, Pencil, Trash2, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ApplicationStatusBadge } from "./ApplicationStatusBadge";
-import {
-  Loader2,
-  ExternalLink,
-  Pencil,
-  Trash2,
-  Check,
-  Clock,
-  X,
-  Calendar,
-} from "lucide-react";
-import { useUser } from "@clerk/nextjs";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "convex/_generated/api";
+} from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+
+import { ApplicationStatusBadge } from './ApplicationStatusBadge';
 
 export type DBApplication = {
   id: string | number;
   company: string;
   job_title: string;
-  status: "saved" | "applied" | "interview" | "offer" | "rejected";
+  status: 'saved' | 'applied' | 'interview' | 'offer' | 'rejected';
   url?: string | null;
   notes?: string | null;
   created_at?: string;
@@ -48,20 +41,20 @@ export type DBApplication = {
   cover_letter_id?: string | null;
 };
 
-function statusLabel(s: DBApplication["status"]): string {
+function statusLabel(s: DBApplication['status']): string {
   switch (s) {
-    case "saved":
-      return "In Progress";
-    case "applied":
-      return "Applied";
-    case "interview":
-      return "Interviewing";
-    case "offer":
-      return "Offer";
-    case "rejected":
-      return "Rejected";
+    case 'saved':
+      return 'In Progress';
+    case 'applied':
+      return 'Applied';
+    case 'interview':
+      return 'Interviewing';
+    case 'offer':
+      return 'Offer';
+    case 'rejected':
+      return 'Rejected';
     default:
-      return "In Progress";
+      return 'In Progress';
   }
 }
 
@@ -76,10 +69,7 @@ export function ApplicationDetails({
   onOpenChange: (open: boolean) => void;
   application: DBApplication;
   onChanged?: (updated: DBApplication) => void;
-  saveFn?: (
-    id: string | number,
-    values: Partial<DBApplication>,
-  ) => Promise<DBApplication>;
+  saveFn?: (id: string | number, values: Partial<DBApplication>) => Promise<DBApplication>;
 }) {
   const [saving, setSaving] = useState(false);
   const [local, setLocal] = useState<DBApplication>(application);
@@ -89,19 +79,16 @@ export function ApplicationDetails({
   // Convex data for tabs
   const stages = useQuery(
     api.interviews.getStagesForApplication,
-    clerkId ? { clerkId, applicationId: local.id as any } : "skip",
+    clerkId ? { clerkId, applicationId: local.id as any } : 'skip',
   );
   const followups = useQuery(
     api.followups.getFollowupsForApplication,
-    clerkId ? { applicationId: local.id as any } : "skip",
+    clerkId ? { applicationId: local.id as any } : 'skip',
   );
-  const resumes = useQuery(
-    api.resumes.getUserResumes,
-    clerkId ? { clerkId } : "skip",
-  );
+  const resumes = useQuery(api.resumes.getUserResumes, clerkId ? { clerkId } : 'skip');
   const coverLetters = useQuery(
     api.cover_letters.getUserCoverLetters,
-    clerkId ? { clerkId } : "skip",
+    clerkId ? { clerkId } : 'skip',
   );
 
   // Mutations
@@ -151,10 +138,10 @@ export function ApplicationDetails({
 
   // Add Interview Stage form state
   const [stageForm, setStageForm] = useState({
-    title: "",
-    scheduled_at: "",
-    location: "",
-    notes: "",
+    title: '',
+    scheduled_at: '',
+    location: '',
+    notes: '',
   });
   const [addingStage, setAddingStage] = useState(false);
   const addStage = async () => {
@@ -172,7 +159,7 @@ export function ApplicationDetails({
         location: stageForm.location || undefined,
         notes: stageForm.notes || undefined,
       } as any);
-      setStageForm({ title: "", scheduled_at: "", location: "", notes: "" });
+      setStageForm({ title: '', scheduled_at: '', location: '', notes: '' });
     } finally {
       setAddingStage(false);
     }
@@ -180,7 +167,7 @@ export function ApplicationDetails({
 
   const setStageOutcome = async (
     stageId: any,
-    outcome: "pending" | "scheduled" | "passed" | "failed",
+    outcome: 'pending' | 'scheduled' | 'passed' | 'failed',
   ) => {
     if (!clerkId) return;
     await updateStage({ clerkId, stageId, updates: { outcome } } as any);
@@ -188,18 +175,18 @@ export function ApplicationDetails({
 
   const removeStage = async (stageId: any) => {
     if (!clerkId) return;
-    if (!confirm("Delete this interview stage?")) return;
+    if (!confirm('Delete this interview stage?')) return;
     await deleteStage({ clerkId, stageId } as any);
   };
 
   // Handle status change - auto-save immediately
   const handleStatusChange = async (newStatusLabel: string) => {
-    const statusMap: Record<string, DBApplication["status"]> = {
+    const statusMap: Record<string, DBApplication['status']> = {
       'In Progress': 'saved',
-      'Applied': 'applied',
-      'Interviewing': 'interview',
-      'Offer': 'offer',
-      'Rejected': 'rejected',
+      Applied: 'applied',
+      Interviewing: 'interview',
+      Offer: 'offer',
+      Rejected: 'rejected',
     };
     const newStatus = statusMap[newStatusLabel];
     if (newStatus) {
@@ -249,49 +236,37 @@ export function ApplicationDetails({
   // Status bubble helper with click to cycle through states
   const getStatusBubble = (stageId: any, outcome: string) => {
     const cycleStatus = () => {
-      const statusOrder = ["pending", "scheduled", "passed", "failed"];
+      const statusOrder = ['pending', 'scheduled', 'passed', 'failed'];
       const currentIndex = statusOrder.indexOf(outcome);
       const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
       setStageOutcome(stageId, nextStatus as any);
     };
 
     const baseClass =
-      "flex items-center gap-1 text-xs px-2 py-1 rounded-full cursor-pointer hover:opacity-80 transition-opacity";
+      'flex items-center gap-1 text-xs px-2 py-1 rounded-full cursor-pointer hover:opacity-80 transition-opacity';
 
     switch (outcome) {
-      case "passed":
+      case 'passed':
         return (
-          <div
-            onClick={cycleStatus}
-            className={`${baseClass} bg-green-100 text-green-700`}
-          >
+          <div onClick={cycleStatus} className={`${baseClass} bg-green-100 text-green-700`}>
             <Check className="h-3 w-3" /> Passed
           </div>
         );
-      case "failed":
+      case 'failed':
         return (
-          <div
-            onClick={cycleStatus}
-            className={`${baseClass} bg-red-100 text-red-700`}
-          >
+          <div onClick={cycleStatus} className={`${baseClass} bg-red-100 text-red-700`}>
             <X className="h-3 w-3" /> Rejected
           </div>
         );
-      case "scheduled":
+      case 'scheduled':
         return (
-          <div
-            onClick={cycleStatus}
-            className={`${baseClass} bg-blue-100 text-blue-700`}
-          >
+          <div onClick={cycleStatus} className={`${baseClass} bg-blue-100 text-blue-700`}>
             <Calendar className="h-3 w-3" /> Scheduled
           </div>
         );
       default:
         return (
-          <div
-            onClick={cycleStatus}
-            className={`${baseClass} bg-amber-100 text-amber-700`}
-          >
+          <div onClick={cycleStatus} className={`${baseClass} bg-amber-100 text-amber-700`}>
             <Clock className="h-3 w-3" /> Pending
           </div>
         );
@@ -300,23 +275,21 @@ export function ApplicationDetails({
 
   // Follow-up form state
   const [followForm, setFollowForm] = useState({
-    description: "",
-    due_date: "",
+    description: '',
+    due_date: '',
   });
   const [addingFollowup, setAddingFollowup] = useState(false);
   const addFollowup = async () => {
     if (!clerkId || !followForm.description.trim() || addingFollowup) return;
     setAddingFollowup(true);
     try {
-      const due = followForm.due_date
-        ? new Date(followForm.due_date).getTime()
-        : undefined;
+      const due = followForm.due_date ? new Date(followForm.due_date).getTime() : undefined;
       await createFollowup({
         applicationId: local.id as any,
         description: followForm.description,
         due_date: due,
       } as any);
-      setFollowForm({ description: "", due_date: "" });
+      setFollowForm({ description: '', due_date: '' });
     } finally {
       setAddingFollowup(false);
     }
@@ -332,28 +305,22 @@ export function ApplicationDetails({
 
   const removeFollowup = async (followupId: any) => {
     if (!clerkId) return;
-    if (!confirm("Delete this follow-up action?")) return;
+    if (!confirm('Delete this follow-up action?')) return;
     await deleteFollowup({ followupId } as any);
   };
 
   // Materials selection
-  const [selectedResumeId, setSelectedResumeId] = useState<string>(
-    local.resume_id || "none",
-  );
-  const [selectedCoverId, setSelectedCoverId] = useState<string>(
-    local.cover_letter_id || "none",
-  );
+  const [selectedResumeId, setSelectedResumeId] = useState<string>(local.resume_id || 'none');
+  const [selectedCoverId, setSelectedCoverId] = useState<string>(local.cover_letter_id || 'none');
 
   useEffect(() => {
-    setSelectedResumeId(local.resume_id || "none");
-    setSelectedCoverId(local.cover_letter_id || "none");
+    setSelectedResumeId(local.resume_id || 'none');
+    setSelectedCoverId(local.cover_letter_id || 'none');
   }, [local.resume_id, local.cover_letter_id, open]);
   const saveMaterials = async () => {
     if (!clerkId) return;
-    const resumeValue =
-      selectedResumeId !== "none" ? (selectedResumeId as any) : undefined;
-    const coverValue =
-      selectedCoverId !== "none" ? (selectedCoverId as any) : undefined;
+    const resumeValue = selectedResumeId !== 'none' ? (selectedResumeId as any) : undefined;
+    const coverValue = selectedCoverId !== 'none' ? (selectedCoverId as any) : undefined;
 
     if (saveFn) {
       const updated = await saveFn(application.id, {
@@ -390,12 +357,8 @@ export function ApplicationDetails({
         <DialogHeader className="space-y-3">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <DialogTitle className="text-xl">
-                {local.job_title || "Untitled Role"}
-              </DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                {local.company || "Company"}
-              </p>
+              <DialogTitle className="text-xl">{local.job_title || 'Untitled Role'}</DialogTitle>
+              <p className="text-sm text-muted-foreground mt-1">{local.company || 'Company'}</p>
             </div>
             <ApplicationStatusBadge
               status={statusLabel(local.status)}
@@ -404,20 +367,16 @@ export function ApplicationDetails({
           </div>
           {local.created_at && (
             <p className="text-xs text-muted-foreground">
-              Applied{" "}
-              {new Date(local.created_at).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
+              Applied{' '}
+              {new Date(local.created_at).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
               })}
             </p>
           )}
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
               <Pencil className="h-3 w-3 mr-1" /> Edit
             </Button>
             {local.url && (
@@ -441,14 +400,10 @@ export function ApplicationDetails({
           <TabsContent value="details" className="space-y-4">
             <div className="space-y-3 text-sm">
               <div>
-                <Label className="text-xs text-muted-foreground">
-                  Job Title
-                </Label>
+                <Label className="text-xs text-muted-foreground">Job Title</Label>
                 <Input
                   value={local.job_title}
-                  onChange={(e) =>
-                    setLocal({ ...local, job_title: e.target.value })
-                  }
+                  onChange={(e) => setLocal({ ...local, job_title: e.target.value })}
                   className="mt-1"
                 />
               </div>
@@ -456,18 +411,14 @@ export function ApplicationDetails({
                 <Label className="text-xs text-muted-foreground">Company</Label>
                 <Input
                   value={local.company}
-                  onChange={(e) =>
-                    setLocal({ ...local, company: e.target.value })
-                  }
+                  onChange={(e) => setLocal({ ...local, company: e.target.value })}
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">
-                  Job Posting URL
-                </Label>
+                <Label className="text-xs text-muted-foreground">Job Posting URL</Label>
                 <Input
-                  value={local.url || ""}
+                  value={local.url || ''}
                   onChange={(e) => setLocal({ ...local, url: e.target.value })}
                   placeholder="https://..."
                   className="mt-1"
@@ -480,7 +431,7 @@ export function ApplicationDetails({
                   onValueChange={(v) =>
                     setLocal((p) => ({
                       ...p,
-                      status: v as DBApplication["status"],
+                      status: v as DBApplication['status'],
                     }))
                   }
                 >
@@ -497,19 +448,14 @@ export function ApplicationDetails({
                 </Select>
               </div>
               <div>
-                <Label
-                  htmlFor="notes"
-                  className="text-xs text-muted-foreground"
-                >
+                <Label htmlFor="notes" className="text-xs text-muted-foreground">
                   Notes
                 </Label>
                 <Textarea
                   id="notes"
                   className="mt-1 min-h-[120px]"
-                  value={local.notes ?? ""}
-                  onChange={(e) =>
-                    setLocal({ ...local, notes: e.target.value })
-                  }
+                  value={local.notes ?? ''}
+                  onChange={(e) => setLocal({ ...local, notes: e.target.value })}
                   placeholder="Add notes about this application (job description, hiring manager, recruiter, etc.)"
                 />
               </div>
@@ -524,7 +470,7 @@ export function ApplicationDetails({
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
                   </>
                 ) : (
-                  "Save Changes"
+                  'Save Changes'
                 )}
               </Button>
             </div>
@@ -548,7 +494,7 @@ export function ApplicationDetails({
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adding...
                   </>
                 ) : (
-                  "+ Add Interview"
+                  '+ Add Interview'
                 )}
               </Button>
             </div>
@@ -557,45 +503,32 @@ export function ApplicationDetails({
                 <Input
                   placeholder="Stage title (e.g., Phone Screen)"
                   value={stageForm.title}
-                  onChange={(e) =>
-                    setStageForm({ ...stageForm, title: e.target.value })
-                  }
+                  onChange={(e) => setStageForm({ ...stageForm, title: e.target.value })}
                 />
                 <Input
                   type="datetime-local"
                   value={stageForm.scheduled_at}
-                  onChange={(e) =>
-                    setStageForm({ ...stageForm, scheduled_at: e.target.value })
-                  }
+                  onChange={(e) => setStageForm({ ...stageForm, scheduled_at: e.target.value })}
                 />
                 <Input
                   placeholder="Location / Link"
                   value={stageForm.location}
-                  onChange={(e) =>
-                    setStageForm({ ...stageForm, location: e.target.value })
-                  }
+                  onChange={(e) => setStageForm({ ...stageForm, location: e.target.value })}
                 />
                 <Input
                   placeholder="Notes"
                   value={stageForm.notes}
-                  onChange={(e) =>
-                    setStageForm({ ...stageForm, notes: e.target.value })
-                  }
+                  onChange={(e) => setStageForm({ ...stageForm, notes: e.target.value })}
                 />
               </div>
             </div>
             <div className="space-y-2">
               {(stages || []).length === 0 ? (
-                <div className="text-sm text-muted-foreground">
-                  No interview stages yet.
-                </div>
+                <div className="text-sm text-muted-foreground">No interview stages yet.</div>
               ) : (
                 stages!.map((s: any) =>
                   editingStage && editingStage._id === s._id ? (
-                    <div
-                      key={s._id}
-                      className="border rounded-md p-3 space-y-2 bg-blue-50"
-                    >
+                    <div key={s._id} className="border rounded-md p-3 space-y-2 bg-blue-50">
                       <Input
                         placeholder="Stage title"
                         value={editingStage.title}
@@ -609,7 +542,7 @@ export function ApplicationDetails({
                       <div className="grid grid-cols-2 gap-2">
                         <Input
                           type="datetime-local"
-                          value={editingStage.scheduled_at || ""}
+                          value={editingStage.scheduled_at || ''}
                           onChange={(e) =>
                             setEditingStage({
                               ...editingStage,
@@ -619,7 +552,7 @@ export function ApplicationDetails({
                         />
                         <Input
                           placeholder="Location"
-                          value={editingStage.location || ""}
+                          value={editingStage.location || ''}
                           onChange={(e) =>
                             setEditingStage({
                               ...editingStage,
@@ -629,11 +562,7 @@ export function ApplicationDetails({
                         />
                       </div>
                       <div className="flex gap-2 justify-end">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setEditingStage(null)}
-                        >
+                        <Button size="sm" variant="outline" onClick={() => setEditingStage(null)}>
                           Cancel
                         </Button>
                         <Button size="sm" onClick={saveStageEdit}>
@@ -654,10 +583,8 @@ export function ApplicationDetails({
                               setEditingStage({
                                 ...s,
                                 scheduled_at: s.scheduled_at
-                                  ? new Date(s.scheduled_at)
-                                      .toISOString()
-                                      .slice(0, 16)
-                                  : "",
+                                  ? new Date(s.scheduled_at).toISOString().slice(0, 16)
+                                  : '',
                               })
                             }
                           />
@@ -667,14 +594,11 @@ export function ApplicationDetails({
                               {s.scheduled_at && (
                                 <span className="flex items-center gap-1">
                                   <Calendar className="h-3 w-3" />
-                                  {new Date(s.scheduled_at).toLocaleDateString(
-                                    "en-US",
-                                    {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                    },
-                                  )}
+                                  {new Date(s.scheduled_at).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                  })}
                                 </span>
                               )}
                               {s.location && <span>📍 {s.location}</span>}
@@ -712,9 +636,7 @@ export function ApplicationDetails({
                 <Input
                   type="datetime-local"
                   value={followForm.due_date}
-                  onChange={(e) =>
-                    setFollowForm({ ...followForm, due_date: e.target.value })
-                  }
+                  onChange={(e) => setFollowForm({ ...followForm, due_date: e.target.value })}
                 />
                 <Button onClick={addFollowup} disabled={addingFollowup}>
                   {addingFollowup ? (
@@ -722,16 +644,14 @@ export function ApplicationDetails({
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adding...
                     </>
                   ) : (
-                    "Add Follow-up"
+                    'Add Follow-up'
                   )}
                 </Button>
               </div>
             </div>
             <div className="space-y-2">
               {(followups || []).length === 0 ? (
-                <div className="text-sm text-muted-foreground">
-                  No follow-up actions yet.
-                </div>
+                <div className="text-sm text-muted-foreground">No follow-up actions yet.</div>
               ) : (
                 followups!.map((f: any) => (
                   <div
@@ -741,24 +661,18 @@ export function ApplicationDetails({
                     <div>
                       <div className="font-medium">{f.description}</div>
                       <div className="text-xs text-muted-foreground">
-                        {f.due_date
-                          ? new Date(f.due_date).toLocaleString()
-                          : "No due date"}
+                        {f.due_date ? new Date(f.due_date).toLocaleString() : 'No due date'}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
-                        variant={f.completed ? "default" : "outline"}
+                        variant={f.completed ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => toggleFollowup(f._id, f.completed)}
                       >
-                        {f.completed ? "Completed" : "Mark Completed"}
+                        {f.completed ? 'Completed' : 'Mark Completed'}
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => removeFollowup(f._id)}
-                      >
+                      <Button size="sm" variant="ghost" onClick={() => removeFollowup(f._id)}>
                         <Trash2 className="h-3 w-3 text-red-600" />
                       </Button>
                     </div>
@@ -771,10 +685,7 @@ export function ApplicationDetails({
           <TabsContent value="materials" className="space-y-3">
             <div>
               <Label>Resume used</Label>
-              <Select
-                value={selectedResumeId}
-                onValueChange={(v) => setSelectedResumeId(v)}
-              >
+              <Select value={selectedResumeId} onValueChange={(v) => setSelectedResumeId(v)}>
                 <SelectTrigger className="w-full mt-1">
                   <SelectValue placeholder="Select resume" />
                 </SelectTrigger>
@@ -790,10 +701,7 @@ export function ApplicationDetails({
             </div>
             <div>
               <Label>Cover Letter used</Label>
-              <Select
-                value={selectedCoverId}
-                onValueChange={(v) => setSelectedCoverId(v)}
-              >
+              <Select value={selectedCoverId} onValueChange={(v) => setSelectedCoverId(v)}>
                 <SelectTrigger className="w-full mt-1">
                   <SelectValue placeholder="Select cover letter" />
                 </SelectTrigger>

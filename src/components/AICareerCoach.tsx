@@ -1,107 +1,103 @@
-'use client'
+'use client';
 
-import { motion } from 'framer-motion'
-import Link from 'next/link'
-import {
-  Bot,
-  MessageSquare,
-  Sparkles,
-  ExternalLink,
-  Send
-} from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import { useQuery, useMutation } from '@tanstack/react-query'
-import { apiRequest } from '@/lib/queryClient'
-import { useState } from 'react'
-import { useToast } from '@/hooks/use-toast'
-import { useRouter } from 'next/navigation'
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import { Bot, ExternalLink, MessageSquare, Send, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 interface Conversation {
-  id: string | number
-  title: string
-  createdAt: string
-  messageCount?: number
+  id: string | number;
+  title: string;
+  createdAt: string;
+  messageCount?: number;
 }
 
 export function AICareerCoach() {
-  const { toast } = useToast()
-  const router = useRouter()
-  const [quickQuestion, setQuickQuestion] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { toast } = useToast();
+  const router = useRouter();
+  const [quickQuestion, setQuickQuestion] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: conversations = [], isLoading } = useQuery<Conversation[]>({
     queryKey: ['/api/career-coach/conversations'],
     queryFn: async () => {
       try {
-        const res = await apiRequest('GET', '/api/career-coach/conversations')
-        return await res.json()
+        const res = await apiRequest('GET', '/api/career-coach/conversations');
+        return await res.json();
       } catch (error) {
-        console.error('Error fetching conversations:', error)
-        return []
+        console.error('Error fetching conversations:', error);
+        return [];
       }
-    }
-  })
+    },
+  });
 
   // Ensure conversations is an array and get the most recent conversation
-  const conversationsArray = Array.isArray(conversations) ? conversations : []
-  const recentConversation = conversationsArray[0]
+  const conversationsArray = Array.isArray(conversations) ? conversations : [];
+  const recentConversation = conversationsArray[0];
 
   // Create conversation mutation
   const createConversationMutation = useMutation({
     mutationFn: async (title: string) => {
-      const response = await apiRequest('POST', '/api/career-coach/conversations', { title })
-      return await response.json()
+      const response = await apiRequest('POST', '/api/career-coach/conversations', { title });
+      return await response.json();
     },
     onSuccess: async (newConversation) => {
       // Send the initial message to the new conversation
       try {
         await apiRequest('POST', `/api/career-coach/conversations/${newConversation.id}/messages`, {
-          content: quickQuestion.trim()
-        })
+          content: quickQuestion.trim(),
+        });
 
         // Redirect to the AI coach page with the new conversation
-        router.push('/career-coach')
-        setQuickQuestion('')
+        router.push('/career-coach');
+        setQuickQuestion('');
       } catch (error) {
         toast({
           title: 'Error',
           description: 'Failed to send message. Please try again.',
-          variant: 'destructive'
-        })
+          variant: 'destructive',
+        });
       }
     },
     onError: (error: any) => {
       toast({
         title: 'Error',
         description: 'Failed to create conversation. Please try again.',
-        variant: 'destructive'
-      })
-    }
-  })
+        variant: 'destructive',
+      });
+    },
+  });
 
   const handleQuickQuestion = async () => {
-    if (!quickQuestion.trim()) return
+    if (!quickQuestion.trim()) return;
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
       // Create a new conversation with the question as the title (truncated)
-      const title = quickQuestion.trim().slice(0, 50) + (quickQuestion.trim().length > 50 ? '...' : '')
-      await createConversationMutation.mutateAsync(title)
+      const title =
+        quickQuestion.trim().slice(0, 50) + (quickQuestion.trim().length > 50 ? '...' : '');
+      await createConversationMutation.mutateAsync(title);
     } catch (error) {
       // Error handling is done in the mutation
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleQuickQuestion()
+      e.preventDefault();
+      handleQuickQuestion();
     }
-  }
+  };
 
   return (
     <motion.div
@@ -109,7 +105,7 @@ export function AICareerCoach() {
       animate="visible"
       variants={{
         hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
+        visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
       }}
       className="mb-6"
     >
@@ -120,9 +116,7 @@ export function AICareerCoach() {
               <Bot className="h-4 w-4 text-primary" />
               AI Career Coach
             </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Get personalized career advice
-            </p>
+            <p className="text-sm text-muted-foreground">Get personalized career advice</p>
           </div>
           <Link href="/career-coach">
             <Button variant="outline" size="sm">
@@ -149,7 +143,7 @@ export function AICareerCoach() {
                 onClick={handleQuickQuestion}
                 disabled={!quickQuestion.trim() || isSubmitting}
                 className="self-end"
-                aria-label={isSubmitting ? "Sending" : "Send"}
+                aria-label={isSubmitting ? 'Sending' : 'Send'}
               >
                 {isSubmitting ? (
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -181,9 +175,7 @@ export function AICareerCoach() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-sm truncate">
-                    {recentConversation.title}
-                  </h3>
+                  <h3 className="font-medium text-sm truncate">{recentConversation.title}</h3>
                   <p className="text-xs text-muted-foreground">
                     {new Date(recentConversation.createdAt).toLocaleDateString()}
                   </p>
@@ -222,5 +214,5 @@ export function AICareerCoach() {
         </CardContent>
       </Card>
     </motion.div>
-  )
+  );
 }

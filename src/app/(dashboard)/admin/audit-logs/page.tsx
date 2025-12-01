@@ -1,26 +1,37 @@
-'use client'
+'use client';
 
-import React, { useState, useMemo } from 'react'
-import { useUser } from '@clerk/nextjs'
-import { useAuth } from '@/contexts/ClerkAuthProvider'
-import { usePaginatedQuery } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { hasPlatformAdminAccess } from '@/lib/constants/roles'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Loader2, Search, FileText, Shield, ChevronDown } from 'lucide-react'
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { usePaginatedQuery } from 'convex/react';
+import { ChevronDown, FileText, Loader2, Search, Shield } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
+import { hasPlatformAdminAccess } from '@/lib/constants/roles';
 
 export default function AuditLogsPage() {
-  const { user: clerkUser } = useUser()
-  const { user } = useAuth()
-  const [search, setSearch] = useState('')
-  const [actionFilter, setActionFilter] = useState<'all' | string>('all')
+  const { user: clerkUser } = useUser();
+  const { user } = useAuth();
+  const [search, setSearch] = useState('');
+  const [actionFilter, setActionFilter] = useState<'all' | string>('all');
 
   // Fetch audit logs with pagination (50 per page)
-  const { results: auditLogs, status, loadMore } = usePaginatedQuery(
+  const {
+    results: auditLogs,
+    status,
+    loadMore,
+  } = usePaginatedQuery(
     api.audit_logs.getAuditLogsPaginated,
     clerkUser?.id
       ? {
@@ -28,45 +39,47 @@ export default function AuditLogsPage() {
           action: actionFilter !== 'all' ? actionFilter : undefined,
         }
       : 'skip',
-    { initialNumItems: 50 }
-  )
+    { initialNumItems: 50 },
+  );
 
   // Filter logs
   const filtered = useMemo(() => {
-    if (!auditLogs) return []
+    if (!auditLogs) return [];
 
-    const q = search.trim().toLowerCase()
-    return auditLogs.filter(log => {
+    const q = search.trim().toLowerCase();
+    return auditLogs.filter((log) => {
       const matchesText =
         !q ||
         log.target_email?.toLowerCase().includes(q) ||
         log.target_name?.toLowerCase().includes(q) ||
         log.performed_by_email?.toLowerCase().includes(q) ||
         log.performed_by_name?.toLowerCase().includes(q) ||
-        log.reason?.toLowerCase().includes(q)
+        log.reason?.toLowerCase().includes(q);
 
-      const matchesAction = actionFilter === 'all' || log.action === actionFilter
+      const matchesAction = actionFilter === 'all' || log.action === actionFilter;
 
-      return matchesText && matchesAction
-    })
-  }, [auditLogs, search, actionFilter])
+      return matchesText && matchesAction;
+    });
+  }, [auditLogs, search, actionFilter]);
 
   // Extract unique actions for filter
   const uniqueActions = useMemo(() => {
-    if (!auditLogs) return []
-    return Array.from(new Set(auditLogs.map(log => log.action)))
-  }, [auditLogs])
+    if (!auditLogs) return [];
+    return Array.from(new Set(auditLogs.map((log) => log.action)));
+  }, [auditLogs]);
 
   // Get badge variant for action type
-  const getActionVariant = (action: string): "default" | "secondary" | "destructive" | "outline" => {
-    if (action.includes('deleted')) return 'destructive'
-    if (action.includes('restored')) return 'default'
-    if (action.includes('created')) return 'secondary'
-    return 'outline'
-  }
+  const getActionVariant = (
+    action: string,
+  ): 'default' | 'secondary' | 'destructive' | 'outline' => {
+    if (action.includes('deleted')) return 'destructive';
+    if (action.includes('restored')) return 'default';
+    if (action.includes('created')) return 'secondary';
+    return 'outline';
+  };
 
-  const role = user?.role
-  const isSuperAdmin = hasPlatformAdminAccess(role)
+  const role = user?.role;
+  const isSuperAdmin = hasPlatformAdminAccess(role);
 
   if (!isSuperAdmin) {
     return (
@@ -80,7 +93,7 @@ export default function AuditLogsPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   if (status === 'LoadingFirstPage') {
@@ -90,7 +103,7 @@ export default function AuditLogsPage() {
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -116,7 +129,7 @@ export default function AuditLogsPage() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by email, name, or reason..."
                 className="pl-8"
               />
@@ -127,16 +140,17 @@ export default function AuditLogsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Actions</SelectItem>
-                {uniqueActions.map(action => (
+                {uniqueActions.map((action) => (
                   <SelectItem key={action} value={action}>
-                    {action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    {action.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="text-sm text-muted-foreground">
-            Showing {filtered.length} {status === 'CanLoadMore' ? '(more available)' : ''} {search || actionFilter !== 'all' ? 'filtered logs' : 'logs'}
+            Showing {filtered.length} {status === 'CanLoadMore' ? '(more available)' : ''}{' '}
+            {search || actionFilter !== 'all' ? 'filtered logs' : 'logs'}
           </div>
         </CardContent>
       </Card>
@@ -168,9 +182,9 @@ export default function AuditLogsPage() {
                         </Badge>
                         <span className="text-sm text-muted-foreground">
                           {(() => {
-                            if (!log.timestamp) return 'N/A'
-                            const date = new Date(log.timestamp)
-                            return isNaN(date.getTime()) ? 'N/A' : date.toLocaleString()
+                            if (!log.timestamp) return 'N/A';
+                            const date = new Date(log.timestamp);
+                            return isNaN(date.getTime()) ? 'N/A' : date.toLocaleString();
                           })()}
                         </span>
                       </div>
@@ -215,11 +229,7 @@ export default function AuditLogsPage() {
           {/* Load More Button */}
           {status === 'CanLoadMore' && (
             <div className="flex justify-center pt-6">
-              <Button
-                onClick={() => loadMore(50)}
-                variant="outline"
-                className="gap-2"
-              >
+              <Button onClick={() => loadMore(50)} variant="outline" className="gap-2">
                 <ChevronDown className="h-4 w-4" />
                 Load More Logs
               </Button>
@@ -249,19 +259,19 @@ export default function AuditLogsPage() {
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-red-600">
-                {auditLogs?.filter(l => l.action.includes('deleted')).length || 0}
+                {auditLogs?.filter((l) => l.action.includes('deleted')).length || 0}
               </div>
               <div className="text-sm text-muted-foreground">Deletions</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                {auditLogs?.filter(l => l.action.includes('restored')).length || 0}
+                {auditLogs?.filter((l) => l.action.includes('restored')).length || 0}
               </div>
               <div className="text-sm text-muted-foreground">Restorations</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">
-                {auditLogs?.filter(l => l.action.includes('created')).length || 0}
+                {auditLogs?.filter((l) => l.action.includes('created')).length || 0}
               </div>
               <div className="text-sm text-muted-foreground">Created</div>
             </div>
@@ -269,5 +279,5 @@ export default function AuditLogsPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

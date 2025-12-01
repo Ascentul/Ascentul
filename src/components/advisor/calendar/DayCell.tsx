@@ -54,33 +54,27 @@ export function DayCell({ day, currentMonth, sessions, followUps, now }: DayCell
     >
       <div
         className={`text-sm font-medium mb-1 ${
-          isToday
-            ? 'text-blue-600 font-bold'
-            : !isCurrentMonth
-            ? 'text-muted-foreground'
-            : ''
+          isToday ? 'text-blue-600 font-bold' : !isCurrentMonth ? 'text-muted-foreground' : ''
         }`}
       >
         {format(day, 'd')}
       </div>
-      <div className='space-y-1'>
+      <div className="space-y-1">
         {displayedSessions.map((session) => (
           <Link key={session._id} href={`/advisor/advising/sessions/${session._id}`}>
-            <div className='text-xs bg-blue-100 text-blue-800 px-1 py-0.5 rounded truncate hover:bg-blue-200 cursor-pointer'>
+            <div className="text-xs bg-blue-100 text-blue-800 px-1 py-0.5 rounded truncate hover:bg-blue-200 cursor-pointer">
               {format(new Date(session.start_at), 'h:mm a')} • {session.student_name}
             </div>
           </Link>
         ))}
         {displayedFollowUps.map((followUp) => (
           <Link key={followUp._id} href={`/advisor/students/${followUp.student_id}`}>
-            <div className='text-xs bg-orange-100 text-orange-800 px-1 py-0.5 rounded truncate hover:bg-orange-200 cursor-pointer'>
+            <div className="text-xs bg-orange-100 text-orange-800 px-1 py-0.5 rounded truncate hover:bg-orange-200 cursor-pointer">
               Task: {followUp.title}
             </div>
           </Link>
         ))}
-        {hidden > 0 && (
-          <div className='text-xs text-muted-foreground'>+{hidden} more</div>
-        )}
+        {hidden > 0 && <div className="text-xs text-muted-foreground">+{hidden} more</div>}
       </div>
     </div>
   );

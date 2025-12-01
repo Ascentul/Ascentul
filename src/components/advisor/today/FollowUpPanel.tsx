@@ -9,27 +9,28 @@
  * - Upcoming (due in next 7 days)
  */
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Id } from 'convex/_generated/dataModel';
+import { format, formatDistanceToNow, isPast, isToday } from 'date-fns';
 import {
-  ListTodo,
-  CheckCircle2,
-  Clock,
-  RotateCcw,
-  ChevronRight,
   AlertCircle,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  ListTodo,
+  RotateCcw,
   User,
 } from 'lucide-react';
-import { format, formatDistanceToNow, isToday, isPast } from 'date-fns';
 import Link from 'next/link';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { Id } from 'convex/_generated/dataModel';
 
 interface FollowUp {
-  _id: Id<"follow_ups">;
-  student_id: Id<"users">;
+  _id: Id<'follow_ups'>;
+  student_id: Id<'users'>;
   student_name: string;
   title: string;
   description?: string;
@@ -47,8 +48,8 @@ interface FollowUpPanelProps {
   };
   activeTab: 'overdue' | 'today' | 'upcoming';
   onTabChange: (tab: 'overdue' | 'today' | 'upcoming') => void;
-  onComplete?: (followUpId: Id<"follow_ups">) => void;
-  onSnooze?: (followUpId: Id<"follow_ups">, title?: string) => void;
+  onComplete?: (followUpId: Id<'follow_ups'>) => void;
+  onSnooze?: (followUpId: Id<'follow_ups'>, title?: string) => void;
   isLoading?: boolean;
 }
 
@@ -58,21 +59,21 @@ function FollowUpRow({
   onSnooze,
 }: {
   followUp: FollowUp;
-  onComplete?: (id: Id<"follow_ups">) => void;
-  onSnooze?: (id: Id<"follow_ups">, title?: string) => void;
+  onComplete?: (id: Id<'follow_ups'>) => void;
+  onSnooze?: (id: Id<'follow_ups'>, title?: string) => void;
 }) {
   const isOverdue = followUp.due_at && isPast(followUp.due_at) && !isToday(followUp.due_at);
 
   return (
-    <div className={cn(
-      'flex items-start gap-3 p-3 rounded-lg border transition-colors hover:bg-slate-50',
-      isOverdue && 'border-red-200 bg-red-50/50'
-    )}>
+    <div
+      className={cn(
+        'flex items-start gap-3 p-3 rounded-lg border transition-colors hover:bg-slate-50',
+        isOverdue && 'border-red-200 bg-red-50/50',
+      )}
+    >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <p className="font-medium text-sm text-slate-900 truncate">
-            {followUp.title}
-          </p>
+          <p className="font-medium text-sm text-slate-900 truncate">{followUp.title}</p>
           {followUp.priority === 'high' && (
             <Badge variant="destructive" className="text-xs h-5">
               High
@@ -104,9 +105,7 @@ function FollowUpRow({
         </div>
 
         {followUp.description && (
-          <p className="text-xs text-slate-500 mt-1 line-clamp-1">
-            {followUp.description}
-          </p>
+          <p className="text-xs text-slate-500 mt-1 line-clamp-1">{followUp.description}</p>
         )}
       </div>
 
@@ -214,7 +213,7 @@ export function FollowUpPanel({
               value="overdue"
               className={cn(
                 'text-xs',
-                overdueCount > 0 && 'text-red-600 data-[state=active]:text-red-700'
+                overdueCount > 0 && 'text-red-600 data-[state=active]:text-red-700',
               )}
             >
               {overdueCount > 0 && <AlertCircle className="h-3 w-3 mr-1" />}

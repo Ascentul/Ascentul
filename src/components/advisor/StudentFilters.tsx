@@ -1,14 +1,15 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
+import { X } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { X } from "lucide-react";
+} from '@/components/ui/select';
 
 interface StudentFiltersProps {
   selectedMajor: string;
@@ -59,7 +60,7 @@ export function StudentFilters({
           <SelectItem value="all">All Grad Years</SelectItem>
           {gradYears?.map((year) => (
             <SelectItem key={year} value={year}>
-              {"Class of " + year}
+              {'Class of ' + year}
             </SelectItem>
           ))}
         </SelectContent>

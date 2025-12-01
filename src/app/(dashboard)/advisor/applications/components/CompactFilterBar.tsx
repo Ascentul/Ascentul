@@ -14,15 +14,11 @@
  * - "More filters" button to open advanced panel
  */
 
+import { ChevronDown, Filter } from 'lucide-react';
 import React from 'react';
+
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -31,17 +27,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
-import { Filter, ChevronDown } from 'lucide-react';
 import {
-  ApplicationStage,
-  TimeWindow,
-  TIME_WINDOW_LABELS,
-  ACTIVE_STAGES,
-  TERMINAL_STAGES,
-  ApplicationScope,
-} from '../types';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+
+import {
+  ACTIVE_STAGES,
+  ApplicationScope,
+  ApplicationStage,
+  TERMINAL_STAGES,
+  TIME_WINDOW_LABELS,
+  TimeWindow,
+} from '../types';
 
 // ============================================================================
 // Types
@@ -94,14 +96,15 @@ export function CompactFilterBar({
   // Quick filter presets
   const handleSelectAllStages = () => onStagesChange([]);
   const handleSelectActiveStages = () => onStagesChange([...ACTIVE_STAGES]);
-  const handleSelectTerminalStages = () => onStagesChange([...TERMINAL_STAGES].filter(s => s !== 'Archived'));
+  const handleSelectTerminalStages = () =>
+    onStagesChange([...TERMINAL_STAGES].filter((s) => s !== 'Archived'));
 
   const stageFilterLabel =
     selectedStages.length === 0
       ? 'All Stages'
       : selectedStages.length === 1
-      ? selectedStages[0]
-      : `${selectedStages.length} Stages`;
+        ? selectedStages[0]
+        : `${selectedStages.length} Stages`;
 
   return (
     <div className="flex flex-wrap items-center gap-3 pb-4 border-b">
@@ -111,10 +114,7 @@ export function CompactFilterBar({
           variant={needsAction ? 'default' : 'outline'}
           size="sm"
           onClick={() => onNeedsActionChange(!needsAction)}
-          className={cn(
-            'gap-2',
-            needsAction && 'bg-orange-500 hover:bg-orange-600'
-          )}
+          className={cn('gap-2', needsAction && 'bg-orange-500 hover:bg-orange-600')}
           aria-label={needsAction ? 'Show all applications' : 'Show inbox (need action only)'}
         >
           {needsAction ? '📥 Inbox' : 'All Apps'}
@@ -221,12 +221,7 @@ export function CompactFilterBar({
       <div className="flex-1" />
 
       {/* More Filters Button */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onOpenAdvancedFilters}
-        className="gap-2"
-      >
+      <Button variant="outline" size="sm" onClick={onOpenAdvancedFilters} className="gap-2">
         <Filter className="h-4 w-4" aria-hidden="true" />
         More Filters
         {hasActiveFilters && (

@@ -1,20 +1,21 @@
-import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
-import { paginationOptsValidator } from "convex/server";
-import { v } from "convex/values";
-import { Id, Doc } from "./_generated/dataModel";
-import { getCurrentUser } from "./advisor_auth";
+import { paginationOptsValidator } from 'convex/server';
+import { v } from 'convex/values';
+
+import { Doc, Id } from './_generated/dataModel';
+import { internalMutation, internalQuery, mutation, query } from './_generated/server';
+import { getCurrentUser } from './advisor_auth';
 
 // ============================================================================
 // Audit Log PII Redaction & Retention Helpers
 // ============================================================================
 
 // Helper to redact PII from legacy fields
-function redactLegacyFields(log: Doc<"audit_logs">) {
+function redactLegacyFields(log: Doc<'audit_logs'>) {
   return {
-    performed_by_name: log.performed_by_name != null ? "[REDACTED]" : log.performed_by_name,
-    performed_by_email: log.performed_by_email != null ? "[REDACTED]" : log.performed_by_email,
-    target_name: log.target_name != null ? "[REDACTED]" : log.target_name,
-    target_email: log.target_email != null ? "[REDACTED]" : log.target_email,
+    performed_by_name: log.performed_by_name != null ? '[REDACTED]' : log.performed_by_name,
+    performed_by_email: log.performed_by_email != null ? '[REDACTED]' : log.performed_by_email,
+    target_name: log.target_name != null ? '[REDACTED]' : log.target_name,
+    target_email: log.target_email != null ? '[REDACTED]' : log.target_email,
   };
 }
 
@@ -46,7 +47,7 @@ function isPiiField(fieldName: string): boolean {
 // Only redacts string values in fields that match PII patterns
 function redactJsonField(value: any): any {
   if (value === null || value === undefined) return value;
-  if (typeof value !== "object") return value;
+  if (typeof value !== 'object') return value;
 
   // Recursively process objects, only redacting strings in PII-named fields
   const clone: any = Array.isArray(value) ? [] : {};
@@ -54,10 +55,10 @@ function redactJsonField(value: any): any {
     const val = (value as any)[key];
     if (val === null || val === undefined) {
       clone[key] = val;
-    } else if (typeof val === "string" && isPiiField(key)) {
+    } else if (typeof val === 'string' && isPiiField(key)) {
       // Only redact strings in fields that look like PII
-      clone[key] = "[REDACTED]";
-    } else if (typeof val === "object") {
+      clone[key] = '[REDACTED]';
+    } else if (typeof val === 'object') {
       clone[key] = redactJsonField(val);
     } else {
       // Preserve non-PII strings (action types, IDs, statuses, etc.)
@@ -75,17 +76,19 @@ function redactJsonField(value: any): any {
  * redacted on read to minimize exposure risk. Original data preserved in DB
  * for compliance investigations with proper access controls.
  */
-function redactAuditLogForRead(log: Doc<"audit_logs">) {
+function redactAuditLogForRead(log: Doc<'audit_logs'>) {
   // Apply legacy field redaction
   const legacyRedactions = redactLegacyFields(log);
 
   // Apply JSON field redaction to new format fields
-  const redactedPreviousValue = log.previous_value ? redactJsonField(log.previous_value) : log.previous_value;
+  const redactedPreviousValue = log.previous_value
+    ? redactJsonField(log.previous_value)
+    : log.previous_value;
   const redactedNewValue = log.new_value ? redactJsonField(log.new_value) : log.new_value;
   const redactedMetadata = log.metadata ? redactJsonField(log.metadata) : log.metadata;
 
   // Also redact the reason field which may contain PII explanations
-  const redactedReason = log.reason ? "[REDACTED]" : log.reason;
+  const redactedReason = log.reason ? '[REDACTED]' : log.reason;
 
   return {
     ...log,
@@ -120,7 +123,7 @@ export const _createAuditLogInternal = internalMutation({
     metadata: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("audit_logs", {
+    return await ctx.db.insert('audit_logs', {
       action: args.action,
       target_type: args.target_type,
       target_id: args.target_id,
@@ -183,10 +186,10 @@ export const _createAuditLogInternal = internalMutation({
  */
 export const redactStudentPII = internalMutation({
   args: {
-    studentId: v.id("users"),
+    studentId: v.id('users'),
   },
   handler: async (ctx, args) => {
-    const studentId = args.studentId as Id<"users">;
+    const studentId = args.studentId as Id<'users'>;
 
     // PERFORMANCE: Full table scan - see function docs for optimization path
     // Query audit logs by student (new format uses student_id in metadata) if such an index exists
@@ -197,8 +200,8 @@ export const redactStudentPII = internalMutation({
 
     while (!isDone) {
       const page = await ctx.db
-        .query("audit_logs")
-        .order("asc")
+        .query('audit_logs')
+        .order('asc')
         .paginate({ cursor, numItems: 200 });
 
       for (const log of page.page) {
@@ -225,7 +228,7 @@ export const redactStudentPII = internalMutation({
 
         // Check if any field actually changed (not just present)
         const hasChanges = Object.entries(updates).some(
-          ([key, value]) => value !== (log as any)[key]
+          ([key, value]) => value !== (log as any)[key],
         );
         if (hasChanges) {
           await ctx.db.patch(log._id, updates);
@@ -259,10 +262,10 @@ export const redactStudentPII = internalMutation({
  *    crons.weekly("audit_log_retention", { hourUTC: 3, minuteUTC: 0 }, internal.audit_logs.deleteExpiredAuditLogs)
  * 5. Remove the throw statement below to enable deletion
  */
-async function exportAuditLogsForArchive(_logs: Doc<"audit_logs">[]) {
+async function exportAuditLogsForArchive(_logs: Doc<'audit_logs'>[]) {
   // TODO: Implement export to long-term storage (S3/R2) before deletion
   throw new Error(
-    `exportAuditLogsForArchive not implemented - refusing to proceed with deletion of ${_logs.length} log(s)`
+    `exportAuditLogsForArchive not implemented - refusing to proceed with deletion of ${_logs.length} log(s)`,
   );
 }
 
@@ -275,12 +278,12 @@ export const deleteExpiredAuditLogs = internalMutation({
 
     let cursor: string | null = null;
     let isDone = false;
-    let deletedCount = 0;
+    const deletedCount = 0;
 
     while (!isDone) {
       const page = await ctx.db
-        .query("audit_logs")
-        .order("asc")
+        .query('audit_logs')
+        .order('asc')
         .paginate({ cursor, numItems: 200 });
 
       const expired = page.page.filter((log) => {
@@ -291,7 +294,9 @@ export const deleteExpiredAuditLogs = internalMutation({
 
       if (expired.length > 0) {
         // TODO: Implement export before enabling deletion
-        console.warn(`Skipping deletion of ${expired.length} expired logs - export not implemented`);
+        console.warn(
+          `Skipping deletion of ${expired.length} expired logs - export not implemented`,
+        );
         // Once export is implemented, remove the continue and perform deletions:
         // await exportAuditLogsForArchive(expired);
         // for (const log of expired) {
@@ -333,13 +338,13 @@ export const createAuditLog = mutation({
     // Authorization: Only authenticated admin users can create audit logs
     const currentUser = await getCurrentUser(ctx);
     if (!currentUser) {
-      throw new Error("Unauthorized: Authentication required");
+      throw new Error('Unauthorized: Authentication required');
     }
-    if (!["super_admin", "university_admin", "advisor"].includes(currentUser.role)) {
-      throw new Error("Unauthorized: Admin role required to create audit logs");
+    if (!['super_admin', 'university_admin', 'advisor'].includes(currentUser.role)) {
+      throw new Error('Unauthorized: Admin role required to create audit logs');
     }
 
-    return await ctx.db.insert("audit_logs", {
+    return await ctx.db.insert('audit_logs', {
       action: args.action,
       target_type: args.target_type,
       target_id: args.target_id,
@@ -372,19 +377,19 @@ export const createSystemAuditLog = mutation({
     // Authorization: Only authenticated admin users can create system audit logs
     const currentUser = await getCurrentUser(ctx);
     if (!currentUser) {
-      throw new Error("Unauthorized: Authentication required");
+      throw new Error('Unauthorized: Authentication required');
     }
-    if (!["super_admin", "university_admin"].includes(currentUser.role)) {
-      throw new Error("Unauthorized: Admin role required to create system audit logs");
+    if (!['super_admin', 'university_admin'].includes(currentUser.role)) {
+      throw new Error('Unauthorized: Admin role required to create system audit logs');
     }
 
-    return await ctx.db.insert("audit_logs", {
+    return await ctx.db.insert('audit_logs', {
       action: args.action,
       target_type: args.target_type,
       target_id: args.target_id,
       reason: args.reason,
       metadata: args.metadata,
-      performed_by_name: "System",
+      performed_by_name: 'System',
       timestamp: Date.now(),
       created_at: Date.now(),
     });
@@ -409,7 +414,7 @@ export const createAuditLogInternal = internalMutation({
     metadata: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("audit_logs", {
+    return await ctx.db.insert('audit_logs', {
       action: args.action,
       target_type: args.target_type,
       target_id: args.target_id,
@@ -440,15 +445,15 @@ export const getAuditLogsPaginated = query({
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
 
     // Only super_admin can view audit logs
-    if (sessionCtx.role !== "super_admin") {
-      return { page: [], isDone: true, continueCursor: "" };
+    if (sessionCtx.role !== 'super_admin') {
+      return { page: [], isDone: true, continueCursor: '' };
     }
 
     // Use by_action index when filtering by action type for correct pagination
     const logsQuery = args.action
-      ? ctx.db.query("audit_logs").withIndex("by_action", (q) => q.eq("action", args.action!))
-      : ctx.db.query("audit_logs");
-    const result = await logsQuery.order("desc").paginate(args.paginationOpts);
+      ? ctx.db.query('audit_logs').withIndex('by_action', (q) => q.eq('action', args.action!))
+      : ctx.db.query('audit_logs');
+    const result = await logsQuery.order('desc').paginate(args.paginationOpts);
 
     // Apply PII redaction before returning to client
     // FERPA/GDPR: Audit logs maintain action records but PII is redacted on read
@@ -474,15 +479,12 @@ export const getAuditLogs = query({
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
 
     // Only super_admin can view audit logs
-    if (sessionCtx.role !== "super_admin") {
+    if (sessionCtx.role !== 'super_admin') {
       return [];
     }
 
     const limit = args.limit ?? 100;
-    const logs = await ctx.db
-      .query("audit_logs")
-      .order("desc")
-      .take(limit);
+    const logs = await ctx.db.query('audit_logs').order('desc').take(limit);
 
     // Apply PII redaction before returning to client
     // FERPA/GDPR: Audit logs maintain action records but PII is redacted on read

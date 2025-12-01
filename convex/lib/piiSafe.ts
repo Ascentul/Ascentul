@@ -30,16 +30,13 @@
  * maskEmail(undefined)               // "[redacted]"
  */
 export function maskEmail(email: string | undefined | null): string {
-  if (!email) return "[redacted]";
+  if (!email) return '[redacted]';
 
-  const [local, domain] = email.split("@");
-  if (!domain) return "[redacted]";
+  const [local, domain] = email.split('@');
+  if (!domain) return '[redacted]';
   if (!local) return `[redacted]@${domain}`;
 
-  const maskedLocal =
-    local.length <= 2
-      ? `${local[0] || ""}*`
-      : `${local[0]}***${local.slice(-1)}`;
+  const maskedLocal = local.length <= 2 ? `${local[0] || ''}*` : `${local[0]}***${local.slice(-1)}`;
 
   return `${maskedLocal}@${domain}`;
 }
@@ -57,13 +54,13 @@ export function maskEmail(email: string | undefined | null): string {
  * maskName("")                // "[redacted]"
  */
 export function maskName(name: string | undefined | null): string {
-  if (!name || name.trim().length === 0) return "[redacted]";
+  if (!name || name.trim().length === 0) return '[redacted]';
 
   const parts = name.trim().split(/\s+/);
   return parts
-    .map((part) => (part.length > 0 ? `${part[0]}***` : ""))
+    .map((part) => (part.length > 0 ? `${part[0]}***` : ''))
     .filter(Boolean)
-    .join(" ");
+    .join(' ');
 }
 
 /**
@@ -78,7 +75,7 @@ export function maskName(name: string | undefined | null): string {
  * maskId("abcdefgh")           // "abc...fgh"
  */
 export function maskId(id: string | undefined | null): string {
-  if (!id) return "[no-id]";
+  if (!id) return '[no-id]';
   if (id.length <= 6) return id; // Short IDs shown in full
 
   return `${id.slice(0, 3)}...${id.slice(-3)}`;
@@ -100,9 +97,11 @@ export function maskId(id: string | undefined | null): string {
  * try { await sendEmail(user.email, ...); }
  * catch (e) { console.error("Email failed:", sanitizeError(e)); }
  */
-export function sanitizeError(
-  error: unknown
-): { message: string; code?: string | number; status?: number } {
+export function sanitizeError(error: unknown): {
+  message: string;
+  code?: string | number;
+  status?: number;
+} {
   if (error instanceof Error) {
     return {
       message: error.message,
@@ -111,20 +110,20 @@ export function sanitizeError(
     };
   }
 
-  if (typeof error === "string") {
+  if (typeof error === 'string') {
     return { message: error };
   }
 
-  if (typeof error === "object" && error !== null) {
+  if (typeof error === 'object' && error !== null) {
     const err = error as Record<string, unknown>;
     return {
-      message: String(err.message || "Unknown error"),
+      message: String(err.message || 'Unknown error'),
       code: err.code as string | number | undefined,
       status: (err.status || err.statusCode) as number | undefined,
     };
   }
 
-  return { message: "Unknown error" };
+  return { message: 'Unknown error' };
 }
 
 /**
@@ -138,11 +137,7 @@ export function sanitizeError(
  * console.log(`${safeLogPrefix({ userId, email })} Processing invite`);
  * // Output: [user:abc...xyz|j***e@domain.com] Processing invite
  */
-export function safeLogPrefix(context: {
-  userId?: string;
-  email?: string;
-  name?: string;
-}): string {
+export function safeLogPrefix(context: { userId?: string; email?: string; name?: string }): string {
   const parts: string[] = [];
 
   if (context.userId) {
@@ -155,5 +150,5 @@ export function safeLogPrefix(context: {
     parts.push(maskName(context.name));
   }
 
-  return parts.length > 0 ? `[${parts.join("|")}]` : "[anonymous]";
+  return parts.length > 0 ? `[${parts.join('|')}]` : '[anonymous]';
 }

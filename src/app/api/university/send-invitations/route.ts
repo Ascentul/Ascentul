@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { api } from 'convex/_generated/api';
+import { NextRequest, NextResponse } from 'next/server';
+
+import { hasAdvisorAccess } from '@/lib/constants/roles';
+import { convexServer } from '@/lib/convex-server';
 import { sendUniversityInvitationEmail } from '@/lib/email';
 import { getErrorMessage } from '@/lib/errors';
-import { convexServer } from '@/lib/convex-server';
-import { hasAdvisorAccess } from '@/lib/constants/roles';
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,13 +23,13 @@ export async function POST(req: NextRequest) {
 
     // Validate individual email formats
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const invalidEmails = emails.filter((email: unknown) =>
-      typeof email !== 'string' || !emailRegex.test(email)
+    const invalidEmails = emails.filter(
+      (email: unknown) => typeof email !== 'string' || !emailRegex.test(email),
     );
     if (invalidEmails.length > 0) {
       return NextResponse.json(
         { error: 'Invalid email format detected', invalidEmails },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     // Get the university details
     const university = await convexServer.query(api.universities.getUniversity, {
-      universityId
+      universityId,
     });
 
     if (!university) {
@@ -72,10 +73,10 @@ export async function POST(req: NextRequest) {
           const message = getErrorMessage(error);
           return { email, success: false, error: message };
         }
-      })
+      }),
     );
 
-    const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+    const successful = results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
     const failed = results.length - successful;
 
     return NextResponse.json({
@@ -86,15 +87,12 @@ export async function POST(req: NextRequest) {
       results: results.map((r, i) =>
         r.status === 'fulfilled'
           ? r.value
-          : { email: emails[i], success: false, error: getErrorMessage(r.reason, 'Unknown error') }
+          : { email: emails[i], success: false, error: getErrorMessage(r.reason, 'Unknown error') },
       ),
     });
   } catch (error: unknown) {
     console.error('Send invitations error:', error);
     const message = getErrorMessage(error, 'Internal server error');
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

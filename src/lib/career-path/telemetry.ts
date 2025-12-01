@@ -5,15 +5,16 @@
  * Tracks success, failures, quality rejections, and fallback events.
  */
 
-import { TelemetryEvent, QualityCheckResult, QualityFailureReason } from './types'
+import { QualityCheckResult, QualityFailureReason, TelemetryEvent } from './types';
 
 // ============================================================================
 // TELEMETRY CONFIGURATION
 // ============================================================================
 
-const TELEMETRY_ENABLED = process.env.NODE_ENV !== 'test'
+const TELEMETRY_ENABLED = process.env.NODE_ENV !== 'test';
 // Enable console logging in development for debugging
-const CONSOLE_LOG_ENABLED = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DEBUG_CAREER_PATH === 'true'
+const CONSOLE_LOG_ENABLED =
+  process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DEBUG_CAREER_PATH === 'true';
 
 // ============================================================================
 // EVENT EMITTERS
@@ -23,11 +24,11 @@ const CONSOLE_LOG_ENABLED = process.env.NODE_ENV === 'development' || process.en
  * Emit a telemetry event
  */
 export function emitTelemetryEvent(event: TelemetryEvent): void {
-  if (!TELEMETRY_ENABLED) return
+  if (!TELEMETRY_ENABLED) return;
 
   // Console logging for development
   if (CONSOLE_LOG_ENABLED) {
-    console.log('[Career Path Telemetry]', JSON.stringify(event, null, 2))
+    console.log('[Career Path Telemetry]', JSON.stringify(event, null, 2));
   }
 
   /**
@@ -51,61 +52,61 @@ export function emitTelemetryEvent(event: TelemetryEvent): void {
  * Log a generation attempt
  */
 export function logGenerationAttempt(params: {
-  userId: string
-  jobTitle: string
-  model: string
-  promptVariant: 'base' | 'refine'
-  attemptNumber: number
+  userId: string;
+  jobTitle: string;
+  model: string;
+  promptVariant: 'base' | 'refine';
+  attemptNumber: number;
 }): void {
   emitTelemetryEvent({
     event: 'career_path_generation_attempt',
     timestamp: Date.now(),
     ...params,
-  })
+  });
 }
 
 /**
  * Log a successful generation
  */
 export function logGenerationSuccess(params: {
-  userId: string
-  jobTitle: string
-  model: string
-  promptVariant: 'base' | 'refine'
+  userId: string;
+  jobTitle: string;
+  model: string;
+  promptVariant: 'base' | 'refine';
 }): void {
   emitTelemetryEvent({
     event: 'career_path_generation_success',
     timestamp: Date.now(),
     ...params,
-  })
+  });
 }
 
 /**
  * Log a quality check failure
  */
 export function logQualityFailure(params: {
-  userId: string
-  jobTitle: string
-  model: string
-  promptVariant: 'base' | 'refine'
-  failureReason: QualityFailureReason
-  failureDetails?: string
+  userId: string;
+  jobTitle: string;
+  model: string;
+  promptVariant: 'base' | 'refine';
+  failureReason: QualityFailureReason;
+  failureDetails?: string;
 }): void {
   emitTelemetryEvent({
     event: 'career_path_quality_failure',
     timestamp: Date.now(),
     ...params,
-  })
+  });
 }
 
 /**
  * Log a fallback to profile guidance
  */
 export function logFallbackToGuidance(params: {
-  userId: string
-  jobTitle: string
-  reason: string
-  failureReason?: QualityFailureReason
+  userId: string;
+  jobTitle: string;
+  reason: string;
+  failureReason?: QualityFailureReason;
 }): void {
   emitTelemetryEvent({
     event: 'career_path_generation_fallback',
@@ -114,7 +115,7 @@ export function logFallbackToGuidance(params: {
     failureDetails: params.reason,
     userId: params.userId,
     jobTitle: params.jobTitle,
-  })
+  });
 }
 
 // ============================================================================
@@ -122,27 +123,31 @@ export function logFallbackToGuidance(params: {
 // ============================================================================
 
 export function buildQualitySuccess(): QualityCheckResult {
-  return { valid: true }
+  return { valid: true };
 }
 
 export function buildQualityFailure(
   reason: QualityFailureReason,
-  details?: string
+  details?: string,
 ): QualityCheckResult {
   return {
     valid: false,
     reason,
     details,
-  }
+  };
 }
 
 // ============================================================================
 // STRUCTURED ERROR LOGGING
 // ============================================================================
 
-export function logStructuredError(context: string, error: unknown, metadata?: Record<string, unknown>): void {
-  const errorMessage = error instanceof Error ? error.message : String(error)
-  const errorStack = error instanceof Error ? error.stack : undefined
+export function logStructuredError(
+  context: string,
+  error: unknown,
+  metadata?: Record<string, unknown>,
+): void {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorStack = error instanceof Error ? error.stack : undefined;
 
   const logEntry = {
     context,
@@ -150,10 +155,10 @@ export function logStructuredError(context: string, error: unknown, metadata?: R
     stack: errorStack,
     timestamp: Date.now(),
     ...metadata,
-  }
+  };
 
   if (CONSOLE_LOG_ENABLED) {
-    console.error('[Career Path Error]', JSON.stringify(logEntry, null, 2))
+    console.error('[Career Path Error]', JSON.stringify(logEntry, null, 2));
   }
 
   /**
@@ -171,10 +176,10 @@ export function logStructuredError(context: string, error: unknown, metadata?: R
  * Track user action in career path feature
  */
 export function trackUserAction(action: string, properties?: Record<string, unknown>): void {
-  if (!TELEMETRY_ENABLED) return
+  if (!TELEMETRY_ENABLED) return;
 
   if (CONSOLE_LOG_ENABLED) {
-    console.log('[Career Path Action]', action, properties)
+    console.log('[Career Path Action]', action, properties);
   }
 
   // TODO: Connect to PostHog (see emitTelemetryEvent for implementation plan)
@@ -192,34 +197,34 @@ export const CareerPathActions = {
   CERTIFICATION_ADDED: 'career_path_certification_added',
   PATH_SAVED: 'career_path_saved',
   PATH_DELETED: 'career_path_deleted',
-} as const
+} as const;
 
 // ============================================================================
 // PERFORMANCE MONITORING
 // ============================================================================
 
 export class PerformanceTimer {
-  private startTime: number
-  private label: string
+  private startTime: number;
+  private label: string;
 
   constructor(label: string) {
-    this.label = label
-    this.startTime = Date.now()
+    this.label = label;
+    this.startTime = Date.now();
   }
 
   end(metadata?: Record<string, unknown>): number {
-    const duration = Date.now() - this.startTime
+    const duration = Date.now() - this.startTime;
 
     if (CONSOLE_LOG_ENABLED) {
-      console.log(`[Career Path Performance] ${this.label}: ${duration}ms`, metadata)
+      console.log(`[Career Path Performance] ${this.label}: ${duration}ms`, metadata);
     }
 
     // TODO: Connect to performance monitoring (DataDog/New Relic) or use PostHog for basic metrics
 
-    return duration
+    return duration;
   }
 }
 
 export function startTimer(label: string): PerformanceTimer {
-  return new PerformanceTimer(label)
+  return new PerformanceTimer(label);
 }

@@ -1,23 +1,24 @@
-"use client";
+'use client';
 
-import React, { useMemo, useState } from "react";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
+import { Briefcase, Search } from 'lucide-react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import React, { useMemo, useState } from 'react';
+
+import { ApplicationWizard } from '@/components/applications/ApplicationWizard';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
-import { ApplicationWizard } from "@/components/applications/ApplicationWizard";
-import { useUser } from "@clerk/nextjs";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "convex/_generated/api";
-import { useRouter } from "next/navigation";
-import { Briefcase, Search } from "lucide-react";
+} from '@/components/ui/select';
 
 interface JobResult {
   id: string;
@@ -39,15 +40,13 @@ export default function JobSearchPage() {
   const router = useRouter();
   const { user } = useUser();
   const clerkId = user?.id;
-  const [activeTab, setActiveTab] = useState<"applications" | "job-search">(
-    "job-search",
-  );
-  const [searchTab, setSearchTab] = useState<"search" | "history">("search");
-  const [query, setQuery] = useState("");
-  const [location, setLocation] = useState("");
+  const [activeTab, setActiveTab] = useState<'applications' | 'job-search'>('job-search');
+  const [searchTab, setSearchTab] = useState<'search' | 'history'>('search');
+  const [query, setQuery] = useState('');
+  const [location, setLocation] = useState('');
   const [remoteOnly, setRemoteOnly] = useState(false);
-  const [jobType, setJobType] = useState("all");
-  const [experience, setExperience] = useState("Mid-level");
+  const [jobType, setJobType] = useState('all');
+  const [experience, setExperience] = useState('Mid-level');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<JobResult[]>([]);
   const [page, setPage] = useState(1);
@@ -65,9 +64,9 @@ export default function JobSearchPage() {
   } | null>(null);
 
   // Handle tab change to redirect to applications page
-  const handleTabChange = (tab: "applications" | "job-search") => {
-    if (tab === "applications") {
-      router.push("/applications");
+  const handleTabChange = (tab: 'applications' | 'job-search') => {
+    if (tab === 'applications') {
+      router.push('/applications');
     } else {
       setActiveTab(tab);
     }
@@ -77,41 +76,40 @@ export default function JobSearchPage() {
   const createSearch = useMutation((api as any).jobs.createJobSearch);
   const recent = useQuery(
     (api as any).jobs.getRecentJobSearches,
-    clerkId ? { clerkId, limit: 5 } : "skip",
+    clerkId ? { clerkId, limit: 5 } : 'skip',
   );
 
   const buildMock = (q: string, loc: string): JobResult[] => {
-    const title = q || "Software Engineer";
-    const place = loc || "Remote";
+    const title = q || 'Software Engineer';
+    const place = loc || 'Remote';
     return [
       {
-        id: "mock-1",
+        id: 'mock-1',
         title,
-        company: "Tech Corp",
+        company: 'Tech Corp',
         location: place,
         type: jobType,
         experience,
-        description:
-          "Exciting opportunity to work with cutting-edge technology...",
-        salary: "$80,000 - $120,000",
-        url: "https://example.com/jobs/1",
+        description: 'Exciting opportunity to work with cutting-edge technology...',
+        salary: '$80,000 - $120,000',
+        url: 'https://example.com/jobs/1',
         posted: new Date().toISOString(),
-        category: "Software Development",
+        category: 'Software Development',
         contract_type: jobType,
         company_logo: null,
       },
       {
-        id: "mock-2",
+        id: 'mock-2',
         title: `Senior ${title}`,
-        company: "Innovation Labs",
-        location: place === "Remote" ? "Remote" : `${place}`,
+        company: 'Innovation Labs',
+        location: place === 'Remote' ? 'Remote' : `${place}`,
         type: jobType,
-        experience: "Senior",
-        description: "Join our team of passionate developers...",
-        salary: "$120,000 - $160,000",
-        url: "https://example.com/jobs/2",
+        experience: 'Senior',
+        description: 'Join our team of passionate developers...',
+        salary: '$120,000 - $160,000',
+        url: 'https://example.com/jobs/2',
         posted: new Date(Date.now() - 86400000).toISOString(),
-        category: "Engineering",
+        category: 'Engineering',
         contract_type: jobType,
         company_logo: null,
       },
@@ -122,14 +120,14 @@ export default function JobSearchPage() {
     setLoading(true);
     try {
       const nextPage = opts?.page ?? page;
-      const searchLocation = remoteOnly ? "Remote" : location;
-      const res = await fetch("/api/jobs/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const searchLocation = remoteOnly ? 'Remote' : location;
+      const res = await fetch('/api/jobs/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query,
           location: searchLocation,
-          jobType: jobType === "all" ? undefined : jobType,
+          jobType: jobType === 'all' ? undefined : jobType,
           experienceLevel: experience,
           page: nextPage,
           perPage,
@@ -138,13 +136,9 @@ export default function JobSearchPage() {
       const json = await res.json();
       if (!res.ok) {
         const details =
-          typeof json?.details === "string"
-            ? json.details
-            : JSON.stringify(json?.details || {});
-        const meta = json?.meta ? ` | meta: ${JSON.stringify(json.meta)}` : "";
-        setErrorText(
-          `${json?.error || "Search failed"}${details ? " — " + details : ""}${meta}`,
-        );
+          typeof json?.details === 'string' ? json.details : JSON.stringify(json?.details || {});
+        const meta = json?.meta ? ` | meta: ${JSON.stringify(json.meta)}` : '';
+        setErrorText(`${json?.error || 'Search failed'}${details ? ' — ' + details : ''}${meta}`);
         const mock = buildMock(query, location);
         setResults(mock);
         setTotal(mock.length);
@@ -157,10 +151,8 @@ export default function JobSearchPage() {
       setUsingFallback(false);
       setResults(json.jobs as JobResult[]);
       setPage(json.page || nextPage);
-      setTotal(typeof json.total === "number" ? json.total : null);
-      setTotalPages(
-        typeof json.totalPages === "number" ? json.totalPages : null,
-      );
+      setTotal(typeof json.total === 'number' ? json.total : null);
+      setTotalPages(typeof json.totalPages === 'number' ? json.totalPages : null);
 
       // Save recent search in Convex (best-effort)
       if (clerkId) {
@@ -170,14 +162,14 @@ export default function JobSearchPage() {
             keywords: query,
             location,
             results_count:
-              typeof json.total === "number"
+              typeof json.total === 'number'
                 ? json.total
                 : Array.isArray(json.jobs)
                   ? json.jobs.length
                   : 0,
             search_data: {
-              jobType: jobType === "all" ? undefined : jobType,
-              experience
+              jobType: jobType === 'all' ? undefined : jobType,
+              experience,
             },
           });
         } catch (e) {
@@ -195,28 +187,26 @@ export default function JobSearchPage() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Application Tracker
-        </h1>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Application Tracker</h1>
         <p className="text-sm text-muted-foreground">
-          Track every job from first save to final offer: applications,
-          interviews, follow-ups, and more.
+          Track every job from first save to final offer: applications, interviews, follow-ups, and
+          more.
         </p>
       </div>
 
       {/* Toggle between All Applications and Find Jobs */}
       <div className="mb-6 flex gap-2">
         <Button
-          variant={activeTab === "applications" ? "default" : "outline"}
-          onClick={() => handleTabChange("applications")}
+          variant={activeTab === 'applications' ? 'default' : 'outline'}
+          onClick={() => handleTabChange('applications')}
           className="flex items-center gap-2"
         >
           <Briefcase className="h-4 w-4" />
           All Applications
         </Button>
         <Button
-          variant={activeTab === "job-search" ? "default" : "outline"}
-          onClick={() => handleTabChange("job-search")}
+          variant={activeTab === 'job-search' ? 'default' : 'outline'}
+          onClick={() => handleTabChange('job-search')}
           className="flex items-center gap-2"
         >
           <Search className="h-4 w-4" />
@@ -227,20 +217,16 @@ export default function JobSearchPage() {
       {/* Find Jobs Section */}
       <div className="bg-muted/30 rounded-lg p-6 mb-6">
         <h2 className="text-lg font-semibold mb-2">Find Jobs</h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          Search for jobs and start applying
-        </p>
+        <p className="text-sm text-muted-foreground mb-4">Search for jobs and start applying</p>
 
         {/* Search/History Toggle */}
         <div className="mb-4 flex gap-2 border-b">
           <Button
             variant="ghost"
             className={
-              searchTab === "search"
-                ? "border-b-2 border-primary rounded-none"
-                : "rounded-none"
+              searchTab === 'search' ? 'border-b-2 border-primary rounded-none' : 'rounded-none'
             }
-            onClick={() => setSearchTab("search")}
+            onClick={() => setSearchTab('search')}
           >
             <Search className="h-4 w-4 mr-2" />
             Job Search
@@ -248,17 +234,15 @@ export default function JobSearchPage() {
           <Button
             variant="ghost"
             className={
-              searchTab === "history"
-                ? "border-b-2 border-primary rounded-none"
-                : "rounded-none"
+              searchTab === 'history' ? 'border-b-2 border-primary rounded-none' : 'rounded-none'
             }
-            onClick={() => setSearchTab("history")}
+            onClick={() => setSearchTab('history')}
           >
             History
           </Button>
         </div>
 
-        {searchTab === "search" ? (
+        {searchTab === 'search' ? (
           <div className="space-y-4">
             <p className="text-sm font-medium">
               Search for jobs on Adzuna directly within the application
@@ -266,9 +250,7 @@ export default function JobSearchPage() {
 
             <div className="space-y-3">
               <div>
-                <label className="text-sm font-medium mb-1 block">
-                  Keywords
-                </label>
+                <label className="text-sm font-medium mb-1 block">Keywords</label>
                 <Input
                   placeholder="Software Engineer, Product Manager, etc."
                   value={query}
@@ -277,9 +259,7 @@ export default function JobSearchPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-1 block">
-                  Location (Optional)
-                </label>
+                <label className="text-sm font-medium mb-1 block">Location (Optional)</label>
                 <Input
                   placeholder="Chicago, Boston, etc."
                   value={location}
@@ -297,9 +277,7 @@ export default function JobSearchPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-1 block">
-                  Job Type (Optional)
-                </label>
+                <label className="text-sm font-medium mb-1 block">Job Type (Optional)</label>
                 <Select value={jobType} onValueChange={setJobType}>
                   <SelectTrigger>
                     <SelectValue placeholder="All types" />
@@ -319,7 +297,7 @@ export default function JobSearchPage() {
                 disabled={loading || !query.trim()}
                 className="w-full bg-primary-500 hover:bg-primary-700"
               >
-                {loading ? "Searching..." : "Search Jobs"}
+                {loading ? 'Searching...' : 'Search Jobs'}
               </Button>
             </div>
           </div>
@@ -327,9 +305,7 @@ export default function JobSearchPage() {
           <div className="space-y-3">
             <p className="text-sm font-medium mb-2">Recent Searches</p>
             {!recent || recent.length === 0 ? (
-              <div className="text-sm text-muted-foreground">
-                No recent searches yet.
-              </div>
+              <div className="text-sm text-muted-foreground">No recent searches yet.</div>
             ) : (
               <div className="space-y-2">
                 {recent.map((s: any) => (
@@ -337,18 +313,17 @@ export default function JobSearchPage() {
                     key={s._id}
                     className="flex items-center justify-between p-3 border rounded-md hover:bg-muted/50 cursor-pointer"
                     onClick={() => {
-                      setQuery(s.keywords || "");
-                      setLocation(s.location || "");
-                      setJobType(s.search_data?.jobType || "all");
-                      if (s.search_data?.experience)
-                        setExperience(s.search_data.experience);
-                      setSearchTab("search");
+                      setQuery(s.keywords || '');
+                      setLocation(s.location || '');
+                      setJobType(s.search_data?.jobType || 'all');
+                      if (s.search_data?.experience) setExperience(s.search_data.experience);
+                      setSearchTab('search');
                     }}
                   >
                     <div className="text-sm">
-                      <div className="font-medium">{s.keywords || "—"}</div>
+                      <div className="font-medium">{s.keywords || '—'}</div>
                       <div className="text-xs text-muted-foreground">
-                        {s.location ? `${s.location} • ` : ""}
+                        {s.location ? `${s.location} • ` : ''}
                         {s.results_count || 0} results
                       </div>
                     </div>
@@ -357,12 +332,11 @@ export default function JobSearchPage() {
                       variant="ghost"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setQuery(s.keywords || "");
-                        setLocation(s.location || "");
-                        setJobType(s.search_data?.jobType || "all");
-                        if (s.search_data?.experience)
-                          setExperience(s.search_data.experience);
-                        setSearchTab("search");
+                        setQuery(s.keywords || '');
+                        setLocation(s.location || '');
+                        setJobType(s.search_data?.jobType || 'all');
+                        if (s.search_data?.experience) setExperience(s.search_data.experience);
+                        setSearchTab('search');
                         doSearch({ page: 1 });
                       }}
                     >
@@ -384,16 +358,13 @@ export default function JobSearchPage() {
 
       {usingFallback && (
         <div className="mb-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
-          Showing fallback results due to provider error. Try adjusting filters
-          or retrying.
+          Showing fallback results due to provider error. Try adjusting filters or retrying.
         </div>
       )}
 
       <div className="space-y-3">
         {results.length === 0 ? (
-          <div className="text-sm text-muted-foreground">
-            No results yet. Try a search.
-          </div>
+          <div className="text-sm text-muted-foreground">No results yet. Try a search.</div>
         ) : (
           results.map((job) => (
             <Card key={job.id} className="border">
@@ -415,9 +386,7 @@ export default function JobSearchPage() {
                         (() => {
                           try {
                             const d = new Date(job.posted);
-                            return (
-                              <span>• Posted {d.toLocaleDateString()}</span>
-                            );
+                            return <span>• Posted {d.toLocaleDateString()}</span>;
                           } catch {
                             return null;
                           }

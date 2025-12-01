@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * AdvisorGate Component
@@ -7,11 +7,12 @@
  * Redirects unauthorized users to appropriate dashboards
  */
 
-import { useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useFeatureFlag } from "@/hooks/useFeatureFlag";
-import { hasAdvisorAccess } from "@/lib/constants/roles";
+import { useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { hasAdvisorAccess } from '@/lib/constants/roles';
 
 interface AdvisorGateProps {
   children: React.ReactNode;
@@ -28,13 +29,13 @@ interface AdvisorGateProps {
 
 export function AdvisorGate({
   children,
-  requiredFlag = "advisor.dashboard",
+  requiredFlag = 'advisor.dashboard',
   loadingFallback,
 }: AdvisorGateProps) {
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const featureEnabled = useFeatureFlag(requiredFlag);
-  const isFeatureLoading = typeof featureEnabled === "undefined";
+  const isFeatureLoading = typeof featureEnabled === 'undefined';
   const isFeatureEnabled = featureEnabled === true;
 
   const userRole = user?.publicMetadata?.role as string | undefined;
@@ -45,22 +46,20 @@ export function AdvisorGate({
 
     // Not signed in - Clerk middleware should have caught this
     if (!user) {
-      router.push("/sign-in");
+      router.push('/sign-in');
       return;
     }
 
     // Check role authorization
     if (!isAuthorized) {
-      router.push("/dashboard");
+      router.push('/dashboard');
       return;
     }
 
     // Feature flag check - redirect to dashboard with message
     if (!isFeatureEnabled) {
-      console.warn(
-        `Advisor feature "${requiredFlag}" is not enabled. Redirecting to dashboard.`,
-      );
-      router.push("/dashboard");
+      console.warn(`Advisor feature "${requiredFlag}" is not enabled. Redirecting to dashboard.`);
+      router.push('/dashboard');
       return;
     }
   }, [

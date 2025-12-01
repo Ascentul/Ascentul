@@ -13,9 +13,10 @@
  * - Update career goals (guide student direction)
  */
 
+import { Briefcase, FileText, ListTodo, Plus, Target } from 'lucide-react';
 import Link from 'next/link';
+
 import { Button } from '@/components/ui/button';
-import { FileText, ListTodo, Briefcase, Target, Plus } from 'lucide-react';
 
 interface QuickActionsBarProps {
   className?: string;

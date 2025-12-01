@@ -1,48 +1,49 @@
-'use client'
+'use client';
 
-import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useUser } from '@clerk/nextjs'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { useToast } from '@/hooks/use-toast'
-import { ArrowLeft, Save, Loader2, Plus, Trash2, Eye } from 'lucide-react'
-import Link from 'next/link'
-import { Id } from 'convex/_generated/dataModel'
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { Id } from 'convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
+import { ArrowLeft, Eye, Loader2, Plus, Save, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 interface PageProps {
-  params: { id: string }
+  params: { id: string };
 }
 
 export default function EditResumePage({ params }: PageProps) {
-  const router = useRouter()
-  const { user: clerkUser } = useUser()
-  const { toast } = useToast()
+  const router = useRouter();
+  const { user: clerkUser } = useUser();
+  const { toast } = useToast();
 
-  const resumeId = params.id as Id<'resumes'>
+  const resumeId = params.id as Id<'resumes'>;
 
   const resume = useQuery(
     api.resumes.getResumeById,
-    clerkUser?.id ? { clerkId: clerkUser.id, resumeId } : 'skip'
-  )
+    clerkUser?.id ? { clerkId: clerkUser.id, resumeId } : 'skip',
+  );
 
-  const [title, setTitle] = useState('')
-  const [resumeContent, setResumeContent] = useState<any>(null)
-  const [saving, setSaving] = useState(false)
+  const [title, setTitle] = useState('');
+  const [resumeContent, setResumeContent] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
 
-  const updateResumeMutation = useMutation(api.resumes.updateResume)
+  const updateResumeMutation = useMutation(api.resumes.updateResume);
 
   useEffect(() => {
     if (resume) {
-      setTitle(resume.title || 'My Resume')
+      setTitle(resume.title || 'My Resume');
       // Check both contactInfo and personalInfo for backward compatibility
-      const content = resume.content || {}
-      const contactData = content.contactInfo || content.personalInfo || {}
+      const content = resume.content || {};
+      const contactData = content.contactInfo || content.personalInfo || {};
       setResumeContent({
         contactInfo: contactData,
         summary: content.summary || '',
@@ -50,51 +51,51 @@ export default function EditResumePage({ params }: PageProps) {
         experience: content.experience || [],
         education: content.education || [],
         projects: content.projects || [],
-        achievements: content.achievements || []
-      })
+        achievements: content.achievements || [],
+      });
     }
-  }, [resume])
+  }, [resume]);
 
   const handleSave = async () => {
     if (!clerkUser?.id || !resumeContent) {
-      return
+      return;
     }
 
-    setSaving(true)
+    setSaving(true);
     try {
       await updateResumeMutation({
         clerkId: clerkUser.id,
         resumeId,
         updates: {
           title: title.trim(),
-          content: resumeContent
-        }
-      })
+          content: resumeContent,
+        },
+      });
 
       toast({
         title: 'Success',
-        description: 'Resume updated successfully!'
-      })
+        description: 'Resume updated successfully!',
+      });
     } catch (error: any) {
       toast({
         title: 'Error',
         description: error.message || 'Failed to update resume',
-        variant: 'destructive'
-      })
+        variant: 'destructive',
+      });
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const updateContactInfo = (field: string, value: string) => {
     setResumeContent((prev: any) => ({
       ...prev,
       contactInfo: {
         ...prev.contactInfo,
-        [field]: value
-      }
-    }))
-  }
+        [field]: value,
+      },
+    }));
+  };
 
   const addExperience = () => {
     setResumeContent((prev: any) => ({
@@ -106,27 +107,27 @@ export default function EditResumePage({ params }: PageProps) {
           company: '',
           startDate: '',
           endDate: '',
-          description: ''
-        }
-      ]
-    }))
-  }
+          description: '',
+        },
+      ],
+    }));
+  };
 
   const updateExperience = (index: number, field: string, value: string) => {
     setResumeContent((prev: any) => ({
       ...prev,
       experience: prev.experience.map((exp: any, i: number) =>
-        i === index ? { ...exp, [field]: value } : exp
-      )
-    }))
-  }
+        i === index ? { ...exp, [field]: value } : exp,
+      ),
+    }));
+  };
 
   const removeExperience = (index: number) => {
     setResumeContent((prev: any) => ({
       ...prev,
-      experience: prev.experience.filter((_: any, i: number) => i !== index)
-    }))
-  }
+      experience: prev.experience.filter((_: any, i: number) => i !== index),
+    }));
+  };
 
   const addEducation = () => {
     setResumeContent((prev: any) => ({
@@ -136,46 +137,49 @@ export default function EditResumePage({ params }: PageProps) {
         {
           degree: '',
           school: '',
-          graduationYear: ''
-        }
-      ]
-    }))
-  }
+          graduationYear: '',
+        },
+      ],
+    }));
+  };
 
   const updateEducation = (index: number, field: string, value: string) => {
     setResumeContent((prev: any) => ({
       ...prev,
       education: prev.education.map((edu: any, i: number) =>
-        i === index ? { ...edu, [field]: value } : edu
-      )
-    }))
-  }
+        i === index ? { ...edu, [field]: value } : edu,
+      ),
+    }));
+  };
 
   const removeEducation = (index: number) => {
     setResumeContent((prev: any) => ({
       ...prev,
-      education: prev.education.filter((_: any, i: number) => i !== index)
-    }))
-  }
+      education: prev.education.filter((_: any, i: number) => i !== index),
+    }));
+  };
 
   const updateSkills = (value: string) => {
-    const skillsArray = value.split(',').map(s => s.trim()).filter(s => s)
+    const skillsArray = value
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s);
     setResumeContent((prev: any) => ({
       ...prev,
-      skills: skillsArray
-    }))
-  }
+      skills: skillsArray,
+    }));
+  };
 
   if (!resume) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
-    )
+    );
   }
 
   if (!resumeContent) {
-    return null
+    return null;
   }
 
   return (
@@ -196,10 +200,7 @@ export default function EditResumePage({ params }: PageProps) {
               Preview
             </Button>
           </Link>
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-          >
+          <Button onClick={handleSave} disabled={saving}>
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -277,10 +278,12 @@ export default function EditResumePage({ params }: PageProps) {
           <CardContent>
             <Textarea
               value={resumeContent.summary || ''}
-              onChange={(e) => setResumeContent((prev: any) => ({
-                ...prev,
-                summary: e.target.value
-              }))}
+              onChange={(e) =>
+                setResumeContent((prev: any) => ({
+                  ...prev,
+                  summary: e.target.value,
+                }))
+              }
               placeholder="Brief overview of your professional background..."
               rows={4}
             />
@@ -317,11 +320,7 @@ export default function EditResumePage({ params }: PageProps) {
               <Card key={index}>
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex justify-end">
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => removeExperience(index)}
-                    >
+                    <Button size="sm" variant="destructive" onClick={() => removeExperience(index)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -386,11 +385,7 @@ export default function EditResumePage({ params }: PageProps) {
               <Card key={index}>
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex justify-end">
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => removeEducation(index)}
-                    >
+                    <Button size="sm" variant="destructive" onClick={() => removeEducation(index)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -427,5 +422,5 @@ export default function EditResumePage({ params }: PageProps) {
         </Card>
       </div>
     </div>
-  )
+  );
 }

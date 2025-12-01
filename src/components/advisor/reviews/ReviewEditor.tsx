@@ -1,27 +1,28 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { useMutation, useAction } from "convex/react";
-import { api } from "convex/_generated/api";
-import { getErrorMessage } from "@/lib/errors";
+import { api } from 'convex/_generated/api';
+import type { Id } from 'convex/_generated/dataModel';
+import { useAction, useMutation } from 'convex/react';
+import { format } from 'date-fns';
 import {
-  Save,
-  Loader2,
-  Check,
   AlertCircle,
-  FileText,
-  User,
-  Clock,
+  Check,
   CheckCircle,
-} from "lucide-react";
-import { format } from "date-fns";
-import type { Id } from "convex/_generated/dataModel";
+  Clock,
+  FileText,
+  Loader2,
+  Save,
+  User,
+} from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/lib/errors';
 
 interface AssetContent {
   file_url?: string;
@@ -29,8 +30,8 @@ interface AssetContent {
 }
 
 interface Review {
-  _id: Id<"advisor_reviews">;
-  student_id: Id<"users">;
+  _id: Id<'advisor_reviews'>;
+  student_id: Id<'users'>;
   student_name: string;
   student_email: string;
   asset_id: string;
@@ -61,14 +62,12 @@ export function ReviewEditor({
   onCompleteSuccess,
 }: ReviewEditorProps) {
   const { toast } = useToast();
-  const updateReviewFeedback = useMutation(
-    api.advisor_reviews_mutations.updateReviewFeedback
-  );
+  const updateReviewFeedback = useMutation(api.advisor_reviews_mutations.updateReviewFeedback);
   const completeReview = useAction(api.advisor_reviews_mutations.completeReview);
   const claimReview = useMutation(api.advisor_reviews_mutations.claimReview);
 
   // Form state
-  const [feedback, setFeedback] = useState(review.feedback || "");
+  const [feedback, setFeedback] = useState(review.feedback || '');
   const [currentVersion, setCurrentVersion] = useState(review.version);
 
   // Autosave state
@@ -77,9 +76,7 @@ export function ReviewEditor({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [lastSavedFeedback, setLastSavedFeedback] = useState(
-    review.feedback || ""
-  );
+  const [lastSavedFeedback, setLastSavedFeedback] = useState(review.feedback || '');
 
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -91,9 +88,9 @@ export function ReviewEditor({
       clearTimeout(autosaveTimerRef.current);
       autosaveTimerRef.current = null;
     }
-    setFeedback(review.feedback || "");
+    setFeedback(review.feedback || '');
     setCurrentVersion(review.version);
-    setLastSavedFeedback(review.feedback || "");
+    setLastSavedFeedback(review.feedback || '');
     setHasUnsavedChanges(false);
     setLastSaved(null);
     setSaveError(null);
@@ -106,8 +103,12 @@ export function ReviewEditor({
   }, [feedback, lastSavedFeedback]);
 
   // Autosave function
-  const saveChanges = useCallback(async (): Promise<{ success: boolean; version?: number; reason?: string }> => {
-    if (!hasUnsavedChanges || review.status !== "in_review") {
+  const saveChanges = useCallback(async (): Promise<{
+    success: boolean;
+    version?: number;
+    reason?: string;
+  }> => {
+    if (!hasUnsavedChanges || review.status !== 'in_review') {
       return { success: false };
     }
 
@@ -141,9 +142,9 @@ export function ReviewEditor({
       const message = getErrorMessage(error);
       setSaveError(message);
       toast({
-        title: "Save failed",
+        title: 'Save failed',
         description: message,
-        variant: "destructive",
+        variant: 'destructive',
       });
       return { success: false };
     } finally {
@@ -170,7 +171,7 @@ export function ReviewEditor({
 
   // Autosave on change (debounced)
   useEffect(() => {
-    if (hasUnsavedChanges && review.status === "in_review") {
+    if (hasUnsavedChanges && review.status === 'in_review') {
       if (autosaveTimerRef.current) {
         clearTimeout(autosaveTimerRef.current);
       }
@@ -218,8 +219,8 @@ export function ReviewEditor({
     const saveResult = await saveChanges();
     if (saveResult.success) {
       toast({
-        title: "Saved",
-        description: "Review feedback saved",
+        title: 'Saved',
+        description: 'Review feedback saved',
       });
     }
   };
@@ -233,8 +234,8 @@ export function ReviewEditor({
       });
 
       toast({
-        title: "Review claimed",
-        description: "You can now provide feedback",
+        title: 'Review claimed',
+        description: 'You can now provide feedback',
       });
 
       if (onSaveSuccess) {
@@ -243,9 +244,9 @@ export function ReviewEditor({
     } catch (error: unknown) {
       const message = getErrorMessage(error);
       toast({
-        title: "Claim failed",
+        title: 'Claim failed',
         description: message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     }
   };
@@ -254,9 +255,9 @@ export function ReviewEditor({
   const handleComplete = async () => {
     if (!feedback.trim()) {
       toast({
-        title: "Feedback required",
-        description: "Please provide feedback before completing the review",
-        variant: "destructive",
+        title: 'Feedback required',
+        description: 'Please provide feedback before completing the review',
+        variant: 'destructive',
       });
       return;
     }
@@ -267,9 +268,9 @@ export function ReviewEditor({
       const saveResult = await saveChanges();
       if (!saveResult.success) {
         toast({
-          title: "Cannot complete",
-          description: "Please save your changes before completing",
-          variant: "destructive",
+          title: 'Cannot complete',
+          description: 'Please save your changes before completing',
+          variant: 'destructive',
         });
         return;
       }
@@ -291,8 +292,8 @@ export function ReviewEditor({
       });
 
       toast({
-        title: "Review completed",
-        description: "Student will be notified",
+        title: 'Review completed',
+        description: 'Student will be notified',
       });
 
       if (onCompleteSuccess) {
@@ -301,18 +302,18 @@ export function ReviewEditor({
     } catch (error: unknown) {
       const message = getErrorMessage(error);
       toast({
-        title: "Complete failed",
+        title: 'Complete failed',
         description: message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setIsCompleting(false);
     }
   };
 
-  const isWaiting = review.status === "waiting";
-  const isInProgress = review.status === "in_review";
-  const isCompleted = review.status === "completed";
+  const isWaiting = review.status === 'waiting';
+  const isInProgress = review.status === 'in_review';
+  const isCompleted = review.status === 'completed';
 
   return (
     <div className="space-y-6">
@@ -324,15 +325,7 @@ export function ReviewEditor({
               <FileText className="h-5 w-5" />
               {review.asset_name}
             </CardTitle>
-            <Badge
-              variant={
-                isCompleted
-                  ? "default"
-                  : isInProgress
-                  ? "secondary"
-                  : "outline"
-              }
-            >
+            <Badge variant={isCompleted ? 'default' : isInProgress ? 'secondary' : 'outline'}>
               {review.status}
             </Badge>
           </div>
@@ -357,7 +350,7 @@ export function ReviewEditor({
             </div>
           )}
 
-          {review.priority === "urgent" && (
+          {review.priority === 'urgent' && (
             <Badge variant="destructive" className="mt-2">
               Urgent Priority
             </Badge>
@@ -389,9 +382,7 @@ export function ReviewEditor({
                 )}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                No document preview available
-              </p>
+              <p className="text-sm text-muted-foreground">No document preview available</p>
             )}
           </CardContent>
         </Card>
@@ -413,15 +404,13 @@ export function ReviewEditor({
                 ) : hasUnsavedChanges ? (
                   <>
                     <AlertCircle className="h-4 w-4 text-orange-500" />
-                    <span className="text-sm text-muted-foreground">
-                      Unsaved changes
-                    </span>
+                    <span className="text-sm text-muted-foreground">Unsaved changes</span>
                   </>
                 ) : lastSaved ? (
                   <>
                     <Check className="h-4 w-4 text-green-500" />
                     <span className="text-sm text-muted-foreground">
-                      Saved {format(lastSaved, "h:mm a")}
+                      Saved {format(lastSaved, 'h:mm a')}
                     </span>
                   </>
                 ) : null}
@@ -438,9 +427,7 @@ export function ReviewEditor({
 
           {isWaiting && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-              <p className="text-sm text-blue-800 mb-3">
-                This review is waiting to be claimed
-              </p>
+              <p className="text-sm text-blue-800 mb-3">This review is waiting to be claimed</p>
               <Button onClick={handleClaim}>Claim Review</Button>
             </div>
           )}
@@ -449,7 +436,7 @@ export function ReviewEditor({
             <div className="space-y-2">
               <Label>Feedback Provided</Label>
               <div className="p-4 bg-muted rounded-lg text-sm whitespace-pre-wrap">
-                {review.feedback || "No feedback provided"}
+                {review.feedback || 'No feedback provided'}
               </div>
             </div>
           ) : (
@@ -483,10 +470,7 @@ export function ReviewEditor({
                 </Button>
               </div>
 
-              <Button
-                onClick={handleComplete}
-                disabled={isCompleting || !feedback.trim()}
-              >
+              <Button onClick={handleComplete} disabled={isCompleting || !feedback.trim()}>
                 {isCompleting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

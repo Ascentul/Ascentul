@@ -1,29 +1,30 @@
-'use client'
+'use client';
 
-import React, { useState, useMemo, useCallback } from 'react'
-import { useUser } from '@clerk/nextjs'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { Id } from 'convex/_generated/dataModel'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { Id } from 'convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+  AlertTriangle,
+  Briefcase,
+  CheckCircle,
+  Filter,
+  GraduationCap,
+  Loader2,
+  RefreshCw,
+  School,
+  Search,
+  Shield,
+  User,
+  UserCog,
+} from 'lucide-react';
+import Image from 'next/image';
+import React, { useCallback, useMemo, useState } from 'react';
+
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -31,59 +32,65 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { useToast } from '@/hooks/use-toast'
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import {
-  Search,
-  Filter,
-  Shield,
-  School,
-  GraduationCap,
-  User,
-  UserCog,
-  Briefcase,
-  Loader2,
-  AlertTriangle,
-  CheckCircle,
-  RefreshCw,
-} from 'lucide-react'
-import { UserRole } from '@/lib/constants/roles'
-import Image from 'next/image'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { useToast } from '@/hooks/use-toast';
+import { UserRole } from '@/lib/constants/roles';
 
 interface MinimalUser {
-  _id: Id<"users">
-  _creationTime: number
-  clerkId: string
-  name: string
-  email: string
-  username: string | undefined
-  role: UserRole
-  subscription_plan: 'free' | 'premium' | 'university' | undefined
-  subscription_status: 'active' | 'inactive' | 'cancelled' | 'past_due' | undefined
-  account_status: 'active' | 'suspended' | 'pending_activation' | 'pending_deletion' | 'deleted' | undefined
-  is_test_user: boolean | undefined
-  deleted_at: number | undefined
-  deleted_by: string | undefined
-  deleted_reason: string | undefined
-  university_id: Id<"universities"> | undefined
-  profile_image: string | undefined
-  created_at: number
-  updated_at: number
+  _id: Id<'users'>;
+  _creationTime: number;
+  clerkId: string;
+  name: string;
+  email: string;
+  username: string | undefined;
+  role: UserRole;
+  subscription_plan: 'free' | 'premium' | 'university' | undefined;
+  subscription_status: 'active' | 'inactive' | 'cancelled' | 'past_due' | undefined;
+  account_status:
+    | 'active'
+    | 'suspended'
+    | 'pending_activation'
+    | 'pending_deletion'
+    | 'deleted'
+    | undefined;
+  is_test_user: boolean | undefined;
+  deleted_at: number | undefined;
+  deleted_by: string | undefined;
+  deleted_reason: string | undefined;
+  university_id: Id<'universities'> | undefined;
+  profile_image: string | undefined;
+  created_at: number;
+  updated_at: number;
 }
 
 interface RoleChangeDialogState {
-  open: boolean
-  user: MinimalUser | null
-  newRole: string
-  selectedUniversityId: string | undefined
-  loading: boolean
+  open: boolean;
+  user: MinimalUser | null;
+  newRole: string;
+  selectedUniversityId: string | undefined;
+  loading: boolean;
   validation: {
-    valid: boolean
-    error?: string
-    warnings?: string[]
-    requiredActions?: string[]
-  } | null
+    valid: boolean;
+    error?: string;
+    warnings?: string[];
+    requiredActions?: string[];
+  } | null;
 }
 
 const roleIcons: Record<string, React.ReactNode> = {
@@ -94,7 +101,7 @@ const roleIcons: Record<string, React.ReactNode> = {
   individual: <User className="h-4 w-4" />,
   user: <User className="h-4 w-4" />,
   staff: <Briefcase className="h-4 w-4" />,
-}
+};
 
 const roleColors: Record<string, string> = {
   super_admin: 'bg-red-100 text-red-800 border-red-200',
@@ -104,13 +111,13 @@ const roleColors: Record<string, string> = {
   individual: 'bg-gray-100 text-gray-800 border-gray-200',
   user: 'bg-gray-100 text-gray-800 border-gray-200',
   staff: 'bg-orange-100 text-orange-800 border-orange-200',
-}
+};
 
 export function RoleManagementTable({ clerkId }: { clerkId: string }) {
-  const { toast } = useToast()
-  const { user: clerkUser, isLoaded: clerkLoaded } = useUser()
-  const [searchQuery, setSearchQuery] = useState('')
-  const [roleFilter, setRoleFilter] = useState<string>('all')
+  const { toast } = useToast();
+  const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [dialogState, setDialogState] = useState<RoleChangeDialogState>({
     open: false,
     user: null,
@@ -118,12 +125,18 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
     selectedUniversityId: undefined,
     loading: false,
     validation: null,
-  })
+  });
 
   // Check permissions using CLERK directly (source of truth for roles)
-  const clerkRole = useMemo(() => (clerkUser?.publicMetadata as any)?.role as string | undefined, [clerkUser?.publicMetadata])
-  const canAccess = useMemo(() => clerkRole === 'super_admin', [clerkRole])
-  const shouldQuery = useMemo(() => !!(clerkLoaded && canAccess && clerkId), [clerkLoaded, canAccess, clerkId])
+  const clerkRole = useMemo(
+    () => (clerkUser?.publicMetadata as any)?.role as string | undefined,
+    [clerkUser?.publicMetadata],
+  );
+  const canAccess = useMemo(() => clerkRole === 'super_admin', [clerkRole]);
+  const shouldQuery = useMemo(
+    () => !!(clerkLoaded && canAccess && clerkId),
+    [clerkLoaded, canAccess, clerkId],
+  );
 
   /**
    * Fetch all users (minimal data)
@@ -142,44 +155,44 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
    */
   const usersData = useQuery(
     api.users.getAllUsersMinimal,
-    shouldQuery ? { clerkId, limit: 1000 } : 'skip'
-  )
+    shouldQuery ? { clerkId, limit: 1000 } : 'skip',
+  );
 
   // Fetch universities for role change dialog
   const universitiesData = useQuery(
     api.universities.getAllUniversities,
-    shouldQuery ? { clerkId } : 'skip'
-  )
+    shouldQuery ? { clerkId } : 'skip',
+  );
 
   // Filter and search users
   const filteredUsers = useMemo(() => {
-    if (!usersData?.page) return []
+    if (!usersData?.page) return [];
 
     return usersData.page.filter((user) => {
       // Role filter
-      if (roleFilter !== 'all' && user.role !== roleFilter) return false
+      if (roleFilter !== 'all' && user.role !== roleFilter) return false;
 
       // Search filter
       if (searchQuery) {
-        const query = searchQuery.toLowerCase()
-        const matchesName = user.name?.toLowerCase().includes(query)
-        const matchesEmail = user.email?.toLowerCase().includes(query)
-        if (!matchesName && !matchesEmail) return false
+        const query = searchQuery.toLowerCase();
+        const matchesName = user.name?.toLowerCase().includes(query);
+        const matchesEmail = user.email?.toLowerCase().includes(query);
+        if (!matchesName && !matchesEmail) return false;
       }
 
-      return true
-    })
-  }, [usersData, roleFilter, searchQuery])
+      return true;
+    });
+  }, [usersData, roleFilter, searchQuery]);
 
   // Role statistics
   const roleStats = useMemo(() => {
-    if (!usersData?.page) return {}
+    if (!usersData?.page) return {};
 
     return usersData.page.reduce((acc: Record<string, number>, user) => {
-      acc[user.role] = (acc[user.role] || 0) + 1
-      return acc
-    }, {})
-  }, [usersData])
+      acc[user.role] = (acc[user.role] || 0) + 1;
+      return acc;
+    }, {});
+  }, [usersData]);
 
   const handleRoleChangeClick = (user: MinimalUser) => {
     setDialogState({
@@ -189,15 +202,15 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
       selectedUniversityId: user.university_id,
       loading: false,
       validation: null,
-    })
-  }
+    });
+  };
 
   const handleRoleChange = async () => {
-    if (!dialogState.user || !dialogState.newRole) return
+    if (!dialogState.user || !dialogState.newRole) return;
     // Prevent double-clicks and race conditions
-    if (dialogState.loading) return
+    if (dialogState.loading) return;
 
-    setDialogState(prev => ({ ...prev, loading: true }))
+    setDialogState((prev) => ({ ...prev, loading: true }));
 
     try {
       // Call API to update role
@@ -209,18 +222,18 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
           newRole: dialogState.newRole,
           universityId: dialogState.selectedUniversityId,
         }),
-      })
+      });
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to update role')
+        throw new Error(result.error || 'Failed to update role');
       }
 
       toast({
         title: 'Role Updated',
         description: `Successfully updated ${dialogState.user.name}'s role to ${dialogState.newRole}`,
-      })
+      });
 
       // Close dialog
       // Note: Data will automatically update via Convex reactivity when the webhook completes
@@ -233,19 +246,19 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
         selectedUniversityId: undefined,
         loading: false,
         validation: null,
-      })
+      });
     } catch (error) {
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to update role',
         variant: 'destructive',
-      })
-      setDialogState(prev => ({ ...prev, loading: false }))
+      });
+      setDialogState((prev) => ({ ...prev, loading: false }));
     }
-  }
+  };
 
   const handleValidateRoleChange = useCallback(async () => {
-    if (!dialogState.user || !dialogState.newRole) return
+    if (!dialogState.user || !dialogState.newRole) return;
 
     try {
       const response = await fetch('/api/admin/users/validate-role', {
@@ -257,23 +270,28 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
           newRole: dialogState.newRole,
           universityId: dialogState.selectedUniversityId,
         }),
-      })
+      });
 
-      const validation = await response.json()
-      setDialogState(prev => ({ ...prev, validation }))
+      const validation = await response.json();
+      setDialogState((prev) => ({ ...prev, validation }));
     } catch (error) {
-      console.error('Validation error:', error)
+      console.error('Validation error:', error);
     }
-  }, [dialogState.user, dialogState.newRole, dialogState.selectedUniversityId])
+  }, [dialogState.user, dialogState.newRole, dialogState.selectedUniversityId]);
 
   // Validate when new role or university selected
   React.useEffect(() => {
     if (dialogState.newRole && dialogState.user && dialogState.newRole !== dialogState.user.role) {
-      handleValidateRoleChange()
+      handleValidateRoleChange();
     }
     // Re-validate when role, university selection, user identity, or validation function changes
     // eslint-disable-next-line react-hooks/exhaustive-deps -- dialogState.user is intentionally excluded to prevent re-running on every user object change
-  }, [dialogState.newRole, dialogState.selectedUniversityId, dialogState.user?.clerkId, handleValidateRoleChange])
+  }, [
+    dialogState.newRole,
+    dialogState.selectedUniversityId,
+    dialogState.user?.clerkId,
+    handleValidateRoleChange,
+  ]);
 
   if (!usersData) {
     return (
@@ -283,7 +301,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
           <span className="ml-3 text-muted-foreground">Loading users...</span>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -310,9 +328,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
               >
                 <div className="flex items-center gap-2 mb-1">
                   {roleIcons[role]}
-                  <span className="text-xs font-medium capitalize">
-                    {role.replace(/_/g, ' ')}
-                  </span>
+                  <span className="text-xs font-medium capitalize">{role.replace(/_/g, ' ')}</span>
                 </div>
                 <div className="text-2xl font-bold">{count}</div>
               </div>
@@ -373,13 +389,13 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {user.profile_image ? (
-            <Image
-              src={user.profile_image}
-              alt={user.name}
-              width={32}
-              height={32}
-              className="h-8 w-8 rounded-full object-cover"
-            />
+                            <Image
+                              src={user.profile_image}
+                              alt={user.name}
+                              width={32}
+                              height={32}
+                              className="h-8 w-8 rounded-full object-cover"
+                            />
                           ) : (
                             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                               <span className="text-xs font-semibold text-primary">
@@ -407,9 +423,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant={user.account_status === 'active' ? 'default' : 'secondary'}
-                        >
+                        <Badge variant={user.account_status === 'active' ? 'default' : 'secondary'}>
                           {user.account_status || 'active'}
                         </Badge>
                       </TableCell>
@@ -435,8 +449,9 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Large User Base Detected</AlertTitle>
               <AlertDescription>
-                Showing the first 1000 users. If you have more users, some may not be visible in this view.
-                Use the search and filter options to find specific users, or contact support for bulk operations.
+                Showing the first 1000 users. If you have more users, some may not be visible in
+                this view. Use the search and filter options to find specific users, or contact
+                support for bulk operations.
               </AlertDescription>
             </Alert>
           )}
@@ -444,13 +459,16 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
       </Card>
 
       {/* Role Change Dialog */}
-      <Dialog open={dialogState.open} onOpenChange={(open) => !dialogState.loading && setDialogState(prev => ({ ...prev, open }))}>
+      <Dialog
+        open={dialogState.open}
+        onOpenChange={(open) =>
+          !dialogState.loading && setDialogState((prev) => ({ ...prev, open }))
+        }
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Change User Role</DialogTitle>
-            <DialogDescription>
-              Update the role for {dialogState.user?.name}
-            </DialogDescription>
+            <DialogDescription>Update the role for {dialogState.user?.name}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -472,7 +490,7 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
               <label className="text-sm font-medium">New Role</label>
               <Select
                 value={dialogState.newRole}
-                onValueChange={(value) => setDialogState(prev => ({ ...prev, newRole: value }))}
+                onValueChange={(value) => setDialogState((prev) => ({ ...prev, newRole: value }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select new role" />
@@ -526,7 +544,9 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
                 </label>
                 <Select
                   value={dialogState.selectedUniversityId || ''}
-                  onValueChange={(value) => setDialogState(prev => ({ ...prev, selectedUniversityId: value }))}
+                  onValueChange={(value) =>
+                    setDialogState((prev) => ({ ...prev, selectedUniversityId: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select university" />
@@ -585,19 +605,20 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
                   </Alert>
                 )}
 
-                {dialogState.validation.requiredActions && dialogState.validation.requiredActions.length > 0 && (
-                  <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertTitle>Required Actions</AlertTitle>
-                    <AlertDescription>
-                      <ul className="list-disc list-inside space-y-1 mt-2">
-                        {dialogState.validation.requiredActions.map((action, i) => (
-                          <li key={i}>{action}</li>
-                        ))}
-                      </ul>
-                    </AlertDescription>
-                  </Alert>
-                )}
+                {dialogState.validation.requiredActions &&
+                  dialogState.validation.requiredActions.length > 0 && (
+                    <Alert>
+                      <CheckCircle className="h-4 w-4" />
+                      <AlertTitle>Required Actions</AlertTitle>
+                      <AlertDescription>
+                        <ul className="list-disc list-inside space-y-1 mt-2">
+                          {dialogState.validation.requiredActions.map((action, i) => (
+                            <li key={i}>{action}</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
               </div>
             )}
           </div>
@@ -605,7 +626,16 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDialogState({ open: false, user: null, newRole: '', selectedUniversityId: undefined, loading: false, validation: null })}
+              onClick={() =>
+                setDialogState({
+                  open: false,
+                  user: null,
+                  newRole: '',
+                  selectedUniversityId: undefined,
+                  loading: false,
+                  validation: null,
+                })
+              }
               disabled={dialogState.loading}
             >
               Cancel
@@ -616,7 +646,8 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
                 dialogState.loading ||
                 !dialogState.validation?.valid ||
                 dialogState.newRole === dialogState.user?.role ||
-                (['student', 'university_admin', 'advisor'].includes(dialogState.newRole) && !dialogState.selectedUniversityId)
+                (['student', 'university_admin', 'advisor'].includes(dialogState.newRole) &&
+                  !dialogState.selectedUniversityId)
               }
             >
               {dialogState.loading ? (
@@ -635,5 +666,5 @@ export function RoleManagementTable({ clerkId }: { clerkId: string }) {
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }

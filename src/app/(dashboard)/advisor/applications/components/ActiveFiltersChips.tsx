@@ -13,15 +13,17 @@
  * - Compact, wrapping layout
  */
 
+import { X } from 'lucide-react';
 import React from 'react';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+
 import {
   ApplicationFilters,
   ApplicationStage,
-  TIME_WINDOW_LABELS,
   NEED_ACTION_LABELS,
+  TIME_WINDOW_LABELS,
 } from '../types';
 
 // ============================================================================
@@ -73,11 +75,7 @@ export function ActiveFiltersChips({
 
       {/* Stages */}
       {filters.stages.map((stage) => (
-        <FilterChip
-          key={`stage-${stage}`}
-          label={stage}
-          onRemove={() => onRemoveStage(stage)}
-        />
+        <FilterChip key={`stage-${stage}`} label={stage} onRemove={() => onRemoveStage(stage)} />
       ))}
 
       {/* Cohorts */}
@@ -91,11 +89,7 @@ export function ActiveFiltersChips({
 
       {/* Need Action */}
       {filters.needsAction && (
-        <FilterChip
-          label="Need Action"
-          onRemove={onRemoveNeedsAction}
-          variant="warning"
-        />
+        <FilterChip label="Need Action" onRemove={onRemoveNeedsAction} variant="warning" />
       )}
 
       {/* Specific Need Action Reason */}
@@ -109,10 +103,7 @@ export function ActiveFiltersChips({
 
       {/* Active Only */}
       {filters.activeOnly && (
-        <FilterChip
-          label="Active Stages Only"
-          onRemove={onRemoveActiveOnly}
-        />
+        <FilterChip label="Active Stages Only" onRemove={onRemoveActiveOnly} />
       )}
 
       {/* Time Window */}

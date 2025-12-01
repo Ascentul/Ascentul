@@ -1,45 +1,51 @@
-'use client'
+'use client';
 
-import React from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Download } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
-import { exportCoverLetterPDF } from '@/utils/exportCoverLetter'
+import { Download } from 'lucide-react';
+import React from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { exportCoverLetterPDF } from '@/utils/exportCoverLetter';
 
 interface CoverLetter {
-  _id: string
-  name: string
-  job_title: string
-  company_name?: string
-  content?: string
-  closing?: string
+  _id: string;
+  name: string;
+  job_title: string;
+  company_name?: string;
+  content?: string;
+  closing?: string;
 }
 
 interface CoverLetterPreviewModalProps {
-  open: boolean
-  onClose: () => void
-  letter: CoverLetter
-  userName?: string
-  userEmail?: string
+  open: boolean;
+  onClose: () => void;
+  letter: CoverLetter;
+  userName?: string;
+  userEmail?: string;
 }
 
-export function CoverLetterPreviewModal({ open, onClose, letter, userName, userEmail }: CoverLetterPreviewModalProps) {
-  const { toast } = useToast()
+export function CoverLetterPreviewModal({
+  open,
+  onClose,
+  letter,
+  userName,
+  userEmail,
+}: CoverLetterPreviewModalProps) {
+  const { toast } = useToast();
 
   const exportPDF = () => {
     try {
-      exportCoverLetterPDF({ letter, userName, userEmail })
-      toast({ title: 'Exported', description: 'PDF downloaded successfully.', variant: 'success' })
+      exportCoverLetterPDF({ letter, userName, userEmail });
+      toast({ title: 'Exported', description: 'PDF downloaded successfully.', variant: 'success' });
     } catch (e: any) {
-      toast({ title: 'Export failed', description: e?.message || 'Please try again.', variant: 'destructive' })
+      toast({
+        title: 'Export failed',
+        description: e?.message || 'Please try again.',
+        variant: 'destructive',
+      });
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -66,6 +72,5 @@ export function CoverLetterPreviewModal({ open, onClose, letter, userName, userE
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
-

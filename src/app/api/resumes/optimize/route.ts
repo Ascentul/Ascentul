@@ -1,114 +1,118 @@
-import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
+import { NextRequest, NextResponse } from 'next/server';
+import OpenAI from 'openai';
 
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 interface UserProfile {
-  name?: string
-  email?: string
-  phone?: string
-  location?: string
-  linkedin_url?: string
-  github_url?: string
-  bio?: string
-  job_title?: string
-  company?: string
-  skills?: string | string[]
-  current_position?: string
-  current_company?: string
-  education?: string
-  university_name?: string
-  major?: string
-  graduation_year?: string
-  experience_level?: string
-  industry?: string
-  work_history?: any[]
-  education_history?: any[]
-  achievements_history?: any[]
-  projects?: any[]
+  name?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  linkedin_url?: string;
+  github_url?: string;
+  bio?: string;
+  job_title?: string;
+  company?: string;
+  skills?: string | string[];
+  current_position?: string;
+  current_company?: string;
+  education?: string;
+  university_name?: string;
+  major?: string;
+  graduation_year?: string;
+  experience_level?: string;
+  industry?: string;
+  work_history?: any[];
+  education_history?: any[];
+  achievements_history?: any[];
+  projects?: any[];
 }
 
 interface AnalysisResult {
-  score?: number
-  summary?: string
-  strengths?: string[]
-  gaps?: string[]
-  suggestions?: string[]
+  score?: number;
+  summary?: string;
+  strengths?: string[];
+  gaps?: string[];
+  suggestions?: string[];
   strengthHighlights?: Array<{
-    title: string
-    description: string
-  }>
+    title: string;
+    description: string;
+  }>;
 }
 
-import { auth } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { originalResumeText, analysisRecommendations, jobDescription, userProfile } = await req.json()
+    const { originalResumeText, analysisRecommendations, jobDescription, userProfile } =
+      await req.json();
 
     if (!originalResumeText) {
-      return NextResponse.json({ error: 'Missing original resume text' }, { status: 400 })
+      return NextResponse.json({ error: 'Missing original resume text' }, { status: 400 });
     }
 
     if (!jobDescription) {
-      return NextResponse.json({ error: 'Missing job description' }, { status: 400 })
+      return NextResponse.json({ error: 'Missing job description' }, { status: 400 });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY
+    const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
-      return NextResponse.json({
-        error: 'OpenAI API key not configured. Resume optimization requires AI service.'
-      }, { status: 500 })
+      return NextResponse.json(
+        {
+          error: 'OpenAI API key not configured. Resume optimization requires AI service.',
+        },
+        { status: 500 },
+      );
     }
 
     try {
-      const client = new OpenAI({ apiKey })
+      const client = new OpenAI({ apiKey });
 
       // Build context about the analysis recommendations
-      let recommendationsContext = ''
+      let recommendationsContext = '';
       if (analysisRecommendations) {
-        const analysis = analysisRecommendations as AnalysisResult
+        const analysis = analysisRecommendations as AnalysisResult;
 
         if (analysis.summary) {
-          recommendationsContext += `\n\nFit Analysis Summary:\n${analysis.summary}\n`
+          recommendationsContext += `\n\nFit Analysis Summary:\n${analysis.summary}\n`;
         }
 
         if (analysis.gaps && analysis.gaps.length > 0) {
-          recommendationsContext += `\nIdentified Gaps to Address:\n`
+          recommendationsContext += `\nIdentified Gaps to Address:\n`;
           analysis.gaps.forEach((gap, idx) => {
-            recommendationsContext += `${idx + 1}. ${gap}\n`
-          })
+            recommendationsContext += `${idx + 1}. ${gap}\n`;
+          });
         }
 
         if (analysis.suggestions && analysis.suggestions.length > 0) {
-          recommendationsContext += `\nSpecific Recommendations to Apply:\n`
+          recommendationsContext += `\nSpecific Recommendations to Apply:\n`;
           analysis.suggestions.forEach((suggestion, idx) => {
-            recommendationsContext += `${idx + 1}. ${suggestion}\n`
-          })
+            recommendationsContext += `${idx + 1}. ${suggestion}\n`;
+          });
         }
 
         if (analysis.strengths && analysis.strengths.length > 0) {
-          recommendationsContext += `\nExisting Strengths to Emphasize:\n`
+          recommendationsContext += `\nExisting Strengths to Emphasize:\n`;
           analysis.strengths.forEach((strength, idx) => {
-            recommendationsContext += `${idx + 1}. ${strength}\n`
-          })
+            recommendationsContext += `${idx + 1}. ${strength}\n`;
+          });
         }
       }
 
       // Build optional context from user profile for additional data
-      let profileContext = ''
+      let profileContext = '';
       if (userProfile) {
-        profileContext = `\n\nAdditional User Profile Data (use ONLY if missing from original resume):\n`
-        if (userProfile.linkedin_url) profileContext += `LinkedIn: ${userProfile.linkedin_url}\n`
-        if (userProfile.github_url) profileContext += `GitHub: ${userProfile.github_url}\n`
-        if (userProfile.phone) profileContext += `Phone: ${userProfile.phone}\n`
+        profileContext = `\n\nAdditional User Profile Data (use ONLY if missing from original resume):\n`;
+        if (userProfile.linkedin_url) profileContext += `LinkedIn: ${userProfile.linkedin_url}\n`;
+        if (userProfile.github_url) profileContext += `GitHub: ${userProfile.github_url}\n`;
+        if (userProfile.phone) profileContext += `Phone: ${userProfile.phone}\n`;
       }
 
       const prompt = `You are a professional resume optimization expert. Your task is to OPTIMIZE an EXISTING resume, NOT to create a new one.
@@ -230,43 +234,47 @@ CRITICAL FORMATTING RULES:
 - Experience "summary" field: Plain paragraph text with NO bullet symbols
 - Experience "keyContributions" array: Each item must be PLAIN TEXT without any bullet symbols (•, -, *, etc.)
 - The UI will add bullet points automatically when rendering - do NOT include them in the JSON
-- Clean any existing bullet symbols from the text before outputting`
+- Clean any existing bullet symbols from the text before outputting`;
 
       const response = await client.chat.completions.create({
         model: 'gpt-4o',
         messages: [
           {
             role: 'system',
-            content: 'You are a professional resume optimization expert. You optimize EXISTING resumes while preserving factual accuracy. You NEVER invent or fabricate information. Output only valid JSON.'
+            content:
+              'You are a professional resume optimization expert. You optimize EXISTING resumes while preserving factual accuracy. You NEVER invent or fabricate information. Output only valid JSON.',
           },
           { role: 'user', content: prompt },
         ],
         response_format: { type: 'json_object' },
         temperature: 0.5, // Lower temperature for more conservative, factual optimization
-      })
+      });
 
-      const content = response.choices[0]?.message?.content || '{}'
-      const resumeData = JSON.parse(content)
+      const content = response.choices[0]?.message?.content || '{}';
+      const resumeData = JSON.parse(content);
 
       // Clean up empty social links from AI response
       if (resumeData.personalInfo) {
-        if (!resumeData.personalInfo.linkedin) delete resumeData.personalInfo.linkedin
-        if (!resumeData.personalInfo.github) delete resumeData.personalInfo.github
+        if (!resumeData.personalInfo.linkedin) delete resumeData.personalInfo.linkedin;
+        if (!resumeData.personalInfo.github) delete resumeData.personalInfo.github;
       }
 
       return NextResponse.json({
         success: true,
-        resume: resumeData
-      })
+        resume: resumeData,
+      });
     } catch (aiError: any) {
-      console.error('AI optimization error:', aiError)
-      return NextResponse.json({
-        error: 'Failed to optimize resume with AI service',
-        details: aiError.message
-      }, { status: 500 })
+      console.error('AI optimization error:', aiError);
+      return NextResponse.json(
+        {
+          error: 'Failed to optimize resume with AI service',
+          details: aiError.message,
+        },
+        { status: 500 },
+      );
     }
   } catch (err: any) {
-    console.error('optimize error', err)
-    return NextResponse.json({ error: 'Failed to optimize resume' }, { status: 500 })
+    console.error('optimize error', err);
+    return NextResponse.json({ error: 'Failed to optimize resume' }, { status: 500 });
   }
 }

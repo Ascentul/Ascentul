@@ -1,10 +1,11 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { ArrowRight, Compass, FileText, Briefcase, Calendar, Check } from 'lucide-react'
-import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
-import { cn } from '@/lib/utils'
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowRight, Briefcase, Calendar, Check, Compass, FileText } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+
+import { cn } from '@/lib/utils';
 
 // Career journey stages in order
 const journeyStages = [
@@ -40,97 +41,101 @@ const journeyStages = [
     description: 'Prepare for interviews and track your progress.',
     ctaText: 'View Interviews',
   },
-]
+];
 
 interface JourneyProgress {
-  careerExploration: { isComplete: boolean; count: number }
-  resumeBuilding: { isComplete: boolean; count: number }
-  jobSearch: { isComplete: boolean; count: number }
-  advising: { isComplete: boolean; count: number; completedCount?: number }
-  completedSteps: number
-  totalSteps: number
+  careerExploration: { isComplete: boolean; count: number };
+  resumeBuilding: { isComplete: boolean; count: number };
+  jobSearch: { isComplete: boolean; count: number };
+  advising: { isComplete: boolean; count: number; completedCount?: number };
+  completedSteps: number;
+  totalSteps: number;
 }
 
 interface NextInterviewDetails {
-  date?: number
-  company: string
-  title?: string
+  date?: number;
+  company: string;
+  title?: string;
 }
 
 interface NextBestStepHeroProps {
-  hasApplications: boolean
-  hasGoals: boolean
-  nextInterviewDetails?: NextInterviewDetails | null
-  userName?: string
-  journeyProgress?: JourneyProgress
+  hasApplications: boolean;
+  hasGoals: boolean;
+  nextInterviewDetails?: NextInterviewDetails | null;
+  userName?: string;
+  journeyProgress?: JourneyProgress;
 }
 
 // Map journey stages to progress data
 function getStageCompletion(stageId: string, progress?: JourneyProgress): boolean {
-  if (!progress) return false
+  if (!progress) return false;
 
   switch (stageId) {
     case 'career-exploration':
-      return progress.careerExploration.isComplete
+      return progress.careerExploration.isComplete;
     case 'resume-building':
-      return progress.resumeBuilding.isComplete
+      return progress.resumeBuilding.isComplete;
     case 'apply-to-jobs':
-      return progress.jobSearch.isComplete
+      return progress.jobSearch.isComplete;
     case 'track-interviews':
-      return progress.jobSearch.count > 0 && progress.advising?.completedCount ? progress.advising.completedCount > 0 : false
+      return progress.jobSearch.count > 0 && progress.advising?.completedCount
+        ? progress.advising.completedCount > 0
+        : false;
     default:
-      return false
+      return false;
   }
 }
 
 // Calculate which stage the user should focus on
 function getCurrentStageIndex(progress?: JourneyProgress): number {
-  if (!progress) return 0
+  if (!progress) return 0;
 
-  if (!progress.careerExploration.isComplete) return 0
-  if (!progress.resumeBuilding.isComplete) return 1
-  if (!progress.jobSearch.isComplete) return 2
-  return 3
+  if (!progress.careerExploration.isComplete) return 0;
+  if (!progress.resumeBuilding.isComplete) return 1;
+  if (!progress.jobSearch.isComplete) return 2;
+  return 3;
 }
 
 // Simple arrow connector
 function StageConnector({ isComplete }: { isComplete: boolean }) {
   return (
     <div className="hidden sm:flex items-center px-1">
-      <div className={cn(
-        "w-4 h-0.5 transition-colors duration-300",
-        isComplete ? "bg-green-400" : "bg-slate-200"
-      )} />
-      <div className={cn(
-        "w-0 h-0 border-t-[3px] border-t-transparent border-b-[3px] border-b-transparent border-l-[5px] transition-colors duration-300",
-        isComplete ? "border-l-green-400" : "border-l-slate-200"
-      )} />
+      <div
+        className={cn(
+          'w-4 h-0.5 transition-colors duration-300',
+          isComplete ? 'bg-green-400' : 'bg-slate-200',
+        )}
+      />
+      <div
+        className={cn(
+          'w-0 h-0 border-t-[3px] border-t-transparent border-b-[3px] border-b-transparent border-l-[5px] transition-colors duration-300',
+          isComplete ? 'border-l-green-400' : 'border-l-slate-200',
+        )}
+      />
     </div>
-  )
+  );
 }
 
-export function NextBestStepHero({
-  journeyProgress
-}: NextBestStepHeroProps) {
-  const currentStageIndex = getCurrentStageIndex(journeyProgress)
-  const [selectedStage, setSelectedStage] = useState(currentStageIndex)
-  const [hasInteracted, setHasInteracted] = useState(false)
+export function NextBestStepHero({ journeyProgress }: NextBestStepHeroProps) {
+  const currentStageIndex = getCurrentStageIndex(journeyProgress);
+  const [selectedStage, setSelectedStage] = useState(currentStageIndex);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   useEffect(() => {
     if (!hasInteracted) {
-      setSelectedStage(currentStageIndex)
+      setSelectedStage(currentStageIndex);
     }
-  }, [currentStageIndex, hasInteracted])
+  }, [currentStageIndex, hasInteracted]);
 
-  const stage = journeyStages[selectedStage]
-  const Icon = stage.icon
-  const isStageComplete = getStageCompletion(stage.id, journeyProgress)
+  const stage = journeyStages[selectedStage];
+  const Icon = stage.icon;
+  const isStageComplete = getStageCompletion(stage.id, journeyProgress);
 
   const getStageContent = () => {
     if (isStageComplete) {
       const nextIncompleteIndex = journeyStages.findIndex(
-        (s, i) => i > selectedStage && !getStageCompletion(s.id, journeyProgress)
-      )
+        (s, i) => i > selectedStage && !getStageCompletion(s.id, journeyProgress),
+      );
 
       if (nextIncompleteIndex >= 0) {
         return {
@@ -138,15 +143,15 @@ export function NextBestStepHero({
           description: `Ready for ${journeyStages[nextIncompleteIndex].label}?`,
           ctaText: journeyStages[nextIncompleteIndex].ctaText,
           ctaHref: journeyStages[nextIncompleteIndex].href,
-        }
+        };
       }
 
       return {
-        title: "All stages complete!",
-        description: "Keep tracking your progress.",
-        ctaText: "View Dashboard",
-        ctaHref: "/dashboard",
-      }
+        title: 'All stages complete!',
+        description: 'Keep tracking your progress.',
+        ctaText: 'View Dashboard',
+        ctaHref: '/dashboard',
+      };
     }
 
     return {
@@ -154,10 +159,10 @@ export function NextBestStepHero({
       description: stage.description,
       ctaText: stage.ctaText,
       ctaHref: stage.href,
-    }
-  }
+    };
+  };
 
-  const content = getStageContent()
+  const content = getStageContent();
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-primary-50/30 shadow-sm">
@@ -177,37 +182,29 @@ export function NextBestStepHero({
             className="flex items-center gap-4"
           >
             {/* Icon */}
-            <div className={cn(
-              "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-white transition-colors duration-300",
-              isStageComplete
-                ? "bg-green-500"
-                : "bg-primary-500"
-            )}>
-              {isStageComplete ? (
-                <Check className="h-5 w-5" />
-              ) : (
-                <Icon className="h-5 w-5" />
+            <div
+              className={cn(
+                'flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-white transition-colors duration-300',
+                isStageComplete ? 'bg-green-500' : 'bg-primary-500',
               )}
+            >
+              {isStageComplete ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
             </div>
 
             {/* Content */}
             <div className="flex-1 min-w-0">
-              <h2 className="text-base font-semibold text-slate-900">
-                {content.title}
-              </h2>
-              <p className="text-sm text-slate-500">
-                {content.description}
-              </p>
+              <h2 className="text-base font-semibold text-slate-900">{content.title}</h2>
+              <p className="text-sm text-slate-500">{content.description}</p>
             </div>
 
             {/* CTA */}
             <Link
               href={content.ctaHref}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors flex-shrink-0",
+                'inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors flex-shrink-0',
                 isStageComplete
-                  ? "bg-green-500 hover:bg-green-600"
-                  : "bg-slate-900 hover:bg-slate-800"
+                  ? 'bg-green-500 hover:bg-green-600'
+                  : 'bg-slate-900 hover:bg-slate-800',
               )}
             >
               {content.ctaText}
@@ -219,24 +216,24 @@ export function NextBestStepHero({
         {/* Journey Stage Pills - below content */}
         <div className="flex items-center gap-0.5 flex-wrap mt-4 pt-4 border-t border-slate-100">
           {journeyStages.map((s, index) => {
-            const isComplete = getStageCompletion(s.id, journeyProgress)
-            const isSelected = selectedStage === index
-            const StageIcon = s.icon
+            const isComplete = getStageCompletion(s.id, journeyProgress);
+            const isSelected = selectedStage === index;
+            const StageIcon = s.icon;
 
             return (
               <div key={s.id} className="flex items-center">
                 <button
                   onClick={() => {
-                    setSelectedStage(index)
-                    setHasInteracted(true)
+                    setSelectedStage(index);
+                    setHasInteracted(true);
                   }}
                   className={cn(
-                    "relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200",
+                    'relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200',
                     isSelected
-                      ? "bg-primary-500 text-white shadow-sm"
+                      ? 'bg-primary-500 text-white shadow-sm'
                       : isComplete
-                        ? "bg-green-50 text-green-600 hover:bg-green-100"
-                        : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                        ? 'bg-green-50 text-green-600 hover:bg-green-100'
+                        : 'bg-slate-50 text-slate-500 hover:bg-slate-100',
                   )}
                 >
                   {isComplete && !isSelected ? (
@@ -247,14 +244,12 @@ export function NextBestStepHero({
                   <span className="hidden sm:inline">{s.label}</span>
                 </button>
 
-                {index < journeyStages.length - 1 && (
-                  <StageConnector isComplete={isComplete} />
-                )}
+                {index < journeyStages.length - 1 && <StageConnector isComplete={isComplete} />}
               </div>
-            )
+            );
           })}
         </div>
       </div>
     </div>
-  )
+  );
 }

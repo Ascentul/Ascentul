@@ -1,5 +1,6 @@
-import React from "react";
-import { Button } from "@/components/ui/button";
+import React from 'react';
+
+import { Button } from '@/components/ui/button';
 
 interface StepDiscordInviteProps {
   onNext: () => void;
@@ -12,8 +13,8 @@ const StepDiscordInvite: React.FC<StepDiscordInviteProps> = ({ onNext, onSkip })
       <div className="py-8">
         <h2 className="text-2xl font-bold mb-4">You're not building alone.</h2>
         <p className="text-muted-foreground mb-8">
-          Join the Ascentful Discord to connect with other driven professionals, get support,
-          share wins, and grow alongside a high-agency community.
+          Join the Ascentful Discord to connect with other driven professionals, get support, share
+          wins, and grow alongside a high-agency community.
         </p>
 
         <Button
@@ -25,10 +26,7 @@ const StepDiscordInvite: React.FC<StepDiscordInviteProps> = ({ onNext, onSkip })
         </Button>
 
         <div className="mt-4">
-          <button
-            onClick={onSkip}
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
+          <button onClick={onSkip} className="text-sm text-muted-foreground hover:text-foreground">
             Not now, skip this step
           </button>
         </div>

@@ -18,39 +18,38 @@
  * Run via: npx convex run set_advisor_role:setAdvisorRole '{"email": "test.advisor@ascentful.io"}'
  */
 
-import { internalMutation } from "./_generated/server";
-import { v } from "convex/values";
-import { maskEmail } from "./lib/piiSafe";
+import { v } from 'convex/values';
+
+import { internalMutation } from './_generated/server';
+import { maskEmail } from './lib/piiSafe';
 
 // Role constant for type safety (matches schema definition)
-const ADVISOR_ROLE = "advisor" as const;
+const ADVISOR_ROLE = 'advisor' as const;
 
 export const setAdvisorRole = internalMutation({
   args: {
     email: v.string(),
-    university_id: v.optional(v.id("universities")),
+    university_id: v.optional(v.id('universities')),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query("users")
-      .filter((q) => q.eq(q.field("email"), args.email))
+      .query('users')
+      .filter((q) => q.eq(q.field('email'), args.email))
       .first();
 
     if (!user) {
       console.log(`❌ User not found: ${maskEmail(args.email)}`);
-      return { success: false, message: `User not found: ${maskEmail(args.email)}. Please sign in first.` };
+      return {
+        success: false,
+        message: `User not found: ${maskEmail(args.email)}. Please sign in first.`,
+      };
     }
 
     // Prevent removing last super_admin
-    if (user.role === "super_admin") {
+    if (user.role === 'super_admin') {
       const otherSuperAdmins = await ctx.db
-        .query("users")
-        .filter((q) =>
-          q.and(
-            q.eq(q.field("role"), "super_admin"),
-            q.neq(q.field("_id"), user._id)
-          )
-        )
+        .query('users')
+        .filter((q) => q.and(q.eq(q.field('role'), 'super_admin'), q.neq(q.field('_id'), user._id)))
         .first();
 
       if (!otherSuperAdmins) {

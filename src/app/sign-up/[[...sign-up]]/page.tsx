@@ -1,42 +1,60 @@
-"use client"
+'use client';
 
-import React, { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useSignUp, useAuth } from '@clerk/nextjs'
-import type { SignUpCreateParams } from '@clerk/types'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { useToast } from '@/hooks/use-toast'
-import Link from 'next/link'
-import Image from 'next/image'
-import { Mail, CheckCircle, ArrowLeft, Eye, EyeOff, Users, Zap, BookOpen, Shield, Check } from 'lucide-react'
-import { calculatePasswordStrength, getPasswordStrengthColor, getPasswordStrengthText, getPasswordStrengthTextColor, type PasswordStrength } from '@/utils/password-strength'
+import { useAuth, useSignUp } from '@clerk/nextjs';
+import type { SignUpCreateParams } from '@clerk/types';
+import {
+  ArrowLeft,
+  BookOpen,
+  Check,
+  CheckCircle,
+  Eye,
+  EyeOff,
+  Mail,
+  Shield,
+  Users,
+  Zap,
+} from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import {
+  calculatePasswordStrength,
+  getPasswordStrengthColor,
+  getPasswordStrengthText,
+  getPasswordStrengthTextColor,
+  type PasswordStrength,
+} from '@/utils/password-strength';
 
 // Shared signup form component
 interface SignUpFormData {
-  firstName: string
-  lastName: string
-  email: string
-  password: string
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
 }
 
 interface FormUI {
-  showPassword: boolean
-  acceptTerms: boolean
+  showPassword: boolean;
+  acceptTerms: boolean;
 }
 
 interface SignUpFormProps {
-  formData: SignUpFormData
-  setFormData: React.Dispatch<React.SetStateAction<SignUpFormData>>
-  formUI: FormUI
-  setFormUI: React.Dispatch<React.SetStateAction<FormUI>>
-  error: string | null
-  submitting: boolean
-  verifyingInvite?: boolean
-  onSubmit: (e: React.FormEvent) => void
+  formData: SignUpFormData;
+  setFormData: React.Dispatch<React.SetStateAction<SignUpFormData>>;
+  formUI: FormUI;
+  setFormUI: React.Dispatch<React.SetStateAction<FormUI>>;
+  error: string | null;
+  submitting: boolean;
+  verifyingInvite?: boolean;
+  onSubmit: (e: React.FormEvent) => void;
 }
 
 function SignUpForm({
@@ -49,23 +67,23 @@ function SignUpForm({
   verifyingInvite = false,
   onSubmit,
 }: SignUpFormProps) {
-  const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>(0)
+  const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>(0);
 
   useEffect(() => {
     if (formData.password) {
-      setPasswordStrength(calculatePasswordStrength(formData.password))
+      setPasswordStrength(calculatePasswordStrength(formData.password));
     } else {
-      setPasswordStrength(0)
+      setPasswordStrength(0);
     }
-  }, [formData.password])
+  }, [formData.password]);
 
   const updateFormData = (field: keyof SignUpFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   const updateFormUI = (field: keyof FormUI, value: boolean) => {
-    setFormUI(prev => ({ ...prev, [field]: value }))
-  }
+    setFormUI((prev) => ({ ...prev, [field]: value }));
+  };
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
@@ -139,15 +157,15 @@ function SignUpForm({
                   style={{ width: `${(passwordStrength / 5) * 100}%` }}
                 />
               </div>
-              <span className={`text-xs font-medium ${getPasswordStrengthTextColor(passwordStrength)}`}>
+              <span
+                className={`text-xs font-medium ${getPasswordStrengthTextColor(passwordStrength)}`}
+              >
                 {getPasswordStrengthText(passwordStrength)}
               </span>
             </div>
           </div>
         )}
-        <p className="text-xs text-muted-foreground">
-          Must be at least 8 characters long
-        </p>
+        <p className="text-xs text-muted-foreground">Must be at least 8 characters long</p>
       </div>
 
       <div className="flex items-center space-x-2">
@@ -180,73 +198,80 @@ function SignUpForm({
         className="w-full h-11 rounded-xl bg-black text-white hover:bg-black/90 active:bg-black/95 focus-visible:ring-2 focus-visible:ring-black/20 shadow-md hover:shadow-lg transition-all"
         disabled={submitting || verifyingInvite}
       >
-        {verifyingInvite ? 'Verifying invite...' : submitting ? 'Creating account...' : 'Create Account'}
+        {verifyingInvite
+          ? 'Verifying invite...'
+          : submitting
+            ? 'Creating account...'
+            : 'Create Account'}
       </Button>
 
-      <p className="text-xs text-zinc-500 text-center">
-        No charges today. Cancel anytime.
-      </p>
+      <p className="text-xs text-zinc-500 text-center">No charges today. Cancel anytime.</p>
     </form>
-  )
+  );
 }
 
 export default function Page() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { isLoaded, signUp, setActive } = useSignUp()
-  const { isLoaded: authLoaded, isSignedIn } = useAuth()
-  const { toast } = useToast()
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { isLoaded, signUp, setActive } = useSignUp();
+  const { isLoaded: authLoaded, isSignedIn } = useAuth();
+  const { toast } = useToast();
 
-  const [step, setStep] = useState<'signup' | 'verify'>('signup')
+  const [step, setStep] = useState<'signup' | 'verify'>('signup');
   const [formData, setFormData] = useState<SignUpFormData>({
     firstName: '',
     lastName: '',
     email: '',
     password: '',
-  })
+  });
   const [formUI, setFormUI] = useState<FormUI>({
     showPassword: false,
     acceptTerms: false,
-  })
-  const [verificationCode, setVerificationCode] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [verifying, setVerifying] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [resending, setResending] = useState(false)
-  const [verifyingInvite, setVerifyingInvite] = useState(false)
+  });
+  const [verificationCode, setVerificationCode] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+  const [verifyingInvite, setVerifyingInvite] = useState(false);
   // Warning for invalid/expired invites (less alarming than error, shown as info banner)
-  const [inviteWarning, setInviteWarning] = useState<string | null>(null)
+  const [inviteWarning, setInviteWarning] = useState<string | null>(null);
 
   // University invite data from URL parameters
   const [universityInvite, setUniversityInvite] = useState<{
-    university: string | null
-    email: string | null
+    university: string | null;
+    email: string | null;
   }>({
     university: null,
     email: null,
-  })
+  });
 
   // Pre-fill email from URL parameters and validate invite token if provided
   useEffect(() => {
-    const inviteEmail = searchParams.get('email')
-    const inviteToken = searchParams.get('inviteToken')
+    const inviteEmail = searchParams.get('email');
+    const inviteToken = searchParams.get('inviteToken');
 
-    const isValidEmail = inviteEmail ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim()) : false
+    const isValidEmail = inviteEmail
+      ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim())
+      : false;
 
     if (inviteEmail && isValidEmail) {
-      setFormData(prev => ({ ...prev, email: inviteEmail }))
+      setFormData((prev) => ({ ...prev, email: inviteEmail }));
     }
 
     // Prefer server-validated invite data when inviteToken is present
     if (inviteToken) {
-      setVerifyingInvite(true)
+      setVerifyingInvite(true);
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       (async () => {
         try {
-          const res = await fetch(`/api/university/verify-invite?token=${encodeURIComponent(inviteToken)}`, {
-            signal: controller.signal,
-          });
+          const res = await fetch(
+            `/api/university/verify-invite?token=${encodeURIComponent(inviteToken)}`,
+            {
+              signal: controller.signal,
+            },
+          );
           if (!res.ok) {
             throw new Error('Failed to verify invite');
           }
@@ -258,18 +283,22 @@ export default function Page() {
               email: data.email || null,
             });
             if (data.email) {
-              setFormData(prev => ({ ...prev, email: data.email }));
+              setFormData((prev) => ({ ...prev, email: data.email }));
             }
           } else {
             // Invalid invite: do not prefill, show warning (not error)
             setUniversityInvite({ university: null, email: null });
-            setInviteWarning('This invitation link is invalid or has expired. You can still create an account below.');
+            setInviteWarning(
+              'This invitation link is invalid or has expired. You can still create an account below.',
+            );
           }
         } catch (err) {
           if (err instanceof Error && err.name === 'AbortError') return;
           console.error('Invite verification failed:', err);
           setUniversityInvite({ university: null, email: null });
-          setInviteWarning('Unable to verify invitation. You can still create an account below, or request a new invite link.');
+          setInviteWarning(
+            'Unable to verify invitation. You can still create an account below, or request a new invite link.',
+          );
         } finally {
           clearTimeout(timeoutId);
           if (!controller.signal.aborted) {
@@ -282,167 +311,177 @@ export default function Page() {
         controller.abort();
       };
     }
-  }, [searchParams])
+  }, [searchParams]);
 
   // If a session already exists, redirect to dashboard
   useEffect(() => {
     if (authLoaded && isSignedIn) {
-      router.replace('/dashboard')
+      router.replace('/dashboard');
     }
-  }, [authLoaded, isSignedIn, router])
+  }, [authLoaded, isSignedIn, router]);
 
   const onSubmitSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    if (!isLoaded) return
+    e.preventDefault();
+    setError(null);
+    if (!isLoaded) return;
 
-    if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || !formData.password.trim()) {
-      setError('Please fill in all fields')
-      return
+    if (
+      !formData.firstName.trim() ||
+      !formData.lastName.trim() ||
+      !formData.email.trim() ||
+      !formData.password.trim()
+    ) {
+      setError('Please fill in all fields');
+      return;
     }
 
     if (!formUI.acceptTerms) {
-      setError('You must accept the Terms of Service and Privacy Policy to continue')
-      return
+      setError('You must accept the Terms of Service and Privacy Policy to continue');
+      return;
     }
 
     if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long')
-      return
+      setError('Password must be at least 8 characters long');
+      return;
     }
 
     try {
-      setSubmitting(true)
+      setSubmitting(true);
       // Build signup params with university metadata if applicable
       const signUpParams: SignUpCreateParams = {
         emailAddress: formData.email.trim(),
         password: formData.password,
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
-      }
+      };
 
       // Pass university invite data to Clerk for webhook processing
       // This happens when user signs up via university invitation link (URL params)
       if (universityInvite.university) {
         // Ensure the email matches the verified invite email
-        if (universityInvite.email && formData.email.trim().toLowerCase() !== universityInvite.email.trim().toLowerCase()) {
-          setError('You must use the email address associated with the invitation.')
-          return
+        if (
+          universityInvite.email &&
+          formData.email.trim().toLowerCase() !== universityInvite.email.trim().toLowerCase()
+        ) {
+          setError('You must use the email address associated with the invitation.');
+          return;
         }
         signUpParams.unsafeMetadata = {
           universityInvite: {
             universityName: universityInvite.university,
             inviteEmail: formData.email.trim(),
-          }
-        }
+          },
+        };
       }
 
-      const result = await signUp.create(signUpParams)
+      const result = await signUp.create(signUpParams);
 
       if (result.status === 'missing_requirements') {
         // Send email verification
-        await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
-        setStep('verify')
+        await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+        setStep('verify');
         toast({
-          title: "Verification email sent",
-          description: "Please check your email and enter the verification code.",
-        })
+          title: 'Verification email sent',
+          description: 'Please check your email and enter the verification code.',
+        });
       } else if (result.status === 'complete') {
         // Sign up completed without email verification required
-        await setActive({ session: result.createdSessionId })
+        await setActive({ session: result.createdSessionId });
         toast({
-          title: "Account created successfully!",
-          description: "Welcome to Ascentful!",
-        })
-        router.replace('/onboarding')
+          title: 'Account created successfully!',
+          description: 'Welcome to Ascentful!',
+        });
+        router.replace('/onboarding');
       }
     } catch (err: any) {
-      const code = err?.errors?.[0]?.code
+      const code = err?.errors?.[0]?.code;
       if (code === 'form_identifier_exists') {
-        setError('An account with this email already exists. Please sign in instead.')
+        setError('An account with this email already exists. Please sign in instead.');
       } else if (code === 'form_password_pwned') {
-        setError('This password has been found in a data breach. Please choose a different password.')
+        setError(
+          'This password has been found in a data breach. Please choose a different password.',
+        );
       } else if (code === 'form_password_too_common') {
-        setError('This password is too common. Please choose a stronger password.')
+        setError('This password is too common. Please choose a stronger password.');
       } else {
-        const msg = err?.errors?.[0]?.longMessage || err?.message || 'Sign up failed'
-        setError(msg)
+        const msg = err?.errors?.[0]?.longMessage || err?.message || 'Sign up failed';
+        setError(msg);
       }
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   const onSubmitVerification = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    if (!isLoaded) return
+    e.preventDefault();
+    setError(null);
+    if (!isLoaded) return;
 
     if (!verificationCode.trim()) {
-      setError('Please enter the verification code')
-      return
+      setError('Please enter the verification code');
+      return;
     }
 
     try {
-      setVerifying(true)
+      setVerifying(true);
       const result = await signUp.attemptEmailAddressVerification({
         code: verificationCode,
-      })
+      });
 
       if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId })
+        await setActive({ session: result.createdSessionId });
 
         // University invitation signup: Show appropriate message
         // Note: Webhook processes university access asynchronously after user creation
         // Access will be available shortly, but not guaranteed at this exact moment
         if (universityInvite.university) {
           toast({
-            title: "Email verified successfully!",
+            title: 'Email verified successfully!',
             description: `Setting up your ${universityInvite.university} account. This may take a few moments.`,
-          })
+          });
         } else {
           toast({
-            title: "Email verified successfully!",
-            description: "Welcome to Ascentful!",
-          })
+            title: 'Email verified successfully!',
+            description: 'Welcome to Ascentful!',
+          });
         }
-        router.replace('/onboarding')
+        router.replace('/onboarding');
       } else {
-        setError('Verification failed. Please try again.')
+        setError('Verification failed. Please try again.');
       }
     } catch (err: any) {
-      const code = err?.errors?.[0]?.code
+      const code = err?.errors?.[0]?.code;
       if (code === 'form_code_incorrect') {
-        setError('Incorrect verification code. Please try again.')
+        setError('Incorrect verification code. Please try again.');
       } else if (code === 'verification_expired') {
-        setError('Verification code has expired. Please request a new one.')
+        setError('Verification code has expired. Please request a new one.');
       } else {
-        const msg = err?.errors?.[0]?.longMessage || err?.message || 'Verification failed'
-        setError(msg)
+        const msg = err?.errors?.[0]?.longMessage || err?.message || 'Verification failed';
+        setError(msg);
       }
     } finally {
-      setVerifying(false)
+      setVerifying(false);
     }
-  }
+  };
 
   const resendVerificationCode = async () => {
-    if (!isLoaded || resending) return
+    if (!isLoaded || resending) return;
 
     try {
-      setResending(true)
-      setError(null)
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
+      setResending(true);
+      setError(null);
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       toast({
-        title: "Verification code sent",
-        description: "A new verification code has been sent to your email.",
-      })
+        title: 'Verification code sent',
+        description: 'A new verification code has been sent to your email.',
+      });
     } catch (err: any) {
-      const msg = err?.errors?.[0]?.longMessage || err?.message || 'Failed to resend code'
-      setError(msg)
+      const msg = err?.errors?.[0]?.longMessage || err?.message || 'Failed to resend code';
+      setError(msg);
     } finally {
-      setResending(false)
+      setResending(false);
     }
-  }
+  };
 
   if (step === 'verify') {
     return (
@@ -507,9 +546,7 @@ export default function Page() {
                 </form>
 
                 <div className="text-center space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    Didn't receive the code?
-                  </p>
+                  <p className="text-sm text-muted-foreground">Didn't receive the code?</p>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -550,7 +587,7 @@ export default function Page() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -570,7 +607,9 @@ export default function Page() {
           </div>
           <Card className="border-neutral-200/80 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl">
             <CardHeader className="space-y-1 pb-6">
-              <CardTitle className="text-2xl font-semibold text-zinc-900">Create your account</CardTitle>
+              <CardTitle className="text-2xl font-semibold text-zinc-900">
+                Create your account
+              </CardTitle>
               <p className="text-sm text-zinc-600">Start your career journey today</p>
             </CardHeader>
             {inviteWarning && (
@@ -608,7 +647,11 @@ export default function Page() {
       {/* Right: Marketing Panel */}
       <div className="hidden lg:flex items-center justify-center p-10 bg-brand-blue">
         <div className="max-w-md text-white">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 leading-tight">Take Control of<br />Your Career Growth</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 leading-tight">
+            Take Control of
+            <br />
+            Your Career Growth
+          </h2>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <Check className="h-5 w-5 flex-shrink-0 mt-0.5" />
@@ -634,5 +677,5 @@ export default function Page() {
         </div>
       </div>
     </div>
-  )
+  );
 }

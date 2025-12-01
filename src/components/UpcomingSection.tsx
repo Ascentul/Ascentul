@@ -1,33 +1,38 @@
-'use client'
+'use client';
 
-import Link from 'next/link'
-import { Calendar, Clock, Target, CalendarDays, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { useUpcomingItems, type UpcomingItem, type UpcomingItemType } from '@/hooks/useUpcomingItems'
+import { Calendar, CalendarDays, Clock, Loader2, Target } from 'lucide-react';
+import Link from 'next/link';
+
+import { Button } from '@/components/ui/button';
+import {
+  type UpcomingItem,
+  type UpcomingItemType,
+  useUpcomingItems,
+} from '@/hooks/useUpcomingItems';
+import { cn } from '@/lib/utils';
 
 const typeStyles: Record<UpcomingItemType, { iconBg: string; iconColor: string }> = {
   interview: { iconBg: 'bg-[#EEF1FF]', iconColor: 'text-[#5371FF]' },
   followUp: { iconBg: 'bg-amber-50', iconColor: 'text-amber-600' },
-  goal: { iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600' }
-}
+  goal: { iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600' },
+};
 
 const typeIcons: Record<UpcomingItemType, React.ReactNode> = {
   interview: <Calendar className="h-3.5 w-3.5" />,
   followUp: <Clock className="h-3.5 w-3.5" />,
-  goal: <Target className="h-3.5 w-3.5" />
-}
+  goal: <Target className="h-3.5 w-3.5" />,
+};
 
 const typeLabels: Record<UpcomingItemType, string> = {
   interview: 'Interview',
   followUp: 'Follow-up',
-  goal: 'Goal'
-}
+  goal: 'Goal',
+};
 
 function UpcomingItemRow({ item }: { item: UpcomingItem }) {
-  const styles = typeStyles[item.type]
-  const icon = typeIcons[item.type]
-  const label = typeLabels[item.type]
+  const styles = typeStyles[item.type];
+  const icon = typeIcons[item.type];
+  const label = typeLabels[item.type];
 
   return (
     <Link
@@ -40,16 +45,14 @@ function UpcomingItemRow({ item }: { item: UpcomingItem }) {
         className={cn(
           'inline-flex h-7 w-7 items-center justify-center rounded-full flex-shrink-0',
           styles.iconBg,
-          styles.iconColor
+          styles.iconColor,
         )}
       >
         {icon}
       </span>
 
       {/* Type label */}
-      <span className="text-xs font-medium text-slate-500 w-16 flex-shrink-0">
-        {label}
-      </span>
+      <span className="text-xs font-medium text-slate-500 w-16 flex-shrink-0">{label}</span>
 
       {/* Title */}
       <span className="flex-1 text-sm text-slate-900 truncate group-hover:text-[#5371FF] transition-colors">
@@ -62,13 +65,13 @@ function UpcomingItemRow({ item }: { item: UpcomingItem }) {
           'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium flex-shrink-0',
           item.isOverdue
             ? 'border-red-200 bg-red-50 text-red-600'
-            : 'border-slate-200 text-slate-600'
+            : 'border-slate-200 text-slate-600',
         )}
       >
         {item.displayDate}
       </span>
     </Link>
-  )
+  );
 }
 
 function EmptyState() {
@@ -92,7 +95,7 @@ function EmptyState() {
         </Link>
       </div>
     </div>
-  )
+  );
 }
 
 function LoadingState() {
@@ -100,11 +103,11 @@ function LoadingState() {
     <div className="flex items-center justify-center py-8">
       <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
     </div>
-  )
+  );
 }
 
 export function UpcomingSection() {
-  const { items, totalCount, isLoading } = useUpcomingItems()
+  const { items, totalCount, isLoading } = useUpcomingItems();
 
   return (
     <section
@@ -146,5 +149,5 @@ export function UpcomingSection() {
         </div>
       )}
     </section>
-  )
+  );
 }

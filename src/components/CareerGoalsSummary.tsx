@@ -1,19 +1,16 @@
-"use client";
+'use client';
 
-import { motion } from "framer-motion";
-import Link from "next/link";
-import {
-  Target,
-  AlertCircle,
-  ExternalLink,
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { format, isBefore } from "date-fns";
-import { cn } from "@/lib/utils";
+import { useQuery } from '@tanstack/react-query';
+import { format, isBefore } from 'date-fns';
+import { motion } from 'framer-motion';
+import { AlertCircle, ExternalLink, Target } from 'lucide-react';
+import Link from 'next/link';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { apiRequest } from '@/lib/queryClient';
+import { cn } from '@/lib/utils';
 
 interface Goal {
   id: string | number;
@@ -27,16 +24,16 @@ interface Goal {
 
 export function CareerGoalsSummary() {
   const { data: goals = [], isLoading } = useQuery<Goal[]>({
-    queryKey: ["/api/goals"],
+    queryKey: ['/api/goals'],
     queryFn: async () => {
       try {
-        const res = await apiRequest("GET", "/api/goals");
+        const res = await apiRequest('GET', '/api/goals');
         const data = await res.json().catch(() => []);
         if (Array.isArray(data)) return data;
         if (Array.isArray(data?.goals)) return data.goals;
         return [];
       } catch (error) {
-        console.error("Error fetching goals:", error);
+        console.error('Error fetching goals:', error);
         return [];
       }
     },
@@ -45,29 +42,23 @@ export function CareerGoalsSummary() {
   // Ensure goals is an array and filter to show only active goals (not completed)
   const goalsArray = Array.isArray(goals) ? goals : [];
   const allActiveGoals = goalsArray.filter(
-    (goal) => goal.status !== "completed" && goal.status !== "cancelled",
+    (goal) => goal.status !== 'completed' && goal.status !== 'cancelled',
   );
   const activeGoals = allActiveGoals.slice(0, 3); // Show top 3
   const shouldStretch =
     activeGoals.length > 0 &&
-    activeGoals.some(
-      (goal) => Array.isArray(goal.checklist) && goal.checklist.length > 0,
-    );
+    activeGoals.some((goal) => Array.isArray(goal.checklist) && goal.checklist.length > 0);
 
-  const completedGoals = goalsArray.filter(
-    (goal) => goal.status === "completed",
-  ).length;
-  const inProgressGoals = goalsArray.filter(
-    (goal) => goal.status === "in_progress",
-  ).length;
+  const completedGoals = goalsArray.filter((goal) => goal.status === 'completed').length;
+  const inProgressGoals = goalsArray.filter((goal) => goal.status === 'in_progress').length;
 
   const getStatusColor = (status: string, progress: number) => {
-    if (status === "completed") {
-      return "text-green-600";
+    if (status === 'completed') {
+      return 'text-green-600';
     } else if (progress > 0) {
-      return "text-blue-600";
+      return 'text-blue-600';
     } else {
-      return "text-muted-foreground";
+      return 'text-muted-foreground';
     }
   };
 
@@ -85,20 +76,20 @@ export function CareerGoalsSummary() {
       }}
       className="h-full"
     >
-      <Card
-        className="h-full flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-0 shadow-sm"
-      >
+      <Card className="h-full flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-0 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 px-5 py-3">
           <div>
-            <CardTitle className="text-sm font-semibold text-slate-900">
-              Career Goals
-            </CardTitle>
+            <CardTitle className="text-sm font-semibold text-slate-900">Career Goals</CardTitle>
             <p className="text-xs text-slate-500">
               {completedGoals} completed • {inProgressGoals} in progress
             </p>
           </div>
           <Link href="/goals">
-            <Button variant="outline" size="sm" className="h-8 rounded-xl px-3 text-xs font-medium text-slate-700 hover:bg-slate-100">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-xl px-3 text-xs font-medium text-slate-700 hover:bg-slate-100"
+            >
               <ExternalLink className="mr-2 h-4 w-4" />
               View All
             </Button>
@@ -111,7 +102,10 @@ export function CareerGoalsSummary() {
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="flex items-center space-x-3 rounded-xl bg-slate-50 p-3 shadow-sm">
+                <div
+                  key={i}
+                  className="flex items-center space-x-3 rounded-xl bg-slate-50 p-3 shadow-sm"
+                >
                   <div className="h-8 w-8 rounded-full bg-slate-100 animate-pulse" />
                   <div className="flex-1 space-y-1">
                     <div className="h-4 rounded bg-slate-100 animate-pulse" />
@@ -135,7 +129,11 @@ export function CareerGoalsSummary() {
               {activeGoals.map((goal, idx) => (
                 <div
                   key={goal.id}
-                  className={cn("py-3", idx === 0 ? "pt-0" : "", idx === activeGoals.length - 1 ? "pb-0" : "")}
+                  className={cn(
+                    'py-3',
+                    idx === 0 ? 'pt-0' : '',
+                    idx === activeGoals.length - 1 ? 'pb-0' : '',
+                  )}
                 >
                   <div className="flex min-h-[90px] flex-col rounded-xl bg-white border border-slate-200 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.04)]">
                     <div className="min-w-0 max-w-full flex-1 overflow-hidden">
@@ -151,27 +149,23 @@ export function CareerGoalsSummary() {
 
                     <div className="mt-auto -mt-2 min-w-0">
                       <div className="mb-1 flex items-center justify-between text-xs">
-                        <span className="text-slate-500">
-                          Progress
-                        </span>
-                        <span
-                          className={getStatusColor(
-                            goal.status,
-                            goal.progress,
-                          )}
-                        >
+                        <span className="text-slate-500">Progress</span>
+                        <span className={getStatusColor(goal.status, goal.progress)}>
                           {goal.progress}%
                         </span>
                       </div>
                       <Progress value={goal.progress} className="h-1.5 w-full" />
-                      {goal.dueDate && (() => {
-                        const date = new Date(goal.dueDate);
-                        return !isNaN(date.getTime()) && (
-                          <p className="mt-1 text-xs text-slate-500 truncate">
-                            Due: {format(date, "MMM dd, yyyy")}
-                          </p>
-                        );
-                      })()}
+                      {goal.dueDate &&
+                        (() => {
+                          const date = new Date(goal.dueDate);
+                          return (
+                            !isNaN(date.getTime()) && (
+                              <p className="mt-1 text-xs text-slate-500 truncate">
+                                Due: {format(date, 'MMM dd, yyyy')}
+                              </p>
+                            )
+                          );
+                        })()}
                     </div>
                   </div>
                 </div>

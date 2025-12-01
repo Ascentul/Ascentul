@@ -8,7 +8,7 @@
 /**
  * Valid user roles in the system
  */
-import { UserRole } from '@/lib/constants/roles'
+import { UserRole } from '@/lib/constants/roles';
 
 /**
  * Type definitions for Clerk publicMetadata
@@ -18,6 +18,6 @@ import { UserRole } from '@/lib/constants/roles'
  */
 
 export interface ClerkPublicMetadata {
-  role?: UserRole
-  university_id?: string  // Clerk stores as string, convert to Id<"universities"> when using with Convex
+  role?: UserRole;
+  university_id?: string; // Clerk stores as string, convert to Id<"universities"> when using with Convex
 }

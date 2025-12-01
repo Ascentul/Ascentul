@@ -1,49 +1,61 @@
-'use client'
+'use client';
 
-import React, { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { useRouter, useParams } from 'next/navigation'
-import { useMutation } from 'convex/react'
-import { api } from 'convex/_generated/api'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form'
-import { Loader2, Lock, CheckCircle2, AlertTriangle } from 'lucide-react'
-import { resetUserPassword } from '@/app/actions/reset-password'
+import { zodResolver } from '@hookform/resolvers/zod';
+import { api } from 'convex/_generated/api';
+import { useMutation } from 'convex/react';
+import { AlertTriangle, CheckCircle2, Loader2, Lock } from 'lucide-react';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 
-const resetPasswordSchema = z.object({
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number'),
-  confirmPassword: z.string().min(1, 'Please confirm your password'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ['confirmPassword'],
-})
+import { resetUserPassword } from '@/app/actions/reset-password';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 
-type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>
+const resetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+      .regex(/[0-9]/, 'Password must contain at least one number'),
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  });
+
+type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 export default function ResetPasswordPage() {
-  const router = useRouter()
-  const params = useParams()
-  const token = params.token as string
+  const router = useRouter();
+  const params = useParams();
+  const token = params.token as string;
 
-  const verifyResetToken = useMutation(api.password_reset.verifyResetToken)
-  const completePasswordReset = useMutation(api.password_reset.completePasswordReset)
+  const verifyResetToken = useMutation(api.password_reset.verifyResetToken);
+  const completePasswordReset = useMutation(api.password_reset.completePasswordReset);
 
-  const [isVerifying, setIsVerifying] = useState(true)
-  const [isValidToken, setIsValidToken] = useState(false)
-  const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [userName, setUserName] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [isVerifying, setIsVerifying] = useState(true);
+  const [isValidToken, setIsValidToken] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
@@ -51,66 +63,66 @@ export default function ResetPasswordPage() {
       password: '',
       confirmPassword: '',
     },
-  })
+  });
 
   // Verify token on mount
   useEffect(() => {
     const verifyToken = async () => {
       if (!token) {
-        setError('Invalid reset link')
-        setIsVerifying(false)
-        return
+        setError('Invalid reset link');
+        setIsVerifying(false);
+        return;
       }
 
       try {
-        const result = await verifyResetToken({ token })
-        setIsValidToken(true)
-        setUserEmail(result.email)
-        setUserName(result.name)
+        const result = await verifyResetToken({ token });
+        setIsValidToken(true);
+        setUserEmail(result.email);
+        setUserName(result.name);
       } catch (err: any) {
-        console.error('Token verification failed:', err)
-        setError(err?.message || 'Invalid or expired reset token')
-        setIsValidToken(false)
+        console.error('Token verification failed:', err);
+        setError(err?.message || 'Invalid or expired reset token');
+        setIsValidToken(false);
       } finally {
-        setIsVerifying(false)
+        setIsVerifying(false);
       }
-    }
+    };
 
-    verifyToken()
-  }, [token, verifyResetToken])
+    verifyToken();
+  }, [token, verifyResetToken]);
 
   const onSubmit = async (data: ResetPasswordFormValues) => {
     if (!userEmail) {
-      setError('User email not found')
-      return
+      setError('User email not found');
+      return;
     }
 
-    setIsSubmitting(true)
-    setError(null)
+    setIsSubmitting(true);
+    setError(null);
 
     try {
       // Reset password using Clerk API via server action
-      await resetUserPassword(userEmail, data.password)
+      await resetUserPassword(userEmail, data.password);
 
       // Complete the Convex side - clear the reset token
       await completePasswordReset({
         token,
         email: userEmail,
-      })
+      });
 
-      setIsSuccess(true)
+      setIsSuccess(true);
 
       // Redirect to sign in after 3 seconds
       setTimeout(() => {
-        router.push('/sign-in?reset=success')
-      }, 3000)
+        router.push('/sign-in?reset=success');
+      }, 3000);
     } catch (err: any) {
-      console.error('Password reset failed:', err)
-      setError(err?.message || 'Failed to reset password. Please try again.')
+      console.error('Password reset failed:', err);
+      setError(err?.message || 'Failed to reset password. Please try again.');
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   // Loading state
   if (isVerifying) {
@@ -123,7 +135,7 @@ export default function ResetPasswordPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   // Invalid token state
@@ -136,9 +148,7 @@ export default function ResetPasswordPage() {
               <AlertTriangle className="h-6 w-6 text-red-600" />
             </div>
             <CardTitle className="text-2xl">Invalid Reset Link</CardTitle>
-            <CardDescription>
-              This password reset link is invalid or has expired
-            </CardDescription>
+            <CardDescription>This password reset link is invalid or has expired</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="p-3 rounded-lg border bg-red-50 border-red-200 text-sm text-red-900">
@@ -160,7 +170,7 @@ export default function ResetPasswordPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   // Success state
@@ -173,19 +183,15 @@ export default function ResetPasswordPage() {
               <CheckCircle2 className="h-6 w-6 text-green-600" />
             </div>
             <CardTitle className="text-2xl">Password Reset Complete!</CardTitle>
-            <CardDescription>
-              Your password has been successfully reset
-            </CardDescription>
+            <CardDescription>Your password has been successfully reset</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-center">
-            <p className="text-sm text-muted-foreground">
-              Redirecting you to sign in...
-            </p>
+            <p className="text-sm text-muted-foreground">Redirecting you to sign in...</p>
             <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   // Reset password form
@@ -194,9 +200,7 @@ export default function ResetPasswordPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl">Reset Your Password</CardTitle>
-          <CardDescription>
-            Hi {userName}, enter your new password below
-          </CardDescription>
+          <CardDescription>Hi {userName}, enter your new password below</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -277,5 +281,5 @@ export default function ResetPasswordPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

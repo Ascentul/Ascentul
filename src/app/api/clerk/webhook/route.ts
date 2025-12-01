@@ -1,15 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { Webhook } from 'svix'
-import { clerkClient } from '@clerk/nextjs/server'
-import { api } from 'convex/_generated/api'
-import { Id } from 'convex/_generated/dataModel'
+import { clerkClient } from '@clerk/nextjs/server';
+import { api } from 'convex/_generated/api';
+import { Id } from 'convex/_generated/dataModel';
+import { NextRequest, NextResponse } from 'next/server';
+import { Webhook } from 'svix';
+
 import { convexServer } from '@/lib/convex-server';
-import { validateRoleOrWarn } from '@/lib/validation/roleValidation'
+import { validateRoleOrWarn } from '@/lib/validation/roleValidation';
 
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-const webhookSecret = process.env.CLERK_WEBHOOK_SECRET
+const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
 
 /**
  * Clerk Webhook Handler
@@ -23,56 +24,58 @@ const webhookSecret = process.env.CLERK_WEBHOOK_SECRET
  * - user.deleted: Mark user as deleted in Convex
  */
 
-const convexServiceToken = process.env.CONVEX_INTERNAL_SERVICE_TOKEN
+const convexServiceToken = process.env.CONVEX_INTERNAL_SERVICE_TOKEN;
 
 export async function POST(request: NextRequest) {
   try {
     if (!convexServiceToken) {
-      console.error('[Clerk Webhook] Missing CONVEX_INTERNAL_SERVICE_TOKEN')
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+      console.error('[Clerk Webhook] Missing CONVEX_INTERNAL_SERVICE_TOKEN');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
-    const rawBody = await request.text()
+    const rawBody = await request.text();
     const svixHeaders = {
       'svix-id': request.headers.get('svix-id') || '',
       'svix-timestamp': request.headers.get('svix-timestamp') || '',
       'svix-signature': request.headers.get('svix-signature') || '',
-    }
+    };
 
     if (!webhookSecret) {
-      console.warn('[Clerk Webhook] No webhook secret configured - skipping verification')
-      return NextResponse.json({ received: true, warning: 'no_secret' })
+      console.warn('[Clerk Webhook] No webhook secret configured - skipping verification');
+      return NextResponse.json({ received: true, warning: 'no_secret' });
     }
 
     // Verify webhook signature
-    const wh = new Webhook(webhookSecret)
-    let event: any
+    const wh = new Webhook(webhookSecret);
+    let event: any;
 
     try {
-      event = wh.verify(rawBody, svixHeaders)
+      event = wh.verify(rawBody, svixHeaders);
     } catch (err) {
-      console.error('[Clerk Webhook] Verification failed:', err)
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
+      console.error('[Clerk Webhook] Verification failed:', err);
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
-    const eventType = event.type
-    const userData = event.data
+    const eventType = event.type;
+    const userData = event.data;
 
-    console.log(`[Clerk Webhook] Received event: ${eventType}`)
+    console.log(`[Clerk Webhook] Received event: ${eventType}`);
 
     switch (eventType) {
       case 'user.created': {
         // Extract subscription data from Clerk's publicMetadata
-        const metadata = userData.public_metadata || {}
-        const subscriptionPlan = determineSubscriptionPlan(metadata)
-        const subscriptionStatus = determineSubscriptionStatus(metadata)
-        const roleInMetadata = metadata.role || null
+        const metadata = userData.public_metadata || {};
+        const subscriptionPlan = determineSubscriptionPlan(metadata);
+        const subscriptionStatus = determineSubscriptionStatus(metadata);
+        const roleInMetadata = metadata.role || null;
 
         // Validate role value before passing to Convex
-        const validatedRole = validateRoleOrWarn(roleInMetadata, 'Clerk Webhook')
+        const validatedRole = validateRoleOrWarn(roleInMetadata, 'Clerk Webhook');
 
-        const userEmail = userData.email_addresses?.[0]?.email_address || ''
+        const userEmail = userData.email_addresses?.[0]?.email_address || '';
 
-        console.log(`[Clerk Webhook] Creating user: ${userEmail}${validatedRole ? ` with role: ${validatedRole}` : ''}`)
+        console.log(
+          `[Clerk Webhook] Creating user: ${userEmail}${validatedRole ? ` with role: ${validatedRole}` : ''}`,
+        );
 
         // Create/activate user in Convex
         const userId = await convexServer.mutation(api.users.createUserFromClerk, {
@@ -85,106 +88,108 @@ export async function POST(request: NextRequest) {
           // Pass validated role from Clerk metadata if present
           role: validatedRole || undefined,
           serviceToken: convexServiceToken,
-        })
+        });
 
-        console.log(`[Clerk Webhook] Created/activated user: ${userData.id}`)
+        console.log(`[Clerk Webhook] Created/activated user: ${userData.id}`);
 
         // Check if this user was a pending university student
         // If so, sync university_id to Clerk metadata
         const convexUser = await convexServer.query(api.users.getUserByClerkId, {
           clerkId: userData.id,
           serviceToken: convexServiceToken,
-        })
+        });
 
         if (convexUser && convexUser.university_id && !metadata.university_id) {
           try {
-            const client = await clerkClient()
+            const client = await clerkClient();
 
             // Build publicMetadata update
             const updatedMetadata: Record<string, any> = {
               ...metadata,
               university_id: convexUser.university_id,
-            }
+            };
 
             // Only set role if we have a valid one (prefer Convex role, fallback to validated role from webhook)
-            const roleToSync = convexUser.role || validatedRole
+            const roleToSync = convexUser.role || validatedRole;
             if (roleToSync) {
-              updatedMetadata.role = roleToSync
+              updatedMetadata.role = roleToSync;
             }
 
             await client.users.updateUser(userData.id, {
               publicMetadata: updatedMetadata,
-            })
-            console.log(`[Clerk Webhook] Synced university_id and role to Clerk for ${userEmail}`)
+            });
+            console.log(`[Clerk Webhook] Synced university_id and role to Clerk for ${userEmail}`);
           } catch (syncError) {
-            console.error('[Clerk Webhook] Failed to sync to Clerk:', syncError)
+            console.error('[Clerk Webhook] Failed to sync to Clerk:', syncError);
           }
         }
 
-        break
+        break;
       }
 
       case 'user.updated': {
         // Sync subscription data from Clerk to Convex (cached display data)
-        const metadata = userData.public_metadata || {}
-        const subscriptionPlan = determineSubscriptionPlan(metadata)
-        const subscriptionStatus = determineSubscriptionStatus(metadata)
+        const metadata = userData.public_metadata || {};
+        const subscriptionPlan = determineSubscriptionPlan(metadata);
+        const subscriptionStatus = determineSubscriptionStatus(metadata);
 
         // Check if role changed - important for role management logging
-        const roleInMetadata = metadata.role || null
-        const universityIdInMetadata = metadata.university_id
+        const roleInMetadata = metadata.role || null;
+        const universityIdInMetadata = metadata.university_id;
         // Basic sanity check: must be a non-empty string
         // Convex will validate the actual ID format via v.id("universities") validator
         const universityIdString =
           typeof universityIdInMetadata === 'string' && universityIdInMetadata.trim().length > 0
             ? universityIdInMetadata.trim()
-            : undefined
-        const userEmail = userData.email_addresses?.[0]?.email_address
+            : undefined;
+        const userEmail = userData.email_addresses?.[0]?.email_address;
 
         // Validate role value before syncing to Convex
-        const validatedRole = validateRoleOrWarn(roleInMetadata, `Clerk Webhook - ${userEmail}`)
+        const validatedRole = validateRoleOrWarn(roleInMetadata, `Clerk Webhook - ${userEmail}`);
         const isUniversityRole =
           validatedRole === 'student' ||
           validatedRole === 'advisor' ||
-          validatedRole === 'university_admin'
-        const membershipRole = isUniversityRole ? validatedRole : null
+          validatedRole === 'university_admin';
+        const membershipRole = isUniversityRole ? validatedRole : null;
 
         // Build updates object
         const updates: any = {
           email: userEmail,
           name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim(),
-        }
+        };
 
         if (validatedRole) {
-          updates.role = validatedRole
+          updates.role = validatedRole;
         }
 
         // Enforce role constraints per learnings
         if (validatedRole === 'individual') {
           // Individual users must NOT have university_id
-          updates.university_id = null  // Explicitly clear
+          updates.university_id = null; // Explicitly clear
         } else if (membershipRole) {
           // University roles MUST have university_id
           if (!universityIdString) {
-            console.error(`[Clerk Webhook] Invalid state: ${membershipRole} role without university_id for user ${userData.id}`)
+            console.error(
+              `[Clerk Webhook] Invalid state: ${membershipRole} role without university_id for user ${userData.id}`,
+            );
             return NextResponse.json(
               { error: `${membershipRole} role requires university_id` },
-              { status: 400 }
-            )
+              { status: 400 },
+            );
           }
           // Pass as string - Convex validates format with v.id() validator
-          updates.university_id = universityIdString
+          updates.university_id = universityIdString;
         }
 
         // If user is banned in Clerk, ensure account_status is suspended
         if (userData.banned) {
-          updates.account_status = 'suspended'
+          updates.account_status = 'suspended';
         } else if (metadata.account_status) {
           // Sync account_status from metadata if present
-          updates.account_status = metadata.account_status
+          updates.account_status = metadata.account_status;
         } else {
           // Reset to active when unbanned and no metadata override
-          updates.account_status = 'active'
+          updates.account_status = 'active';
         }
 
         // Use atomic mutation to update user and membership in single transaction
@@ -200,68 +205,75 @@ export async function POST(request: NextRequest) {
             // The catch block below (lines 204-216) handles these validation errors gracefully.
             // This assertion is safe because: 1) we pre-check for non-empty string, 2) server validates format,
             // 3) we catch and handle format errors with a 400 response.
-            membership: membershipRole && universityIdString
-              ? { role: membershipRole, universityId: universityIdString as Id<'universities'> }
-              : undefined,
+            membership:
+              membershipRole && universityIdString
+                ? { role: membershipRole, universityId: universityIdString as Id<'universities'> }
+                : undefined,
             serviceToken: convexServiceToken,
-          })
+          });
         } catch (mutationError: any) {
           // Handle Convex validation errors (e.g., malformed university_id)
           // Convex v.id() validator throws ArgumentValidationError with message prefix
-          const errorMessage = mutationError?.message || String(mutationError)
+          const errorMessage = mutationError?.message || String(mutationError);
           if (errorMessage.includes('ArgumentValidationError:')) {
-            console.error(`[Clerk Webhook] Invalid university_id format for user ${userData.id}: ${universityIdString}`)
+            console.error(
+              `[Clerk Webhook] Invalid university_id format for user ${userData.id}: ${universityIdString}`,
+            );
             return NextResponse.json(
               { error: 'Invalid university_id format in metadata' },
-              { status: 400 }
-            )
+              { status: 400 },
+            );
           }
           // Re-throw other errors
-          throw mutationError
+          throw mutationError;
         }
 
-        console.log(`[Clerk Webhook] Updated user: ${userData.id}, plan: ${subscriptionPlan}, status: ${subscriptionStatus}${validatedRole ? `, role: ${validatedRole}` : ''}`)
-        break
+        console.log(
+          `[Clerk Webhook] Updated user: ${userData.id}, plan: ${subscriptionPlan}, status: ${subscriptionStatus}${validatedRole ? `, role: ${validatedRole}` : ''}`,
+        );
+        break;
       }
 
       case 'user.deleted': {
         // User was deleted from Clerk
         // This should only happen for hard-deleted test users
-        console.log(`[Clerk Webhook] User deleted from Clerk: ${userData.id}`)
+        console.log(`[Clerk Webhook] User deleted from Clerk: ${userData.id}`);
 
         // Check if user exists in Convex and is a test user
         try {
           const convexUser = await convexServer.query(api.users.getUserByClerkId, {
             clerkId: userData.id,
             serviceToken: convexServiceToken,
-          })
+          });
 
           if (convexUser) {
             if (convexUser.is_test_user) {
               // Test user - this is expected, the hard delete was initiated from our side
-              console.log(`[Clerk Webhook] Test user deletion confirmed: ${userData.id}`)
+              console.log(`[Clerk Webhook] Test user deletion confirmed: ${userData.id}`);
             } else {
               // Real user - this shouldn't happen, log warning
-              console.warn(`[Clerk Webhook] WARNING: Real user was deleted from Clerk: ${userData.id}`)
+              console.warn(
+                `[Clerk Webhook] WARNING: Real user was deleted from Clerk: ${userData.id}`,
+              );
               // Note: Deletions should only happen through softDeleteUser/hardDeleteUser actions
               // which handle both Clerk and Convex updates atomically
             }
           }
         } catch (error) {
-          console.error(`[Clerk Webhook] Error handling user deletion: ${error}`)
+          console.error(`[Clerk Webhook] Error handling user deletion: ${error}`);
         }
 
-        break
+        break;
       }
 
       default:
-        console.log(`[Clerk Webhook] Unhandled event type: ${eventType}`)
+        console.log(`[Clerk Webhook] Unhandled event type: ${eventType}`);
     }
 
-    return NextResponse.json({ received: true })
+    return NextResponse.json({ received: true });
   } catch (err) {
-    console.error('[Clerk Webhook] Error:', err)
-    return NextResponse.json({ error: 'Webhook error' }, { status: 400 })
+    console.error('[Clerk Webhook] Error:', err);
+    return NextResponse.json({ error: 'Webhook error' }, { status: 400 });
   }
 }
 
@@ -277,73 +289,77 @@ export async function POST(request: NextRequest) {
 function determineSubscriptionPlan(metadata: any): 'free' | 'premium' | 'university' {
   // Check for university affiliation first
   if (metadata.role === 'student' || metadata.university_id) {
-    return 'university'
+    return 'university';
   }
 
   // Check Clerk Billing subscription data
-  const subscriptions = metadata.subscriptions || []
-  const currentPlan = metadata.billing?.plan || metadata.plan
+  const subscriptions = metadata.subscriptions || [];
+  const currentPlan = metadata.billing?.plan || metadata.plan;
 
   // Check for premium plan (includes both monthly and annual billing)
   if (currentPlan === 'premium_monthly') {
-    return 'premium'
+    return 'premium';
   }
 
   // Check subscriptions array
   for (const sub of subscriptions) {
     if (sub.plan === 'premium_monthly') {
       if (sub.status === 'active' || sub.status === 'trialing') {
-        return 'premium'
+        return 'premium';
       }
     }
   }
 
-  return 'free'
+  return 'free';
 }
 
 /**
  * Determine subscription status from Clerk's publicMetadata
  */
-function determineSubscriptionStatus(metadata: any): 'active' | 'inactive' | 'cancelled' | 'past_due' {
-  const subscriptions = metadata.subscriptions || []
-  const currentPlan = metadata.billing?.plan || metadata.plan
+function determineSubscriptionStatus(
+  metadata: any,
+): 'active' | 'inactive' | 'cancelled' | 'past_due' {
+  const subscriptions = metadata.subscriptions || [];
+  const currentPlan = metadata.billing?.plan || metadata.plan;
 
   // University users are always active
   if (metadata.role === 'student' || metadata.university_id) {
-    return 'active'
+    return 'active';
   }
 
   // Check for active premium subscription
   if (currentPlan === 'premium_monthly') {
-    const status = metadata.billing?.status || 'active'
-    return mapClerkStatusToConvex(status)
+    const status = metadata.billing?.status || 'active';
+    return mapClerkStatusToConvex(status);
   }
 
   // Check subscriptions array
   for (const sub of subscriptions) {
     if (sub.plan === 'premium_monthly') {
-      return mapClerkStatusToConvex(sub.status)
+      return mapClerkStatusToConvex(sub.status);
     }
   }
 
-  return 'inactive'
+  return 'inactive';
 }
 
 /**
  * Map Clerk subscription status to Convex status
  */
-function mapClerkStatusToConvex(clerkStatus: string): 'active' | 'inactive' | 'cancelled' | 'past_due' {
+function mapClerkStatusToConvex(
+  clerkStatus: string,
+): 'active' | 'inactive' | 'cancelled' | 'past_due' {
   switch (clerkStatus) {
     case 'active':
     case 'trialing':
-      return 'active'
+      return 'active';
     case 'past_due':
-      return 'past_due'
+      return 'past_due';
     case 'canceled':
     case 'cancelled':
     case 'unpaid':
-      return 'cancelled'
+      return 'cancelled';
     default:
-      return 'inactive'
+      return 'inactive';
   }
 }

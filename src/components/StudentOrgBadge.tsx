@@ -1,10 +1,11 @@
-"use client";
+'use client';
 
-import { useUser } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
-import { api } from "convex/_generated/api";
-import { School } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useQuery } from 'convex/react';
+import { School } from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
 
 /**
  * StudentOrgBadge Component
@@ -22,13 +23,12 @@ export function StudentOrgBadge() {
   const { user: clerkUser, isLoaded } = useUser();
 
   // Feature flag check (environment variable)
-  const featureFlagEnabled =
-    process.env.NEXT_PUBLIC_ENABLE_STUDENT_ORG_BADGE === "true";
+  const featureFlagEnabled = process.env.NEXT_PUBLIC_ENABLE_STUDENT_ORG_BADGE === 'true';
 
   // Always call the hook; skip until ready/enabled
   const viewer = useQuery(
     api.viewer.getViewer,
-    featureFlagEnabled && isLoaded && clerkUser ? {} : "skip",
+    featureFlagEnabled && isLoaded && clerkUser ? {} : 'skip',
   );
 
   // Don't render while query is loading or conditions not met
@@ -48,9 +48,7 @@ export function StudentOrgBadge() {
       aria-label={`Student at ${viewer.student.universityName}`}
     >
       <School className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
-      <span className="truncate">
-        {viewer.student.universityName}
-      </span>
+      <span className="truncate">{viewer.student.universityName}</span>
     </Badge>
   );
 }

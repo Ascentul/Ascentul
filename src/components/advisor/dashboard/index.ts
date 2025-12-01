@@ -8,9 +8,9 @@
  * 3. Are my students actually making progress? (ProgressOutcomesCard)
  */
 
-export { NeedsAttentionStrip } from './NeedsAttentionStrip';
-export { RiskOverviewPanel } from './RiskOverviewPanel';
-export { CaseloadGapsCard } from './CaseloadGapsCard';
 export { CapacityCard } from './CapacityCard';
+export { CaseloadGapsCard } from './CaseloadGapsCard';
+export { NeedsAttentionStrip } from './NeedsAttentionStrip';
 export { ProgressOutcomesCard } from './ProgressOutcomesCard';
 export { QuickActionsBar } from './QuickActionsBar';
+export { RiskOverviewPanel } from './RiskOverviewPanel';

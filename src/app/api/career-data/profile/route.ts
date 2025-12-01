@@ -1,40 +1,42 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { api } from 'convex/_generated/api'
-import { convexServer } from '@/lib/convex-server';
-import { requireConvexToken } from '@/lib/convex-auth';
+import { api } from 'convex/_generated/api';
+import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
+import { requireConvexToken } from '@/lib/convex-auth';
+import { convexServer } from '@/lib/convex-server';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 // Helper function to calculate years of experience from work history
 function calculateExperienceYears(workHistory: any[]): number {
   if (!workHistory || !Array.isArray(workHistory) || workHistory.length === 0) {
-    return 0
+    return 0;
   }
 
-  let totalMonths = 0
-  const now = new Date()
+  let totalMonths = 0;
+  const now = new Date();
 
-  workHistory.forEach(job => {
+  workHistory.forEach((job) => {
     if (job.start_date) {
-      const startDate = new Date(job.start_date)
-      const endDate = job.is_current ? now : (job.end_date ? new Date(job.end_date) : startDate)
+      const startDate = new Date(job.start_date);
+      const endDate = job.is_current ? now : job.end_date ? new Date(job.end_date) : startDate;
 
-      const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-                    (endDate.getMonth() - startDate.getMonth())
+      const months =
+        (endDate.getFullYear() - startDate.getFullYear()) * 12 +
+        (endDate.getMonth() - startDate.getMonth());
 
       if (months > 0) {
-        totalMonths += months
+        totalMonths += months;
       }
     }
-  })
+  });
 
-  return Math.round(totalMonths / 12)
+  return Math.round(totalMonths / 12);
 }
 
 // Helper function to format education history
 function formatEducationHistory(user: any): any[] {
-  const education = []
+  const education = [];
 
   // First, check if there's a structured education_history
   if (user?.education_history && Array.isArray(user.education_history)) {
@@ -45,8 +47,8 @@ function formatEducationHistory(user: any): any[] {
         institution: edu.institution || 'University',
         graduationYear: edu.graduation_date || edu.end_date,
         gpa: edu.gpa,
-      })
-    })
+      });
+    });
   }
 
   // Fallback to basic education info if no structured history
@@ -56,7 +58,7 @@ function formatEducationHistory(user: any): any[] {
       field: user.major || 'General Studies',
       institution: user.university_name,
       graduationYear: user.graduation_date || user.graduation_year,
-    })
+    });
   }
 
   // Default if no education info at all
@@ -65,19 +67,19 @@ function formatEducationHistory(user: any): any[] {
       degree: 'Bachelor',
       field: 'General Studies',
       institution: 'University',
-    })
+    });
   }
 
-  return education
+  return education;
 }
 
 // Helper function to format work history
 function formatWorkHistory(workHistory: any[]): any[] {
   if (!workHistory || !Array.isArray(workHistory) || workHistory.length === 0) {
-    return []
+    return [];
   }
 
-  return workHistory.map(job => ({
+  return workHistory.map((job) => ({
     title: job.role || job.title || 'Position',
     company: job.company || 'Company',
     startDate: job.start_date,
@@ -85,36 +87,40 @@ function formatWorkHistory(workHistory: any[]): any[] {
     isCurrent: job.is_current || false,
     location: job.location,
     description: job.summary || job.description,
-  }))
+  }));
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId, token } = await requireConvexToken()
+    const { userId, token } = await requireConvexToken();
 
-    let user: any = null
-    let projects: any[] = []
+    let user: any = null;
+    let projects: any[] = [];
 
     try {
-      user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token)
+      user = await convexServer.query(api.users.getUserByClerkId, { clerkId: userId }, token);
     } catch (userError) {
       console.error('Failed to fetch user profile:', {
         message: userError instanceof Error ? userError.message : 'Unknown error',
-      })
-      return NextResponse.json({ error: 'Failed to fetch user profile' }, { status: 503 })
+      });
+      return NextResponse.json({ error: 'Failed to fetch user profile' }, { status: 503 });
     }
 
     if (!user) {
-      console.error('User not found in Convex for authenticated user')
-      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+      console.error('User not found in Convex for authenticated user');
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
     }
 
     try {
-      projects = await convexServer.query(api.projects.getUserProjects, { clerkId: userId }, token) as any[]
+      projects = (await convexServer.query(
+        api.projects.getUserProjects,
+        { clerkId: userId },
+        token,
+      )) as any[];
     } catch (projectError) {
       console.warn('Failed to fetch user projects:', {
         message: projectError instanceof Error ? projectError.message : 'Unknown error',
-      })
+      });
       // projects are optional; continue with empty array
     }
 
@@ -141,11 +147,11 @@ export async function GET(request: NextRequest) {
       career_goals: user?.career_goals,
       current_position: user?.current_position,
       current_company: user?.current_company,
-    }
+    };
 
-    return NextResponse.json(profile)
+    return NextResponse.json(profile);
   } catch (error: any) {
-    console.error('GET /api/career-data/profile error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('GET /api/career-data/profile error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

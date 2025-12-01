@@ -8,17 +8,18 @@
  * - Status transitions (waiting → needs_edits → approved)
  */
 
-import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
+import { v } from 'convex/values';
+
+import { mutation, query } from './_generated/server';
 import {
-  getCurrentUser,
-  requireTenant,
-  requireAdvisorRole,
-  getOwnedStudentIds,
   assertCanAccessStudent,
   canViewPrivateContent,
   createAuditLog,
-} from "./advisor_auth";
+  getCurrentUser,
+  getOwnedStudentIds,
+  requireAdvisorRole,
+  requireTenant,
+} from './advisor_auth';
 
 /**
  * Get review queue for advisor (all pending reviews for their students)
@@ -28,10 +29,10 @@ export const getReviewQueue = query({
     clerkId: v.string(),
     status: v.optional(
       v.union(
-        v.literal("waiting"),
-        v.literal("in_review"),
-        v.literal("needs_edits"),
-        v.literal("approved"),
+        v.literal('waiting'),
+        v.literal('in_review'),
+        v.literal('needs_edits'),
+        v.literal('approved'),
       ),
     ),
   },
@@ -53,16 +54,14 @@ export const getReviewQueue = query({
       // Use by_status index when status filter is provided
       const status = args.status;
       reviews = await ctx.db
-        .query("advisor_reviews")
-        .withIndex("by_status", (q) =>
-          q.eq("status", status).eq("university_id", universityId)
-        )
+        .query('advisor_reviews')
+        .withIndex('by_status', (q) => q.eq('status', status).eq('university_id', universityId))
         .collect();
     } else {
       // Use by_university index when no status filter
       reviews = await ctx.db
-        .query("advisor_reviews")
-        .withIndex("by_university", (q) => q.eq("university_id", universityId))
+        .query('advisor_reviews')
+        .withIndex('by_university', (q) => q.eq('university_id', universityId))
         .collect();
     }
 
@@ -70,14 +69,12 @@ export const getReviewQueue = query({
     const ownedReviews = reviews.filter((r) => studentIds.includes(r.student_id));
 
     // Enrich with student info
-    const uniqueStudentIds = [...new Set(ownedReviews.map(r => r.student_id))];
-    const students = await Promise.all(
-      uniqueStudentIds.map(id => ctx.db.get(id))
-    );
+    const uniqueStudentIds = [...new Set(ownedReviews.map((r) => r.student_id))];
+    const students = await Promise.all(uniqueStudentIds.map((id) => ctx.db.get(id)));
     const studentMap = new Map(
       students
         .filter((s): s is NonNullable<typeof s> => s !== null)
-        .map(s => [s._id, s] as const)
+        .map((s) => [s._id, s] as const),
     );
 
     const enriched = ownedReviews.map((review) => {
@@ -98,7 +95,7 @@ export const getReviewQueue = query({
 
     // Sort by created_at (oldest first for waiting status, newest first otherwise)
     return enriched.sort((a, b) => {
-      if (args.status === "waiting") {
+      if (args.status === 'waiting') {
         return a.created_at - b.created_at; // FIFO for waiting
       }
       return b.created_at - a.created_at; // Latest first
@@ -125,16 +122,12 @@ export const getReviewQueueCount = query({
     }
 
     const waitingReviews = await ctx.db
-      .query("advisor_reviews")
-      .withIndex("by_status", (q) =>
-        q.eq("status", "waiting").eq("university_id", universityId),
-      )
+      .query('advisor_reviews')
+      .withIndex('by_status', (q) => q.eq('status', 'waiting').eq('university_id', universityId))
       .collect();
 
     // Filter to owned students
-    const ownedWaiting = waitingReviews.filter((r) =>
-      studentIds.includes(r.student_id),
-    );
+    const ownedWaiting = waitingReviews.filter((r) => studentIds.includes(r.student_id));
 
     return ownedWaiting.length;
   },
@@ -146,7 +139,7 @@ export const getReviewQueueCount = query({
 export const getReview = query({
   args: {
     clerkId: v.string(),
-    reviewId: v.id("advisor_reviews"),
+    reviewId: v.id('advisor_reviews'),
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
@@ -155,12 +148,12 @@ export const getReview = query({
 
     const review = await ctx.db.get(args.reviewId);
     if (!review) {
-      throw new Error("Review not found");
+      throw new Error('Review not found');
     }
 
     // Tenant isolation
     if (review.university_id !== universityId) {
-      throw new Error("Unauthorized: Review not in your university");
+      throw new Error('Unauthorized: Review not in your university');
     }
 
     // Verify access to student
@@ -171,15 +164,15 @@ export const getReview = query({
 
     // Get asset (resume or cover letter) using typed IDs
     let asset = null;
-    if (review.asset_type === "resume" && review.resume_id) {
+    if (review.asset_type === 'resume' && review.resume_id) {
       asset = await ctx.db.get(review.resume_id);
       if (asset && asset.user_id !== review.student_id) {
-        throw new Error("Asset ownership mismatch");
+        throw new Error('Asset ownership mismatch');
       }
-    } else if (review.asset_type === "cover_letter" && review.cover_letter_id) {
+    } else if (review.asset_type === 'cover_letter' && review.cover_letter_id) {
       asset = await ctx.db.get(review.cover_letter_id);
       if (asset && asset.user_id !== review.student_id) {
-        throw new Error("Asset ownership mismatch");
+        throw new Error('Asset ownership mismatch');
       }
     }
     return {
@@ -196,10 +189,10 @@ export const getReview = query({
 export const createReview = mutation({
   args: {
     clerkId: v.string(),
-    studentId: v.id("users"),
-    assetType: v.union(v.literal("resume"), v.literal("cover_letter")),
-    resumeId: v.optional(v.id("resumes")),
-    coverLetterId: v.optional(v.id("cover_letters")),
+    studentId: v.id('users'),
+    assetType: v.union(v.literal('resume'), v.literal('cover_letter')),
+    resumeId: v.optional(v.id('resumes')),
+    coverLetterId: v.optional(v.id('cover_letters')),
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
@@ -208,39 +201,39 @@ export const createReview = mutation({
 
     // Validate mutual exclusivity of asset IDs
     if (args.resumeId && args.coverLetterId) {
-      throw new Error("Cannot specify both resumeId and coverLetterId");
+      throw new Error('Cannot specify both resumeId and coverLetterId');
     }
 
     // Validate that exactly one ID is provided based on asset type
-    if (args.assetType === "resume") {
+    if (args.assetType === 'resume') {
       if (!args.resumeId) {
-        throw new Error("resumeId is required when assetType is resume");
+        throw new Error('resumeId is required when assetType is resume');
       }
       if (args.coverLetterId) {
-        throw new Error("coverLetterId cannot be specified when assetType is resume");
+        throw new Error('coverLetterId cannot be specified when assetType is resume');
       }
       const resume = await ctx.db.get(args.resumeId);
       if (!resume) {
-        throw new Error("Resume not found");
+        throw new Error('Resume not found');
       }
       if (resume.user_id !== args.studentId) {
-        throw new Error("Resume does not belong to this student");
+        throw new Error('Resume does not belong to this student');
       }
     }
 
-    if (args.assetType === "cover_letter") {
+    if (args.assetType === 'cover_letter') {
       if (!args.coverLetterId) {
-        throw new Error("coverLetterId is required when assetType is cover_letter");
+        throw new Error('coverLetterId is required when assetType is cover_letter');
       }
       if (args.resumeId) {
-        throw new Error("resumeId cannot be specified when assetType is cover_letter");
+        throw new Error('resumeId cannot be specified when assetType is cover_letter');
       }
       const coverLetter = await ctx.db.get(args.coverLetterId);
       if (!coverLetter) {
-        throw new Error("Cover letter not found");
+        throw new Error('Cover letter not found');
       }
       if (coverLetter.user_id !== args.studentId) {
-        throw new Error("Cover letter does not belong to this student");
+        throw new Error('Cover letter does not belong to this student');
       }
     }
 
@@ -249,13 +242,13 @@ export const createReview = mutation({
 
     const now = Date.now();
 
-    const reviewId = await ctx.db.insert("advisor_reviews", {
+    const reviewId = await ctx.db.insert('advisor_reviews', {
       student_id: args.studentId,
       university_id: universityId,
       asset_type: args.assetType,
       resume_id: args.resumeId,
       cover_letter_id: args.coverLetterId,
-      status: "waiting",
+      status: 'waiting',
       comments: [],
       version: 1, // Initialize version for optimistic concurrency control
       created_at: now,
@@ -266,8 +259,8 @@ export const createReview = mutation({
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId,
-      action: "review.created",
-      entityType: "advisor_review",
+      action: 'review.created',
+      entityType: 'advisor_review',
       entityId: reviewId,
       studentId: args.studentId,
       newValue: {
@@ -287,12 +280,12 @@ export const createReview = mutation({
 export const updateReviewStatus = mutation({
   args: {
     clerkId: v.string(),
-    reviewId: v.id("advisor_reviews"),
+    reviewId: v.id('advisor_reviews'),
     status: v.union(
-      v.literal("waiting"),
-      v.literal("in_review"),
-      v.literal("needs_edits"),
-      v.literal("approved"),
+      v.literal('waiting'),
+      v.literal('in_review'),
+      v.literal('needs_edits'),
+      v.literal('approved'),
     ),
   },
   handler: async (ctx, args) => {
@@ -301,13 +294,13 @@ export const updateReviewStatus = mutation({
 
     const review = await ctx.db.get(args.reviewId);
     if (!review) {
-      throw new Error("Review not found");
+      throw new Error('Review not found');
     }
 
     // Verify tenant isolation
     const universityId = requireTenant(sessionCtx);
     if (review.university_id !== universityId) {
-      throw new Error("Unauthorized: Review not in your university");
+      throw new Error('Unauthorized: Review not in your university');
     }
 
     // Verify access to student
@@ -321,22 +314,17 @@ export const updateReviewStatus = mutation({
     // for simple cases where advisors want to quickly approve without explicit "in_review" step.
     // This function enforces the formal workflow: waiting → in_review → approved.
     const validTransitions: Record<string, string[]> = {
-      waiting: ["in_review"],
-      in_review: ["needs_edits", "approved", "waiting"],
-      needs_edits: ["in_review", "waiting"],
-      approved: ["needs_edits"], // allow re-review if needed
+      waiting: ['in_review'],
+      in_review: ['needs_edits', 'approved', 'waiting'],
+      needs_edits: ['in_review', 'waiting'],
+      approved: ['needs_edits'], // allow re-review if needed
     };
 
-    if (
-      previousStatus &&
-      !validTransitions[previousStatus]?.includes(args.status)
-    ) {
-      throw new Error(
-        `Invalid transition from ${previousStatus} to ${args.status}`
-      );
+    if (previousStatus && !validTransitions[previousStatus]?.includes(args.status)) {
+      throw new Error(`Invalid transition from ${previousStatus} to ${args.status}`);
     }
 
-    const isWaiting = args.status === "waiting";
+    const isWaiting = args.status === 'waiting';
 
     const patchData: Record<string, any> = {
       status: args.status,
@@ -357,8 +345,8 @@ export const updateReviewStatus = mutation({
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId: review.university_id,
-      action: "review.status_changed",
-      entityType: "advisor_review",
+      action: 'review.status_changed',
+      entityType: 'advisor_review',
       entityId: args.reviewId,
       studentId: review.student_id,
       previousValue: previousStatus,
@@ -375,7 +363,7 @@ export const updateReviewStatus = mutation({
 export const updateRubric = mutation({
   args: {
     clerkId: v.string(),
-    reviewId: v.id("advisor_reviews"),
+    reviewId: v.id('advisor_reviews'),
     rubric: v.object({
       content_quality: v.optional(v.number()),
       formatting: v.optional(v.number()),
@@ -391,26 +379,20 @@ export const updateRubric = mutation({
 
     const review = await ctx.db.get(args.reviewId);
     if (!review) {
-      throw new Error("Review not found");
+      throw new Error('Review not found');
     }
 
     // Tenant isolation: ensure review belongs to same university
     if (review.university_id !== universityId) {
-      throw new Error("Unauthorized: Review not in your university");
+      throw new Error('Unauthorized: Review not in your university');
     }
 
     await assertCanAccessStudent(ctx, sessionCtx, review.student_id);
 
     // Validate rubric scores (must be numbers between 0-100 and finite)
-    const scores = Object.values(args.rubric).filter(
-      (s) => s !== undefined,
-    ) as number[];
-    if (
-      scores.some(
-        (s) => typeof s !== "number" || s < 0 || s > 100 || !isFinite(s),
-      )
-    ) {
-      throw new Error("Rubric scores must be numbers between 0 and 100");
+    const scores = Object.values(args.rubric).filter((s) => s !== undefined) as number[];
+    if (scores.some((s) => typeof s !== 'number' || s < 0 || s > 100 || !isFinite(s))) {
+      throw new Error('Rubric scores must be numbers between 0 and 100');
     }
 
     const previousRubric = review.rubric;
@@ -425,8 +407,8 @@ export const updateRubric = mutation({
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId: review.university_id,
-      action: "review.rubric_updated",
-      entityType: "advisor_review",
+      action: 'review.rubric_updated',
+      entityType: 'advisor_review',
       entityId: args.reviewId,
       studentId: review.student_id,
       previousValue: previousRubric,
@@ -443,9 +425,9 @@ export const updateRubric = mutation({
 export const addComment = mutation({
   args: {
     clerkId: v.string(),
-    reviewId: v.id("advisor_reviews"),
+    reviewId: v.id('advisor_reviews'),
     body: v.string(),
-    visibility: v.union(v.literal("shared"), v.literal("advisor_only")),
+    visibility: v.union(v.literal('shared'), v.literal('advisor_only')),
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
@@ -454,26 +436,26 @@ export const addComment = mutation({
 
     const review = await ctx.db.get(args.reviewId);
     if (!review) {
-      throw new Error("Review not found");
+      throw new Error('Review not found');
     }
 
     // Tenant isolation: ensure review belongs to same university
     if (review.university_id !== universityId) {
-      throw new Error("Unauthorized: Review not in your university");
+      throw new Error('Unauthorized: Review not in your university');
     }
 
     await assertCanAccessStudent(ctx, sessionCtx, review.student_id);
 
     // Server-side validation and sanitization
     if (!args.body || args.body.trim().length === 0) {
-      throw new Error("Comment body cannot be empty");
+      throw new Error('Comment body cannot be empty');
     }
     if (args.body.length > 10000) {
-      throw new Error("Comment body too long (max 10000 characters)");
+      throw new Error('Comment body too long (max 10000 characters)');
     }
 
     // Sanitize: trim whitespace and remove any null bytes
-    const sanitizedBody = args.body.trim().replace(/\0/g, "");
+    const sanitizedBody = args.body.trim().replace(/\0/g, '');
 
     const now = Date.now();
     const currentComments = review.comments || [];
@@ -494,11 +476,11 @@ export const addComment = mutation({
     // Check version hasn't changed since we read the review
     const currentReview = await ctx.db.get(args.reviewId);
     if (!currentReview) {
-      throw new Error("Review was deleted. Please refresh and try again.");
+      throw new Error('Review was deleted. Please refresh and try again.');
     }
     // Use currentReview.version for the actual patch to ensure atomicity
     if (currentReview.version !== review.version) {
-      throw new Error("Review was modified by another user. Please refresh and try again.");
+      throw new Error('Review was modified by another user. Please refresh and try again.');
     }
 
     await ctx.db.patch(args.reviewId, {
@@ -511,8 +493,8 @@ export const addComment = mutation({
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId: review.university_id,
-      action: "review.comment_added",
-      entityType: "advisor_review",
+      action: 'review.comment_added',
+      entityType: 'advisor_review',
       entityId: args.reviewId,
       studentId: review.student_id,
       newValue: { visibility: args.visibility, comment_id: commentId },
@@ -528,12 +510,10 @@ export const addComment = mutation({
 export const updateComment = mutation({
   args: {
     clerkId: v.string(),
-    reviewId: v.id("advisor_reviews"),
+    reviewId: v.id('advisor_reviews'),
     commentId: v.string(),
     body: v.string(),
-    visibility: v.optional(
-      v.union(v.literal("shared"), v.literal("advisor_only")),
-    ),
+    visibility: v.optional(v.union(v.literal('shared'), v.literal('advisor_only'))),
   },
   handler: async (ctx, args) => {
     const sessionCtx = await getCurrentUser(ctx, args.clerkId);
@@ -542,39 +522,39 @@ export const updateComment = mutation({
 
     const review = await ctx.db.get(args.reviewId);
     if (!review) {
-      throw new Error("Review not found");
+      throw new Error('Review not found');
     }
 
     // Tenant isolation: ensure review belongs to same university
     if (review.university_id !== universityId) {
-      throw new Error("Unauthorized: Review not in your university");
+      throw new Error('Unauthorized: Review not in your university');
     }
 
     await assertCanAccessStudent(ctx, sessionCtx, review.student_id);
 
     // Server-side validation and sanitization
     if (!args.body || args.body.trim().length === 0) {
-      throw new Error("Comment body cannot be empty");
+      throw new Error('Comment body cannot be empty');
     }
     if (args.body.length > 10000) {
-      throw new Error("Comment body too long (max 10000 characters)");
+      throw new Error('Comment body too long (max 10000 characters)');
     }
 
     // Sanitize: trim whitespace and remove any null bytes
-    const sanitizedBody = args.body.trim().replace(/\0/g, "");
+    const sanitizedBody = args.body.trim().replace(/\0/g, '');
 
     const comments = review.comments || [];
     const commentIndex = comments.findIndex((c) => c.id === args.commentId);
 
     if (commentIndex === -1) {
-      throw new Error("Comment not found");
+      throw new Error('Comment not found');
     }
 
     const comment = comments[commentIndex];
 
     // Only comment author can edit
     if (comment.author_id !== sessionCtx.userId) {
-      throw new Error("Unauthorized: Only the comment author can edit it");
+      throw new Error('Unauthorized: Only the comment author can edit it');
     }
 
     const previousVisibility = comment.visibility;
@@ -591,10 +571,10 @@ export const updateComment = mutation({
     // Check version hasn't changed since we read the review (optimistic concurrency control)
     const currentReview = await ctx.db.get(args.reviewId);
     if (!currentReview) {
-      throw new Error("Review was deleted. Please refresh and try again.");
+      throw new Error('Review was deleted. Please refresh and try again.');
     }
     if (currentReview.version !== review.version) {
-      throw new Error("Review was modified by another user. Please refresh and try again.");
+      throw new Error('Review was modified by another user. Please refresh and try again.');
     }
 
     await ctx.db.patch(args.reviewId, {
@@ -609,13 +589,13 @@ export const updateComment = mutation({
       await createAuditLog(ctx, {
         actorId: sessionCtx.userId,
         universityId: review.university_id,
-        action: "review.comment_edited",
-        entityType: "advisor_review",
+        action: 'review.comment_edited',
+        entityType: 'advisor_review',
         entityId: args.reviewId,
         studentId: review.student_id,
         previousValue: { bodyLength: previousBody?.length ?? 0 },
         newValue: { bodyLength: sanitizedBody.length, edited: true },
-        });
+      });
     }
 
     // Audit log for visibility changes
@@ -623,13 +603,13 @@ export const updateComment = mutation({
       await createAuditLog(ctx, {
         actorId: sessionCtx.userId,
         universityId: review.university_id,
-        action: "review.comment_visibility_changed",
-        entityType: "advisor_review",
+        action: 'review.comment_visibility_changed',
+        entityType: 'advisor_review',
         entityId: args.reviewId,
         studentId: review.student_id,
         previousValue: previousVisibility,
         newValue: args.visibility,
-        });
+      });
     }
 
     return { success: true };
@@ -642,7 +622,7 @@ export const updateComment = mutation({
 export const deleteComment = mutation({
   args: {
     clerkId: v.string(),
-    reviewId: v.id("advisor_reviews"),
+    reviewId: v.id('advisor_reviews'),
     commentId: v.string(),
   },
   handler: async (ctx, args) => {
@@ -652,12 +632,12 @@ export const deleteComment = mutation({
 
     const review = await ctx.db.get(args.reviewId);
     if (!review) {
-      throw new Error("Review not found");
+      throw new Error('Review not found');
     }
 
     // Verify tenant isolation
     if (review.university_id !== universityId) {
-      throw new Error("Unauthorized: Review not in your university");
+      throw new Error('Unauthorized: Review not in your university');
     }
 
     await assertCanAccessStudent(ctx, sessionCtx, review.student_id);
@@ -666,7 +646,7 @@ export const deleteComment = mutation({
     const comment = comments.find((c) => c.id === args.commentId);
 
     if (!comment) {
-      throw new Error("Comment not found");
+      throw new Error('Comment not found');
     }
 
     // Only comment author or admin can delete
@@ -674,12 +654,10 @@ export const deleteComment = mutation({
     // - Advisors can only delete their own comments
     // - Admins (university_admin, super_admin) can delete any comment
     const isAuthor = comment.author_id === sessionCtx.userId;
-    const isAdmin = sessionCtx.role === "super_admin" || sessionCtx.role === "university_admin";
+    const isAdmin = sessionCtx.role === 'super_admin' || sessionCtx.role === 'university_admin';
 
     if (!isAuthor && !isAdmin) {
-      throw new Error(
-        "Unauthorized: Only the comment author or admin can delete it",
-      );
+      throw new Error('Unauthorized: Only the comment author or admin can delete it');
     }
 
     const updatedComments = comments.filter((c) => c.id !== args.commentId);
@@ -687,10 +665,10 @@ export const deleteComment = mutation({
     // Check version hasn't changed since we read the review (optimistic concurrency control)
     const currentReview = await ctx.db.get(args.reviewId);
     if (!currentReview) {
-      throw new Error("Review was deleted. Please refresh and try again.");
+      throw new Error('Review was deleted. Please refresh and try again.');
     }
     if (currentReview.version !== review.version) {
-      throw new Error("Review was modified by another user. Please refresh and try again.");
+      throw new Error('Review was modified by another user. Please refresh and try again.');
     }
 
     await ctx.db.patch(args.reviewId, {
@@ -703,8 +681,8 @@ export const deleteComment = mutation({
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId: review.university_id,
-      action: "review.comment_deleted",
-      entityType: "advisor_review",
+      action: 'review.comment_deleted',
+      entityType: 'advisor_review',
       entityId: args.reviewId,
       studentId: review.student_id,
       previousValue: {
@@ -725,11 +703,9 @@ export const deleteComment = mutation({
 export const approveReview = mutation({
   args: {
     clerkId: v.string(),
-    reviewId: v.id("advisor_reviews"),
+    reviewId: v.id('advisor_reviews'),
     comment: v.optional(v.string()),
-    commentVisibility: v.optional(
-      v.union(v.literal("shared"), v.literal("advisor_only"))
-    ),
+    commentVisibility: v.optional(v.union(v.literal('shared'), v.literal('advisor_only'))),
     rubric: v.optional(
       v.object({
         content_quality: v.optional(v.number()),
@@ -748,12 +724,12 @@ export const approveReview = mutation({
 
     const review = await ctx.db.get(args.reviewId);
     if (!review) {
-      throw new Error("Review not found");
+      throw new Error('Review not found');
     }
 
     // Verify tenant isolation
     if (review.university_id !== universityId) {
-      throw new Error("Unauthorized: Review not in your university");
+      throw new Error('Unauthorized: Review not in your university');
     }
 
     await assertCanAccessStudent(ctx, sessionCtx, review.student_id);
@@ -762,11 +738,11 @@ export const approveReview = mutation({
     // Note: This is a convenience shortcut that allows direct waiting → approved,
     // bypassing the formal workflow in updateReviewStatus() which requires
     // waiting → in_review → approved. This is intentional for quick approvals.
-    const approvableStatuses = ["waiting", "in_review"];
+    const approvableStatuses = ['waiting', 'in_review'];
     if (!approvableStatuses.includes(review.status)) {
       throw new Error(
         `Cannot approve review with status '${review.status}'. ` +
-        `Only reviews with status 'waiting' or 'in_review' can be approved.`
+          `Only reviews with status 'waiting' or 'in_review' can be approved.`,
       );
     }
 
@@ -776,7 +752,7 @@ export const approveReview = mutation({
       if (currentVersion !== args.expectedVersion) {
         throw new Error(
           `Optimistic lock failed: expected version ${args.expectedVersion}, but current version is ${currentVersion}. ` +
-          `The review was modified by another user. Please refresh and try again.`
+            `The review was modified by another user. Please refresh and try again.`,
         );
       }
     }
@@ -785,13 +761,13 @@ export const approveReview = mutation({
     let sanitizedComment: string | undefined;
     if (args.comment) {
       if (args.comment.trim().length === 0) {
-        throw new Error("Comment body cannot be empty");
+        throw new Error('Comment body cannot be empty');
       }
       if (args.comment.length > 10000) {
-        throw new Error("Comment body too long (max 10000 characters)");
+        throw new Error('Comment body too long (max 10000 characters)');
       }
       // Sanitize: trim whitespace and remove any null bytes
-      sanitizedComment = args.comment.trim().replace(/\0/g, "");
+      sanitizedComment = args.comment.trim().replace(/\0/g, '');
     }
 
     const now = Date.now();
@@ -809,7 +785,7 @@ export const approveReview = mutation({
           id: commentId,
           author_id: sessionCtx.userId,
           body: sanitizedComment,
-          visibility: args.commentVisibility || "shared",
+          visibility: args.commentVisibility || 'shared',
           created_at: now,
           updated_at: now,
         },
@@ -818,7 +794,7 @@ export const approveReview = mutation({
 
     // Update review with version increment for optimistic concurrency
     await ctx.db.patch(args.reviewId, {
-      status: "approved",
+      status: 'approved',
       rubric: args.rubric !== undefined ? args.rubric : review.rubric,
       comments: updatedComments,
       reviewed_by: sessionCtx.userId,
@@ -831,11 +807,11 @@ export const approveReview = mutation({
     await createAuditLog(ctx, {
       actorId: sessionCtx.userId,
       universityId: review.university_id,
-      action: "review.approved",
-      entityType: "advisor_review",
+      action: 'review.approved',
+      entityType: 'advisor_review',
       entityId: args.reviewId,
       studentId: review.student_id,
-      newValue: { status: "approved", approved_at: now },
+      newValue: { status: 'approved', approved_at: now },
     });
 
     // Audit log for approval comment if provided (FERPA compliance)
@@ -843,16 +819,16 @@ export const approveReview = mutation({
       await createAuditLog(ctx, {
         actorId: sessionCtx.userId,
         universityId: review.university_id,
-        action: "review.comment_added",
-        entityType: "advisor_review",
+        action: 'review.comment_added',
+        entityType: 'advisor_review',
         entityId: args.reviewId,
         studentId: review.student_id,
         newValue: {
-          visibility: args.commentVisibility || "shared",
+          visibility: args.commentVisibility || 'shared',
           comment_id: approvalCommentId,
-          context: "approval"
+          context: 'approval',
         },
-        });
+      });
     }
 
     return { success: true };

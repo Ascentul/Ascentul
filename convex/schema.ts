@@ -1,5 +1,5 @@
-import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
+import { defineSchema, defineTable } from 'convex/server';
+import { v } from 'convex/values';
 
 export default defineSchema({
   // Users table - core user profiles
@@ -9,31 +9,31 @@ export default defineSchema({
     name: v.string(),
     username: v.optional(v.string()),
     role: v.union(
-      v.literal("individual"), // Individual free/premium user (renamed from "user")
-      v.literal("user"), // Legacy role - will be migrated to "individual"
-      v.literal("student"), // University student with auto university plan
-      v.literal("staff"),
-      v.literal("university_admin"),
-      v.literal("advisor"),
-      v.literal("super_admin"), // Platform administrator
+      v.literal('individual'), // Individual free/premium user (renamed from "user")
+      v.literal('user'), // Legacy role - will be migrated to "individual"
+      v.literal('student'), // University student with auto university plan
+      v.literal('staff'),
+      v.literal('university_admin'),
+      v.literal('advisor'),
+      v.literal('super_admin'), // Platform administrator
     ),
     // CACHED DISPLAY DATA: Subscription managed by Clerk Billing (source of truth)
     // These fields are auto-synced from Clerk via webhook for fast admin UI display
     // For feature gating, always check Clerk publicMetadata (use useSubscription() hook or checkPremiumAccess())
-    subscription_plan: v.optional(v.union(
-      v.literal("free"),
-      v.literal("premium"),
-      v.literal("university"),
-    )),
+    subscription_plan: v.optional(
+      v.union(v.literal('free'), v.literal('premium'), v.literal('university')),
+    ),
     // CACHED DISPLAY DATA: Status auto-synced from Clerk Billing via webhook
-    subscription_status: v.optional(v.union(
-      v.literal("active"),
-      v.literal("inactive"),
-      v.literal("cancelled"),
-      v.literal("past_due"),
-    )),
-    university_id: v.optional(v.id("universities")),
-    department_id: v.optional(v.id("departments")),
+    subscription_status: v.optional(
+      v.union(
+        v.literal('active'),
+        v.literal('inactive'),
+        v.literal('cancelled'),
+        v.literal('past_due'),
+      ),
+    ),
+    university_id: v.optional(v.id('universities')),
+    department_id: v.optional(v.id('departments')),
     profile_image: v.optional(v.string()),
     cover_image: v.optional(v.string()),
     linkedin_url: v.optional(v.string()),
@@ -102,11 +102,11 @@ export default defineSchema({
     // Account activation fields
     account_status: v.optional(
       v.union(
-        v.literal("pending_activation"),
-        v.literal("pending_deletion"), // GDPR deletion grace period
-        v.literal("active"),
-        v.literal("suspended"),
-        v.literal("deleted"), // Soft delete status for FERPA compliance
+        v.literal('pending_activation'),
+        v.literal('pending_deletion'), // GDPR deletion grace period
+        v.literal('active'),
+        v.literal('suspended'),
+        v.literal('deleted'), // Soft delete status for FERPA compliance
       ),
     ),
     activation_token: v.optional(v.string()),
@@ -117,10 +117,10 @@ export default defineSchema({
     is_test_user: v.optional(v.boolean()), // Flag for test users (can be hard deleted)
     deletion_scheduled_at: v.optional(v.number()), // When account will be permanently deleted (GDPR grace period)
     deleted_at: v.optional(v.number()), // Timestamp when soft deleted
-    deleted_by: v.optional(v.id("users")), // Admin who deleted the user
+    deleted_by: v.optional(v.id('users')), // Admin who deleted the user
     deleted_reason: v.optional(v.string()), // Reason for deletion
     restored_at: v.optional(v.number()), // Timestamp when restored from deletion
-    restored_by: v.optional(v.id("users")), // Admin who restored the user
+    restored_by: v.optional(v.id('users')), // Admin who restored the user
     // Password reset fields
     password_reset_token: v.optional(v.string()),
     password_reset_expires_at: v.optional(v.number()),
@@ -133,15 +133,15 @@ export default defineSchema({
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_clerk_id", ["clerkId"])
-    .index("by_email", ["email"])
-    .index("by_university", ["university_id"])
-    .index("by_department", ["department_id"])
-    .index("by_role", ["role"])
-    .index("by_account_status", ["account_status"])
-    .index("by_is_test_user", ["is_test_user"])
+    .index('by_clerk_id', ['clerkId'])
+    .index('by_email', ['email'])
+    .index('by_university', ['university_id'])
+    .index('by_department', ['department_id'])
+    .index('by_role', ['role'])
+    .index('by_account_status', ['account_status'])
+    .index('by_is_test_user', ['is_test_user'])
     // SECURITY: Index for efficient activation token lookup (avoids full table scan)
-    .index("by_activation_token", ["activation_token"]),
+    .index('by_activation_token', ['activation_token']),
 
   // Universities table for institutional licensing
   universities: defineTable({
@@ -152,10 +152,10 @@ export default defineSchema({
     website: v.optional(v.string()),
     contact_email: v.optional(v.string()),
     license_plan: v.union(
-      v.literal("Starter"),
-      v.literal("Basic"),
-      v.literal("Pro"),
-      v.literal("Enterprise"),
+      v.literal('Starter'),
+      v.literal('Basic'),
+      v.literal('Pro'),
+      v.literal('Enterprise'),
     ),
     license_seats: v.number(),
     license_used: v.number(),
@@ -163,40 +163,40 @@ export default defineSchema({
     license_start: v.number(), // timestamp
     license_end: v.optional(v.number()), // timestamp
     status: v.union(
-      v.literal("active"),
-      v.literal("expired"),
-      v.literal("trial"),
-      v.literal("suspended"),
-      v.literal("archived"), // Non-destructive way to disable a university
-      v.literal("deleted"), // Only for hard delete with guard
+      v.literal('active'),
+      v.literal('expired'),
+      v.literal('trial'),
+      v.literal('suspended'),
+      v.literal('archived'), // Non-destructive way to disable a university
+      v.literal('deleted'), // Only for hard delete with guard
     ),
     admin_email: v.optional(v.string()),
-    created_by_id: v.optional(v.id("users")),
+    created_by_id: v.optional(v.id('users')),
     is_test: v.optional(v.boolean()), // Test universities can be hard deleted
     archived_at: v.optional(v.number()), // Timestamp when archived (non-destructive disable)
     deleted_at: v.optional(v.number()), // Timestamp when hard deleted (rare, guarded)
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_slug", ["slug"])
-    .index("by_status", ["status"])
-    .index("by_admin_email", ["admin_email"]),
+    .index('by_slug', ['slug'])
+    .index('by_status', ['status'])
+    .index('by_admin_email', ['admin_email']),
 
   // University departments
   departments: defineTable({
-    university_id: v.id("universities"),
+    university_id: v.id('universities'),
     name: v.string(),
     code: v.optional(v.string()),
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_university", ["university_id"])
-    .index("by_name", ["name"]),
+    .index('by_university', ['university_id'])
+    .index('by_name', ['name']),
 
   // University courses (learning modules)
   courses: defineTable({
-    university_id: v.id("universities"),
-    department_id: v.optional(v.id("departments")),
+    university_id: v.id('universities'),
+    department_id: v.optional(v.id('departments')),
     title: v.string(),
     category: v.optional(v.string()),
     level: v.optional(v.string()),
@@ -206,13 +206,13 @@ export default defineSchema({
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_university", ["university_id"])
-    .index("by_department", ["department_id"]),
+    .index('by_university', ['university_id'])
+    .index('by_department', ['department_id']),
 
   // Projects table for portfolio functionality
   projects: defineTable({
-    user_id: v.id("users"),
-    university_id: v.optional(v.id("universities")),
+    user_id: v.id('users'),
+    university_id: v.optional(v.id('universities')),
     title: v.string(),
     role: v.optional(v.string()),
     start_date: v.optional(v.number()), // timestamp
@@ -227,15 +227,15 @@ export default defineSchema({
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_user", ["user_id"])
-    .index("by_created_at", ["created_at"])
+    .index('by_user', ['user_id'])
+    .index('by_created_at', ['created_at'])
     // SECURITY: Tenant-scoped index for university reporting
-    .index("by_university", ["university_id"]),
+    .index('by_university', ['university_id']),
 
   // Cover letters table
   cover_letters: defineTable({
-    user_id: v.id("users"),
-    university_id: v.optional(v.id("universities")),
+    user_id: v.id('users'),
+    university_id: v.optional(v.id('universities')),
     name: v.string(),
     job_title: v.string(),
     company_name: v.optional(v.string()),
@@ -244,52 +244,52 @@ export default defineSchema({
     closing: v.string(), // default: 'Sincerely,'
     source: v.optional(
       v.union(
-        v.literal("manual"),
-        v.literal("ai_generated"),
-        v.literal("ai_optimized"),
-        v.literal("pdf_upload"),
+        v.literal('manual'),
+        v.literal('ai_generated'),
+        v.literal('ai_optimized'),
+        v.literal('pdf_upload'),
       ),
     ),
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_user", ["user_id"])
-    .index("by_created_at", ["created_at"])
+    .index('by_user', ['user_id'])
+    .index('by_created_at', ['created_at'])
     // SECURITY: Tenant-scoped index for university reporting
-    .index("by_university", ["university_id"]),
+    .index('by_university', ['university_id']),
 
   // Support tickets table
   support_tickets: defineTable({
-    user_id: v.id("users"),
-    university_id: v.optional(v.id("universities")),
+    user_id: v.id('users'),
+    university_id: v.optional(v.id('universities')),
     subject: v.string(),
     category: v.string(), // default: 'general'
     priority: v.union(
-      v.literal("low"),
-      v.literal("medium"),
-      v.literal("high"),
-      v.literal("urgent"),
+      v.literal('low'),
+      v.literal('medium'),
+      v.literal('high'),
+      v.literal('urgent'),
     ),
     department: v.string(), // default: 'support'
     contact_person: v.optional(v.string()),
     description: v.string(),
     status: v.union(
-      v.literal("open"),
-      v.literal("in_progress"),
-      v.literal("resolved"),
-      v.literal("closed"),
+      v.literal('open'),
+      v.literal('in_progress'),
+      v.literal('resolved'),
+      v.literal('closed'),
     ),
     ticket_type: v.string(), // default: 'regular'
-    assigned_to: v.optional(v.id("users")),
+    assigned_to: v.optional(v.id('users')),
     resolution: v.optional(v.string()),
     resolved_at: v.optional(v.number()),
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_user", ["user_id"])
-    .index("by_university", ["university_id"])
-    .index("by_status", ["status"])
-    .index("by_created_at", ["created_at"]),
+    .index('by_user', ['user_id'])
+    .index('by_university', ['university_id'])
+    .index('by_status', ['status'])
+    .index('by_created_at', ['created_at']),
 
   // Diagnostics table for audit log retention (optional, for export tracking)
   audit_log_exports: defineTable({
@@ -297,11 +297,11 @@ export default defineSchema({
     cutoff: v.number(),
     created_at: v.number(),
     notes: v.optional(v.string()),
-  }).index("by_created_at", ["created_at"]),
+  }).index('by_created_at', ['created_at']),
 
   // Career paths table for generated career paths
   career_paths: defineTable({
-    user_id: v.id("users"),
+    user_id: v.id('users'),
     target_role: v.string(),
     current_level: v.optional(v.string()),
     estimated_timeframe: v.optional(v.string()),
@@ -310,33 +310,33 @@ export default defineSchema({
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_user", ["user_id"])
-    .index("by_status", ["status"]),
+    .index('by_user', ['user_id'])
+    .index('by_status', ['status']),
 
   // Interview stages linked to applications
   interview_stages: defineTable({
-    user_id: v.id("users"),
-    application_id: v.id("applications"),
+    user_id: v.id('users'),
+    application_id: v.id('applications'),
     title: v.string(),
     scheduled_at: v.optional(v.number()),
     outcome: v.union(
-      v.literal("pending"),
-      v.literal("scheduled"),
-      v.literal("passed"),
-      v.literal("failed"),
+      v.literal('pending'),
+      v.literal('scheduled'),
+      v.literal('passed'),
+      v.literal('failed'),
     ),
     location: v.optional(v.string()),
     notes: v.optional(v.string()),
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_application", ["application_id"])
-    .index("by_user", ["user_id"])
-    .index("by_scheduled_at", ["scheduled_at"]),
+    .index('by_application', ['application_id'])
+    .index('by_user', ['user_id'])
+    .index('by_scheduled_at', ['scheduled_at']),
 
   // Job searches table to track user job searches
   job_searches: defineTable({
-    user_id: v.id("users"),
+    user_id: v.id('users'),
     keywords: v.optional(v.string()),
     location: v.optional(v.string()),
     remote_only: v.boolean(),
@@ -344,22 +344,24 @@ export default defineSchema({
     search_data: v.any(), // JSON data
     created_at: v.number(),
   })
-    .index("by_user", ["user_id"])
-    .index("by_created_at", ["created_at"]),
+    .index('by_user', ['user_id'])
+    .index('by_created_at', ['created_at']),
 
   // Resumes table
   resumes: defineTable({
-    user_id: v.id("users"),
-    university_id: v.optional(v.id("universities")),
+    user_id: v.id('users'),
+    university_id: v.optional(v.id('universities')),
     title: v.string(),
     content: v.any(), // JSON data
-    visibility: v.union(v.literal("private"), v.literal("public")),
-    source: v.optional(v.union(
-      v.literal("manual"),
-      v.literal("ai_generated"),
-      v.literal("ai_optimized"),
-      v.literal("pdf_upload"),
-    )), // Source of resume creation
+    visibility: v.union(v.literal('private'), v.literal('public')),
+    source: v.optional(
+      v.union(
+        v.literal('manual'),
+        v.literal('ai_generated'),
+        v.literal('ai_optimized'),
+        v.literal('pdf_upload'),
+      ),
+    ), // Source of resume creation
     // Analysis data
     extracted_text: v.optional(v.string()), // Text extracted from uploaded PDF/DOCX
     job_description: v.optional(v.string()), // Job description for analysis
@@ -368,36 +370,36 @@ export default defineSchema({
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_user", ["user_id"])
+    .index('by_user', ['user_id'])
     // SECURITY: Tenant-scoped index for university reporting
-    .index("by_university", ["university_id"]),
+    .index('by_university', ['university_id']),
 
   // Applications table
   applications: defineTable({
-    user_id: v.id("users"),
-    university_id: v.optional(v.id("universities")),
+    user_id: v.id('users'),
+    university_id: v.optional(v.id('universities')),
     company: v.string(),
     job_title: v.string(),
     status: v.union(
-      v.literal("saved"), // DEPRECATED: Use stage field instead
-      v.literal("applied"), // DEPRECATED: Use stage field instead
-      v.literal("interview"), // DEPRECATED: Use stage field instead
-      v.literal("offer"), // DEPRECATED: Use stage field instead
-      v.literal("rejected"), // DEPRECATED: Use stage field instead
+      v.literal('saved'), // DEPRECATED: Use stage field instead
+      v.literal('applied'), // DEPRECATED: Use stage field instead
+      v.literal('interview'), // DEPRECATED: Use stage field instead
+      v.literal('offer'), // DEPRECATED: Use stage field instead
+      v.literal('rejected'), // DEPRECATED: Use stage field instead
     ),
     // PRIMARY FIELD: stage is the source of truth for application state
     // status field is maintained for backward compatibility only
     // MIGRATION: Run `npx convex run migrations/backfill_application_stages` then change to v.required()
     stage: v.optional(
       v.union(
-        v.literal("Prospect"), // Active - researching/considering
-        v.literal("Applied"), // Active - application submitted
-        v.literal("Interview"), // Active - in interview process
-        v.literal("Offer"), // Active - offer received, decision pending
-        v.literal("Accepted"), // Final - offer accepted
-        v.literal("Rejected"), // Final - application rejected
-        v.literal("Withdrawn"), // Final - candidate withdrew
-        v.literal("Archived"), // Final - archived
+        v.literal('Prospect'), // Active - researching/considering
+        v.literal('Applied'), // Active - application submitted
+        v.literal('Interview'), // Active - in interview process
+        v.literal('Offer'), // Active - offer received, decision pending
+        v.literal('Accepted'), // Final - offer accepted
+        v.literal('Rejected'), // Final - application rejected
+        v.literal('Withdrawn'), // Final - candidate withdrew
+        v.literal('Archived'), // Final - archived
       ),
     ),
     stage_set_at: v.optional(v.number()), // When stage was last changed
@@ -406,17 +408,17 @@ export default defineSchema({
     url: v.optional(v.string()),
     notes: v.optional(v.string()),
     applied_at: v.optional(v.number()),
-    resume_id: v.optional(v.id("resumes")),
-    cover_letter_id: v.optional(v.id("cover_letters")),
+    resume_id: v.optional(v.id('resumes')),
+    cover_letter_id: v.optional(v.id('cover_letters')),
     // Advisor workflow fields
-    assigned_advisor_id: v.optional(v.id("users")), // Primary advisor for this application
+    assigned_advisor_id: v.optional(v.id('users')), // Primary advisor for this application
     next_step: v.optional(v.string()), // Next action to take
     due_date: v.optional(v.number()), // Deadline for next step
     sla_status: v.optional(
       v.union(
-        v.literal("ok"), // Within SLA
-        v.literal("warning"), // Approaching SLA breach
-        v.literal("breach"), // Past SLA
+        v.literal('ok'), // Within SLA
+        v.literal('warning'), // Approaching SLA breach
+        v.literal('breach'), // Past SLA
       ),
     ),
     // Interview details
@@ -438,11 +440,7 @@ export default defineSchema({
         deadline: v.optional(v.number()), // Decision deadline
         compensation_summary: v.optional(v.string()),
         decision: v.optional(
-          v.union(
-            v.literal("pending"),
-            v.literal("accept"),
-            v.literal("decline"),
-          ),
+          v.union(v.literal('pending'), v.literal('accept'), v.literal('decline')),
         ),
         start_date: v.optional(v.number()), // If accepted
       }),
@@ -451,20 +449,20 @@ export default defineSchema({
     // See convex/advisor_constants.ts for valid codes (REJECTED_REASON_CODES, WITHDRAWN_REASON_CODES)
     reason_code: v.optional(v.string()),
     // Evidence uploads (for Offer/Accepted stages) - Use Convex storage for proper access control
-    evidence_storage_ids: v.optional(v.array(v.id("_storage"))), // Uploaded offer letters, etc.
+    evidence_storage_ids: v.optional(v.array(v.id('_storage'))), // Uploaded offer letters, etc.
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_user", ["user_id"])
-    .index("by_status", ["status"])
-    .index("by_stage", ["stage"])
-    .index("by_advisor", ["assigned_advisor_id"])
-    .index("by_due_date", ["due_date"]) // For overdue/upcoming queries
-    .index("by_stage_due_date", ["stage", "due_date"]) // For active + overdue filtering
+    .index('by_user', ['user_id'])
+    .index('by_status', ['status'])
+    .index('by_stage', ['stage'])
+    .index('by_advisor', ['assigned_advisor_id'])
+    .index('by_due_date', ['due_date']) // For overdue/upcoming queries
+    .index('by_stage_due_date', ['stage', 'due_date']) // For active + overdue filtering
     // SECURITY: Tenant-scoped indexes for university reporting
-    .index("by_university", ["university_id"])
-    .index("by_university_stage", ["university_id", "stage"]) // University pipeline view
-    .index("by_university_status", ["university_id", "status"]), // Legacy university queries
+    .index('by_university', ['university_id'])
+    .index('by_university_stage', ['university_id', 'stage']) // University pipeline view
+    .index('by_university_status', ['university_id', 'status']), // Legacy university queries
 
   // Unified follow-ups table (replaces followup_actions and advisor_follow_ups)
   follow_ups: defineTable({
@@ -478,7 +476,12 @@ export default defineSchema({
     user_id: v.id('users'), // Primary user (student) this task relates to
     owner_id: v.id('users'), // Who is responsible for completing it (can be student or advisor)
     created_by_id: v.optional(v.id('users')), // User who created this task (may differ from owner)
-    created_by_type: v.union(v.literal('student'), v.literal('advisor'), v.literal('system'), v.literal('individual')),
+    created_by_type: v.union(
+      v.literal('student'),
+      v.literal('advisor'),
+      v.literal('system'),
+      v.literal('individual'),
+    ),
 
     // Multi-tenancy support
     university_id: v.optional(v.id('universities')), // Null for non-university users, required for advisor-created tasks
@@ -523,7 +526,9 @@ export default defineSchema({
 
     // Task management
     due_at: v.optional(v.number()), // Due date timestamp
-    priority: v.optional(v.union(v.literal('low'), v.literal('medium'), v.literal('high'), v.literal('urgent'))),
+    priority: v.optional(
+      v.union(v.literal('low'), v.literal('medium'), v.literal('high'), v.literal('urgent')),
+    ),
     status: v.union(v.literal('open'), v.literal('done')),
 
     // Completion audit trail
@@ -594,22 +599,22 @@ export default defineSchema({
     category: v.string(), // default: 'general'
     points: v.number(),
     created_at: v.number(),
-  }).index("by_category", ["category"]),
+  }).index('by_category', ['category']),
 
   // User achievements table for tracking user achievements
   user_achievements: defineTable({
-    user_id: v.id("users"),
-    achievement_id: v.id("achievements"),
+    user_id: v.id('users'),
+    achievement_id: v.id('achievements'),
     earned_at: v.number(),
     progress: v.number(), // default: 100
   })
-    .index("by_user", ["user_id"])
-    .index("by_achievement", ["achievement_id"])
-    .index("by_user_achievement", ["user_id", "achievement_id"]),
+    .index('by_user', ['user_id'])
+    .index('by_achievement', ['achievement_id'])
+    .index('by_user_achievement', ['user_id', 'achievement_id']),
 
   // Daily recommendations table
   daily_recommendations: defineTable({
-    user_id: v.id("users"),
+    user_id: v.id('users'),
     text: v.string(),
     type: v.string(), // default: 'ai_generated'
     completed: v.boolean(),
@@ -621,15 +626,15 @@ export default defineSchema({
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_user", ["user_id"])
-    .index("by_created_at", ["created_at"])
-    .index("by_completed", ["completed"])
-    .index("by_type", ["type"]),
+    .index('by_user', ['user_id'])
+    .index('by_created_at', ['created_at'])
+    .index('by_completed', ['completed'])
+    .index('by_type', ['type']),
 
   // Networking contacts table (referenced in followup_actions)
   networking_contacts: defineTable({
-    user_id: v.id("users"),
-    university_id: v.optional(v.id("universities")),
+    user_id: v.id('users'),
+    university_id: v.optional(v.id('universities')),
     name: v.string(),
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
@@ -644,38 +649,38 @@ export default defineSchema({
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_user", ["user_id"])
-    .index("by_company", ["company"])
+    .index('by_user', ['user_id'])
+    .index('by_company', ['company'])
     // SECURITY: Tenant-scoped index for university reporting
-    .index("by_university", ["university_id"]),
+    .index('by_university', ['university_id']),
 
   // Contact interactions table
   contact_interactions: defineTable({
-    user_id: v.id("users"),
-    contact_id: v.id("networking_contacts"),
+    user_id: v.id('users'),
+    contact_id: v.id('networking_contacts'),
     notes: v.optional(v.string()),
     interaction_date: v.number(),
     created_at: v.number(),
   })
-    .index("by_contact", ["contact_id"])
-    .index("by_user", ["user_id"])
-    .index("by_interaction_date", ["interaction_date"]),
+    .index('by_contact', ['contact_id'])
+    .index('by_user', ['user_id'])
+    .index('by_interaction_date', ['interaction_date']),
 
   // Goals table (referenced in achievements)
   goals: defineTable({
-    user_id: v.id("users"),
-    university_id: v.optional(v.id("universities")),
+    user_id: v.id('users'),
+    university_id: v.optional(v.id('universities')),
     title: v.string(),
     description: v.optional(v.string()),
     category: v.optional(v.string()),
     target_date: v.optional(v.number()),
     status: v.union(
-      v.literal("not_started"),
-      v.literal("in_progress"),
-      v.literal("active"),
-      v.literal("completed"),
-      v.literal("paused"),
-      v.literal("cancelled"),
+      v.literal('not_started'),
+      v.literal('in_progress'),
+      v.literal('active'),
+      v.literal('completed'),
+      v.literal('paused'),
+      v.literal('cancelled'),
     ),
     progress: v.number(), // 0-100
     checklist: v.optional(
@@ -691,33 +696,33 @@ export default defineSchema({
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_user", ["user_id"])
-    .index("by_status", ["status"])
-    .index("by_target_date", ["target_date"])
+    .index('by_user', ['user_id'])
+    .index('by_status', ['status'])
+    .index('by_target_date', ['target_date'])
     // SECURITY: Tenant-scoped index for university reporting
-    .index("by_university", ["university_id"]),
+    .index('by_university', ['university_id']),
 
   // AI Coach conversations table
   ai_coach_conversations: defineTable({
-    user_id: v.id("users"),
+    user_id: v.id('users'),
     title: v.string(),
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_user", ["user_id"])
-    .index("by_created_at", ["created_at"]),
+    .index('by_user', ['user_id'])
+    .index('by_created_at', ['created_at']),
 
   // AI Coach messages table
   ai_coach_messages: defineTable({
-    conversation_id: v.id("ai_coach_conversations"),
-    user_id: v.id("users"),
+    conversation_id: v.id('ai_coach_conversations'),
+    user_id: v.id('users'),
     is_user: v.boolean(),
     message: v.string(),
     timestamp: v.number(),
   })
-    .index("by_conversation", ["conversation_id"])
-    .index("by_user", ["user_id"])
-    .index("by_timestamp", ["timestamp"]),
+    .index('by_conversation', ['conversation_id'])
+    .index('by_user', ['user_id'])
+    .index('by_timestamp', ['timestamp']),
 
   // Platform settings table for system-wide configuration
   platform_settings: defineTable({
@@ -725,11 +730,11 @@ export default defineSchema({
     setting_value: v.any(),
     created_at: v.number(),
     updated_at: v.number(),
-  }).index("by_setting_key", ["setting_key"]),
+  }).index('by_setting_key', ['setting_key']),
 
   // Stripe payments table for revenue tracking
   stripe_payments: defineTable({
-    user_id: v.optional(v.id("users")),
+    user_id: v.optional(v.id('users')),
     stripe_customer_id: v.string(),
     stripe_subscription_id: v.optional(v.string()),
     stripe_invoice_id: v.optional(v.string()),
@@ -737,15 +742,15 @@ export default defineSchema({
     amount: v.number(), // Amount in cents
     currency: v.string(), // e.g., 'usd'
     status: v.union(
-      v.literal("succeeded"),
-      v.literal("pending"),
-      v.literal("failed"),
-      v.literal("refunded"),
+      v.literal('succeeded'),
+      v.literal('pending'),
+      v.literal('failed'),
+      v.literal('refunded'),
     ),
     payment_type: v.union(
-      v.literal("subscription"),
-      v.literal("one_time"),
-      v.literal("university_license"),
+      v.literal('subscription'),
+      v.literal('one_time'),
+      v.literal('university_license'),
     ),
     plan_name: v.optional(v.string()), // e.g., 'premium', 'university'
     interval: v.optional(v.string()), // e.g., 'month', 'year'
@@ -754,31 +759,31 @@ export default defineSchema({
     payment_date: v.number(), // Timestamp of payment
     created_at: v.number(),
   })
-    .index("by_user", ["user_id"])
-    .index("by_customer", ["stripe_customer_id"])
-    .index("by_subscription", ["stripe_subscription_id"])
-    .index("by_payment_date", ["payment_date"])
-    .index("by_status", ["status"]),
+    .index('by_user', ['user_id'])
+    .index('by_customer', ['stripe_customer_id'])
+    .index('by_subscription', ['stripe_subscription_id'])
+    .index('by_payment_date', ['payment_date'])
+    .index('by_status', ['status']),
 
   // Stripe subscription events for churn tracking
   stripe_subscription_events: defineTable({
-    user_id: v.optional(v.id("users")),
+    user_id: v.optional(v.id('users')),
     stripe_customer_id: v.string(),
     stripe_subscription_id: v.string(),
     event_type: v.union(
-      v.literal("created"),
-      v.literal("updated"),
-      v.literal("cancelled"),
-      v.literal("renewed"),
-      v.literal("trial_started"),
-      v.literal("trial_ended"),
+      v.literal('created'),
+      v.literal('updated'),
+      v.literal('cancelled'),
+      v.literal('renewed'),
+      v.literal('trial_started'),
+      v.literal('trial_ended'),
     ),
     subscription_status: v.union(
-      v.literal("active"),
-      v.literal("inactive"),
-      v.literal("cancelled"),
-      v.literal("past_due"),
-      v.literal("trialing"),
+      v.literal('active'),
+      v.literal('inactive'),
+      v.literal('cancelled'),
+      v.literal('past_due'),
+      v.literal('trialing'),
     ),
     plan_name: v.optional(v.string()),
     amount: v.optional(v.number()), // Amount in cents
@@ -786,15 +791,15 @@ export default defineSchema({
     metadata: v.optional(v.any()),
     created_at: v.number(),
   })
-    .index("by_user", ["user_id"])
-    .index("by_customer", ["stripe_customer_id"])
-    .index("by_subscription", ["stripe_subscription_id"])
-    .index("by_event_date", ["event_date"])
-    .index("by_event_type", ["event_type"]),
+    .index('by_user', ['user_id'])
+    .index('by_customer', ['stripe_customer_id'])
+    .index('by_subscription', ['stripe_subscription_id'])
+    .index('by_event_date', ['event_date'])
+    .index('by_event_type', ['event_type']),
 
   // User daily activity tracking for streak heatmap
   user_daily_activity: defineTable({
-    user_id: v.id("users"),
+    user_id: v.id('users'),
     clerk_id: v.string(), // For faster lookups by Clerk auth
     date: v.string(), // YYYY-MM-DD in user timezone
     did_login: v.boolean(),
@@ -803,8 +808,8 @@ export default defineSchema({
     created_at: v.number(), // ms
     updated_at: v.number(), // ms
   })
-    .index("by_clerk_date", ["clerk_id", "date"])
-    .index("by_user", ["user_id"]),
+    .index('by_clerk_date', ['clerk_id', 'date'])
+    .index('by_user', ['user_id']),
 
   // Student profiles - links students to universities
   // Students MUST have a studentProfile to access student features
@@ -843,8 +848,8 @@ export default defineSchema({
   // This minimizes (but does not eliminate) the race window. For true uniqueness enforcement,
   // application logic must only create profiles through controlled mutations (acceptInvite, migration).
   studentProfiles: defineTable({
-    user_id: v.id("users"), // Reference to users table (should be unique but not enforced)
-    university_id: v.id("universities"), // REQUIRED: student must belong to a university
+    user_id: v.id('users'), // Reference to users table (should be unique but not enforced)
+    university_id: v.id('universities'), // REQUIRED: student must belong to a university
     student_id: v.optional(v.string()), // University-specific student ID (e.g., "S12345")
     enrollment_date: v.number(), // Timestamp when student enrolled (defaults to profile creation time)
     graduation_date: v.optional(v.number()), // Expected graduation timestamp
@@ -852,19 +857,19 @@ export default defineSchema({
     year: v.optional(v.string()), // Freshman, Sophomore, Junior, Senior
     gpa: v.optional(v.number()), // Must be 0.0-4.0 (validated in mutations)
     status: v.union(
-      v.literal("active"),
-      v.literal("inactive"),
-      v.literal("graduated"),
-      v.literal("suspended"),
+      v.literal('active'),
+      v.literal('inactive'),
+      v.literal('graduated'),
+      v.literal('suspended'),
     ),
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_user_id", ["user_id"])
-    .index("by_university", ["university_id"])
-    .index("by_university_status", ["university_id", "status"])
-    .index("by_university_student_id", ["university_id", "student_id"])
-    .index("by_status", ["status"]),
+    .index('by_user_id', ['user_id'])
+    .index('by_university', ['university_id'])
+    .index('by_university_status', ['university_id', 'status'])
+    .index('by_university_student_id', ['university_id', 'student_id'])
+    .index('by_status', ['status']),
 
   // Student invites - token-based invite system for students
   //
@@ -906,29 +911,29 @@ export default defineSchema({
   // Trade-off: Invite creation is infrequent (~1-10/day per university), so we optimize
   // for query performance. If write volume increases, consider removing by_status.
   studentInvites: defineTable({
-    university_id: v.id("universities"), // University issuing the invite
+    university_id: v.id('universities'), // University issuing the invite
     email: v.string(), // Email of the invited student
     token: v.string(), // Unique invite token (should be unique but not enforced)
-    created_by_id: v.id("users"), // University admin who created the invite
+    created_by_id: v.id('users'), // University admin who created the invite
     status: v.union(
-      v.literal("pending"),
-      v.literal("accepted"),
-      v.literal("expired"),
-      v.literal("revoked"),
+      v.literal('pending'),
+      v.literal('accepted'),
+      v.literal('expired'),
+      v.literal('revoked'),
     ),
     expires_at: v.number(), // Timestamp when invite expires
     // Nullable to support explicit clearing during rollback (prevents stale data)
     accepted_at: v.optional(v.union(v.number(), v.null())), // Timestamp when invite was accepted
-    accepted_by_user_id: v.optional(v.union(v.id("users"), v.null())), // User who accepted the invite
+    accepted_by_user_id: v.optional(v.union(v.id('users'), v.null())), // User who accepted the invite
     metadata: v.optional(v.any()), // Additional invite data (major, year, etc.)
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_university_email_status", ["university_id", "email", "status"])
-    .index("by_created_by", ["created_by_id"])
-    .index("by_token", ["token"])
-    .index("by_status", ["status"])
-    .index("by_expires_at", ["expires_at"]),
+    .index('by_university_email_status', ['university_id', 'email', 'status'])
+    .index('by_created_by', ['created_by_id'])
+    .index('by_token', ['token'])
+    .index('by_status', ['status'])
+    .index('by_expires_at', ['expires_at']),
 
   // ========================================
   // ADVISOR FEATURE TABLES
@@ -957,33 +962,33 @@ export default defineSchema({
   // - Enforced in mutations (no database constraint available)
   // - Diagnostic: Run 'npx convex run advisor_students:findDuplicateOwners' to detect violations
   student_advisors: defineTable({
-    student_id: v.id("users"), // Must be a user with role="student"
-    advisor_id: v.id("users"), // Must be a user with role="advisor"
-    university_id: v.id("universities"), // Denormalized for tenant isolation
+    student_id: v.id('users'), // Must be a user with role="student"
+    advisor_id: v.id('users'), // Must be a user with role="advisor"
+    university_id: v.id('universities'), // Denormalized for tenant isolation
     is_owner: v.boolean(), // Primary advisor flag (exactly one per student)
     shared_type: v.optional(
       v.union(
-        v.literal("reviewer"), // Can review documents
-        v.literal("temp"), // Temporary assignment
+        v.literal('reviewer'), // Can review documents
+        v.literal('temp'), // Temporary assignment
       ),
     ),
     assigned_at: v.number(), // timestamp
-    assigned_by: v.id("users"), // Admin who made the assignment
+    assigned_by: v.id('users'), // Admin who made the assignment
     notes: v.optional(v.string()), // Assignment context
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_university", ["university_id"])
-    .index("by_advisor", ["advisor_id", "university_id"])
-    .index("by_student", ["student_id", "university_id"])
-    .index("by_advisor_owner", ["advisor_id", "is_owner", "university_id"])
-    .index("by_student_owner", ["student_id", "is_owner"]),
+    .index('by_university', ['university_id'])
+    .index('by_advisor', ['advisor_id', 'university_id'])
+    .index('by_student', ['student_id', 'university_id'])
+    .index('by_advisor_owner', ['advisor_id', 'is_owner', 'university_id'])
+    .index('by_student_owner', ['student_id', 'is_owner']),
 
   // Advisor session/appointment tracking
   advisor_sessions: defineTable({
-    student_id: v.id("users"),
-    advisor_id: v.id("users"),
-    university_id: v.id("universities"), // Denormalized for tenant isolation
+    student_id: v.id('users'),
+    advisor_id: v.id('users'),
+    university_id: v.id('universities'), // Denormalized for tenant isolation
     title: v.string(),
     scheduled_at: v.optional(v.number()), // timestamp
     start_at: v.number(), // timestamp
@@ -991,12 +996,12 @@ export default defineSchema({
     duration_minutes: v.optional(v.number()),
     session_type: v.optional(
       v.union(
-        v.literal("career_planning"),
-        v.literal("resume_review"),
-        v.literal("mock_interview"),
-        v.literal("application_strategy"),
-        v.literal("general_advising"),
-        v.literal("other"),
+        v.literal('career_planning'),
+        v.literal('resume_review'),
+        v.literal('mock_interview'),
+        v.literal('application_strategy'),
+        v.literal('general_advising'),
+        v.literal('other'),
       ),
     ),
     template_id: v.optional(v.string()), // Reference to note templates
@@ -1005,15 +1010,15 @@ export default defineSchema({
     meeting_url: v.optional(v.string()), // Virtual meeting link
     notes: v.optional(v.string()), // Rich text session notes
     visibility: v.union(
-      v.literal("shared"), // Visible to student
-      v.literal("advisor_only"), // Private advisor notes
+      v.literal('shared'), // Visible to student
+      v.literal('advisor_only'), // Private advisor notes
     ),
     status: v.optional(
       v.union(
-        v.literal("scheduled"),
-        v.literal("completed"),
-        v.literal("cancelled"),
-        v.literal("no_show"),
+        v.literal('scheduled'),
+        v.literal('completed'),
+        v.literal('cancelled'),
+        v.literal('no_show'),
       ),
     ),
     tasks: v.optional(
@@ -1025,8 +1030,8 @@ export default defineSchema({
           // Role-based ownership: tasks are implicitly owned by the session's student_id or advisor_id
           // To query "all tasks for user X", filter by role + session student_id/advisor_id
           // Alternative: use owner_id: v.id("users") for direct user assignment
-          owner: v.union(v.literal("student"), v.literal("advisor")),
-          status: v.union(v.literal("open"), v.literal("done")),
+          owner: v.union(v.literal('student'), v.literal('advisor')),
+          status: v.union(v.literal('open'), v.literal('done')),
         }),
       ),
     ),
@@ -1035,7 +1040,7 @@ export default defineSchema({
         v.object({
           id: v.string(),
           name: v.string(),
-          storage_id: v.id("_storage"), // Use Convex storage for access control
+          storage_id: v.id('_storage'), // Use Convex storage for access control
           type: v.string(), // MIME type
           size: v.number(), // bytes
         }),
@@ -1045,32 +1050,29 @@ export default defineSchema({
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_university", ["university_id"])
-    .index("by_advisor", ["advisor_id", "university_id"])
-    .index("by_student", ["student_id", "university_id"])
-    .index("by_advisor_student", ["advisor_id", "student_id", "university_id"])
-    .index("by_scheduled_at", ["scheduled_at"])
-    .index("by_advisor_scheduled", ["advisor_id", "scheduled_at"])
-    .index("by_status", ["status", "university_id"]),
+    .index('by_university', ['university_id'])
+    .index('by_advisor', ['advisor_id', 'university_id'])
+    .index('by_student', ['student_id', 'university_id'])
+    .index('by_advisor_student', ['advisor_id', 'student_id', 'university_id'])
+    .index('by_scheduled_at', ['scheduled_at'])
+    .index('by_advisor_scheduled', ['advisor_id', 'scheduled_at'])
+    .index('by_status', ['status', 'university_id']),
 
   // Resume/Cover Letter review queue for advisors
   advisor_reviews: defineTable({
-    student_id: v.id("users"),
-    university_id: v.id("universities"), // Denormalized for tenant isolation
-    asset_type: v.union(
-      v.literal("resume"),
-      v.literal("cover_letter"),
-    ),
+    student_id: v.id('users'),
+    university_id: v.id('universities'), // Denormalized for tenant isolation
+    asset_type: v.union(v.literal('resume'), v.literal('cover_letter')),
     // IMPORTANT: Mutations must ensure exactly one of these is set based on asset_type
-    resume_id: v.optional(v.id("resumes")),
-    cover_letter_id: v.optional(v.id("cover_letters")),
-    related_application_id: v.optional(v.id("applications")),
-    related_review_id: v.optional(v.id("advisor_reviews")), // Previous review in chain
+    resume_id: v.optional(v.id('resumes')),
+    cover_letter_id: v.optional(v.id('cover_letters')),
+    related_application_id: v.optional(v.id('applications')),
+    related_review_id: v.optional(v.id('advisor_reviews')), // Previous review in chain
     status: v.union(
-      v.literal("waiting"), // Pending advisor review
-      v.literal("in_review"), // Advisor actively reviewing
-      v.literal("needs_edits"), // Feedback provided, student needs to revise
-      v.literal("approved"), // Advisor approved
+      v.literal('waiting'), // Pending advisor review
+      v.literal('in_review'), // Advisor actively reviewing
+      v.literal('needs_edits'), // Feedback provided, student needs to revise
+      v.literal('approved'), // Advisor approved
     ),
     rubric: v.optional(
       v.object({
@@ -1090,11 +1092,11 @@ export default defineSchema({
       v.array(
         v.object({
           id: v.string(),
-          author_id: v.id("users"), // User ID of commenter
+          author_id: v.id('users'), // User ID of commenter
           body: v.string(), // Comment text (sanitized HTML)
           visibility: v.union(
-            v.literal("shared"), // Visible to student
-            v.literal("advisor_only"), // Private comment
+            v.literal('shared'), // Visible to student
+            v.literal('advisor_only'), // Private comment
           ),
           created_at: v.number(),
           updated_at: v.number(),
@@ -1103,17 +1105,17 @@ export default defineSchema({
     ),
     version_id: v.optional(v.string()), // Track which version was reviewed
     version: v.optional(v.number()), // Optimistic concurrency control version number (optional for backward compat)
-    reviewed_by: v.optional(v.id("users")), // Advisor who reviewed
+    reviewed_by: v.optional(v.id('users')), // Advisor who reviewed
     reviewed_at: v.optional(v.number()), // timestamp
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_university", ["university_id"])
-    .index("by_student", ["student_id", "university_id"])
-    .index("by_status", ["status", "university_id"])
-    .index("by_asset_type", ["asset_type", "university_id"])
-    .index("by_resume", ["resume_id"])
-    .index("by_cover_letter", ["cover_letter_id"]),
+    .index('by_university', ['university_id'])
+    .index('by_student', ['student_id', 'university_id'])
+    .index('by_status', ['status', 'university_id'])
+    .index('by_asset_type', ['asset_type', 'university_id'])
+    .index('by_resume', ['resume_id'])
+    .index('by_cover_letter', ['cover_letter_id']),
 
   // =============================================================================
   // DEPRECATED: Legacy advisor_follow_ups table
@@ -1157,18 +1159,10 @@ export default defineSchema({
     description: v.optional(v.string()),
     due_at: v.optional(v.number()), // timestamp
     priority: v.optional(
-      v.union(
-        v.literal('low'),
-        v.literal('medium'),
-        v.literal('high'),
-        v.literal('urgent'),
-      ),
+      v.union(v.literal('low'), v.literal('medium'), v.literal('high'), v.literal('urgent')),
     ),
     owner_id: v.id('users'), // Who is responsible (student or advisor)
-    status: v.union(
-      v.literal('open'),
-      v.literal('done'),
-    ),
+    status: v.union(v.literal('open'), v.literal('done')),
     completed_at: v.optional(v.number()),
     completed_by: v.optional(v.id('users')),
     // MIGRATION ONLY: Version field required for safe operation during migration period
@@ -1217,12 +1211,12 @@ export default defineSchema({
   // All new audit logs use the new format (see createAuditLog in advisor_auth.ts)
   audit_logs: defineTable({
     // New format (current - used by createAuditLog)
-    actor_id: v.optional(v.id("users")), // User who performed the action
-    university_id: v.optional(v.id("universities")), // Tenant isolation
+    actor_id: v.optional(v.id('users')), // User who performed the action
+    university_id: v.optional(v.id('universities')), // Tenant isolation
     action: v.string(), // e.g., "session.created", "review.approved"
     entity_type: v.optional(v.string()), // e.g., "advisor_session", "advisor_review"
     entity_id: v.optional(v.string()), // ID of the entity being audited
-    student_id: v.optional(v.id("users")), // Student affected by this action (for FERPA queries)
+    student_id: v.optional(v.id('users')), // Student affected by this action (for FERPA queries)
     previous_value: v.optional(v.any()), // Previous state (may contain PII - subject to redaction)
     new_value: v.optional(v.any()), // New state (may contain PII - subject to redaction)
     ip_address: v.optional(v.string()), // IP address for security tracking
@@ -1241,34 +1235,35 @@ export default defineSchema({
     reason: v.optional(v.string()), // Legacy: action reason
     metadata: v.optional(v.any()), // Legacy: additional data (may contain PII - subject to redaction)
   })
-    .index("by_actor", ["actor_id", "created_at"]) // Find all actions by a user
-    .index("by_entity", ["entity_type", "entity_id", "created_at"]) // Find all changes to an entity
-    .index("by_student", ["student_id", "created_at"]) // FERPA: Find all actions affecting a student
-    .index("by_university", ["university_id", "created_at"]) // Tenant-scoped queries
-    .index("by_action", ["action", "created_at"]) // Find all instances of a specific action type
-    .index("by_created_at", ["created_at"]) // Retention policy: find old logs for archival
-    .index("by_timestamp", ["timestamp"]) // Legacy: retention policy for old logs
-    .index("by_target", ["target_type", "target_id", "timestamp"]) // Legacy: Find logs by target (user-specific queries)
-    .index("by_target_email", ["target_email", "timestamp"]), // Legacy: Find logs by target email
+    .index('by_actor', ['actor_id', 'created_at']) // Find all actions by a user
+    .index('by_entity', ['entity_type', 'entity_id', 'created_at']) // Find all changes to an entity
+    .index('by_student', ['student_id', 'created_at']) // FERPA: Find all actions affecting a student
+    .index('by_university', ['university_id', 'created_at']) // Tenant-scoped queries
+    .index('by_action', ['action', 'created_at']) // Find all instances of a specific action type
+    .index('by_created_at', ['created_at']) // Retention policy: find old logs for archival
+    .index('by_timestamp', ['timestamp']) // Legacy: retention policy for old logs
+    .index('by_target', ['target_type', 'target_id', 'timestamp']) // Legacy: Find logs by target (user-specific queries)
+    .index('by_target_email', ['target_email', 'timestamp']), // Legacy: Find logs by target email
 
   // Migration tracking table for idempotency and state management
   migration_state: defineTable({
     migration_name: v.string(), // Unique identifier for the migration (e.g., "migrate_follow_ups_v1")
     status: v.union(
-      v.literal("pending"),    // Migration started but not completed
-      v.literal("in_progress"), // Currently running
-      v.literal("completed"),   // Successfully completed
-      v.literal("failed"),      // Failed with errors
-      v.literal("rolled_back")  // Rolled back due to errors
+      v.literal('pending'), // Migration started but not completed
+      v.literal('in_progress'), // Currently running
+      v.literal('completed'), // Successfully completed
+      v.literal('failed'), // Failed with errors
+      v.literal('rolled_back'), // Rolled back due to errors
     ),
     started_at: v.number(),
     completed_at: v.optional(v.number()),
     error_message: v.optional(v.string()),
     metadata: v.optional(v.any()), // Migration-specific data (counts, stats, etc.)
     executed_by: v.optional(v.string()), // Who/what triggered the migration
-  }).index("by_name", ["migration_name"])
-    .index("by_status", ["status"])
-    .index("by_started_at", ["started_at"]),
+  })
+    .index('by_name', ['migration_name'])
+    .index('by_status', ['status'])
+    .index('by_started_at', ['started_at']),
 
   // Advisor-student roster mapping for UNIVERSITY ADMIN module
   // Used by: convex/university_admin.ts, convex/universities_admin.ts
@@ -1291,49 +1286,41 @@ export default defineSchema({
   // See docs/TECH_DEBT_ADVISOR_STUDENT_TABLES.md for full migration plan.
   // ========================================
   advisorStudents: defineTable({
-    university_id: v.id("universities"),
-    advisor_id: v.id("users"),
-    student_profile_id: v.id("studentProfiles"),
-    assigned_by_id: v.id("users"),
+    university_id: v.id('universities'),
+    advisor_id: v.id('users'),
+    student_profile_id: v.id('studentProfiles'),
+    assigned_by_id: v.id('users'),
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_advisor_student", ["advisor_id", "student_profile_id"])
-    .index("by_advisor", ["advisor_id"])
-    .index("by_student_profile", ["student_profile_id"])
-    .index("by_university", ["university_id"]),
+    .index('by_advisor_student', ['advisor_id', 'student_profile_id'])
+    .index('by_advisor', ['advisor_id'])
+    .index('by_student_profile', ['student_profile_id'])
+    .index('by_university', ['university_id']),
 
   // Memberships link users to universities with a role
   memberships: defineTable({
-    user_id: v.id("users"),
-    university_id: v.id("universities"),
-    role: v.union(
-      v.literal("student"),
-      v.literal("advisor"),
-      v.literal("university_admin"),
-    ),
-    status: v.union(
-      v.literal("active"),
-      v.literal("inactive"),
-      v.literal("revoked"),
-    ),
+    user_id: v.id('users'),
+    university_id: v.id('universities'),
+    role: v.union(v.literal('student'), v.literal('advisor'), v.literal('university_admin')),
+    status: v.union(v.literal('active'), v.literal('inactive'), v.literal('revoked')),
     created_at: v.number(),
     updated_at: v.number(),
   })
-    .index("by_user", ["user_id"])
-    .index("by_user_role", ["user_id", "role"])
-    .index("by_university_role", ["university_id", "role"])
-    .index("by_university", ["university_id"]),
+    .index('by_user', ['user_id'])
+    .index('by_user_role', ['user_id', 'role'])
+    .index('by_university_role', ['university_id', 'role'])
+    .index('by_university', ['university_id']),
 
   // Notifications table for in-app notifications
   notifications: defineTable({
-    user_id: v.id("users"), // User who should see this notification
+    user_id: v.id('users'), // User who should see this notification
     type: v.union(
-      v.literal("support_ticket"), // New support ticket
-      v.literal("ticket_update"), // Ticket status/assignment changed
-      v.literal("application_update"), // Application status changed
-      v.literal("goal_reminder"), // Goal deadline approaching
-      v.literal("system"), // System announcements
+      v.literal('support_ticket'), // New support ticket
+      v.literal('ticket_update'), // Ticket status/assignment changed
+      v.literal('application_update'), // Application status changed
+      v.literal('goal_reminder'), // Goal deadline approaching
+      v.literal('system'), // System announcements
     ),
     title: v.string(), // Notification title
     message: v.string(), // Notification message
@@ -1343,7 +1330,7 @@ export default defineSchema({
     read_at: v.optional(v.number()), // When notification was read
     created_at: v.number(), // When notification was created
   })
-    .index("by_user", ["user_id"])
-    .index("by_user_read", ["user_id", "read"])
-    .index("by_created_at", ["created_at"]),
+    .index('by_user', ['user_id'])
+    .index('by_user_read', ['user_id', 'read'])
+    .index('by_created_at', ['created_at']),
 });

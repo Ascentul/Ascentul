@@ -16,6 +16,7 @@
  */
 
 import jsPDF from 'jspdf';
+
 import type { ResumeData } from '@/components/resume/ResumeDocument';
 import { formatDateRange, parseDescription } from '@/lib/resume-utils';
 
@@ -65,11 +66,11 @@ const CONTENT_WIDTH = PAGE_WIDTH - MARGIN.LEFT - MARGIN.RIGHT;
 
 // Spacing scale (in mm, matching px scale from ResumeDocument)
 const SPACING = {
-  xs: 1.5,   // ~4px
-  sm: 3,     // ~8px
-  md: 4.5,   // ~12px
-  lg: 6,     // ~16px
-  xl: 9,     // ~24px
+  xs: 1.5, // ~4px
+  sm: 3, // ~8px
+  md: 4.5, // ~12px
+  lg: 6, // ~16px
+  xl: 9, // ~24px
 };
 
 /**
@@ -81,11 +82,11 @@ function addWrappedText(
   x: number,
   y: number,
   maxWidth: number,
-  lineHeight: number
+  lineHeight: number,
 ): number {
   const lines = doc.splitTextToSize(text, maxWidth);
   doc.text(lines, x, y);
-  return y + (lines.length * lineHeight);
+  return y + lines.length * lineHeight;
 }
 
 /**
@@ -123,7 +124,10 @@ function checkPageBreak(doc: jsPDF, currentY: number, spaceNeeded: number): numb
 /**
  * Generate PDF from resume data
  */
-export async function generateResumePDF(data: ResumeData, filename: string = 'resume.pdf'): Promise<void> {
+export async function generateResumePDF(
+  data: ResumeData,
+  filename: string = 'resume.pdf',
+): Promise<void> {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -262,7 +266,11 @@ export async function generateResumePDF(data: ResumeData, filename: string = 're
       }
 
       // Key Contributions (if using new format)
-      if ((exp as any).keyContributions && Array.isArray((exp as any).keyContributions) && (exp as any).keyContributions.length > 0) {
+      if (
+        (exp as any).keyContributions &&
+        Array.isArray((exp as any).keyContributions) &&
+        (exp as any).keyContributions.length > 0
+      ) {
         // "Key Contributions" heading
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(FONT_SIZE.SMALL);
@@ -353,9 +361,8 @@ export async function generateResumePDF(data: ResumeData, filename: string = 're
       const [textR, textG, textB] = hexToRgb(COLORS.BLACK);
       doc.setTextColor(textR, textG, textB);
 
-      const degreeText = edu.degree && edu.field
-        ? `${edu.degree} in ${edu.field}`
-        : edu.degree || edu.field || '';
+      const degreeText =
+        edu.degree && edu.field ? `${edu.degree} in ${edu.field}` : edu.degree || edu.field || '';
 
       if (degreeText) {
         doc.text(degreeText, MARGIN.LEFT, yPos);
@@ -374,9 +381,7 @@ export async function generateResumePDF(data: ResumeData, filename: string = 're
 
       // GPA and honors
       if (edu.gpa || edu.honors) {
-        const extraInfo = [edu.gpa && `GPA: ${edu.gpa}`, edu.honors]
-          .filter(Boolean)
-          .join(' · ');
+        const extraInfo = [edu.gpa && `GPA: ${edu.gpa}`, edu.honors].filter(Boolean).join(' · ');
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(FONT_SIZE.SMALL);

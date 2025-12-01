@@ -1,17 +1,18 @@
-'use client'
+'use client';
 
-import { useAuth } from '@/contexts/ClerkAuthProvider'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+
+import { useAuth } from '@/contexts/ClerkAuthProvider';
 
 interface OnboardingGuardProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 export function OnboardingGuard({ children }: OnboardingGuardProps) {
-  const { user, isLoading, isSignedIn, isAdmin } = useAuth()
-  const router = useRouter()
+  const { user, isLoading, isSignedIn, isAdmin } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     if (!isLoading && isSignedIn && user) {
@@ -35,10 +36,10 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
 
       // Only redirect to onboarding if user is new and hasn't completed it
       if (!shouldSkipOnboarding) {
-        router.push('/onboarding')
+        router.push('/onboarding');
       }
     }
-  }, [user, isLoading, isSignedIn, router, isAdmin])
+  }, [user, isLoading, isSignedIn, router, isAdmin]);
 
   // Show loading state while checking authentication and user data
   if (isLoading) {
@@ -46,7 +47,7 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
-    )
+    );
   }
 
   // Check if we should show onboarding redirect loading
@@ -70,9 +71,9 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
             <p className="text-muted-foreground">Setting up your profile...</p>
           </div>
         </div>
-      )
+      );
     }
   }
 
-  return <>{children}</>
+  return <>{children}</>;
 }

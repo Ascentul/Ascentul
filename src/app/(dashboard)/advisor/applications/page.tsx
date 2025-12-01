@@ -1,30 +1,37 @@
-"use client";
+'use client';
 
-import { useState, useMemo } from "react";
-import { AdvisorGate } from "@/components/advisor/AdvisorGate";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { Card, CardContent } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ApplicationKanbanEnhanced } from "@/components/advisor/applications/ApplicationKanbanEnhanced";
-import { ApplicationTableEnhanced } from "@/components/advisor/applications/ApplicationTableEnhanced";
-import { ApplicationsHeader } from "./components/ApplicationsHeader";
-import { AdvancedFiltersPanel } from "./components/AdvancedFiltersPanel";
-import { CompactFilterBar } from "./components/CompactFilterBar";
-import { ActiveFiltersChips } from "./components/ActiveFiltersChips";
-import { QuickFilterPills } from "./components/QuickFilterPills";
-import { EmptyState, ApplicationsLoadingSkeleton } from "./components/EmptyStates";
-import { BulkActionBar } from "./components/BulkActionBar";
-import { useApplicationFilters, useAvailableCohorts } from "./hooks/useApplicationFilters";
-import { useApplicationSelection } from "./hooks/useApplicationSelection";
-import { enrichApplicationsWithNeedAction } from "./hooks/useNeedActionRules";
-import { ApplicationViewMode, ApplicationScope, EnrichedApplication, BaseEnrichedApplication } from "./types";
-import { useUser } from "@clerk/nextjs";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "convex/_generated/api";
-import { Id } from "convex/_generated/dataModel";
-import { AlertCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { Id } from 'convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
+import { AlertCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
+
+import { AdvisorGate } from '@/components/advisor/AdvisorGate';
+import { ApplicationKanbanEnhanced } from '@/components/advisor/applications/ApplicationKanbanEnhanced';
+import { ApplicationTableEnhanced } from '@/components/advisor/applications/ApplicationTableEnhanced';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+
+import { ActiveFiltersChips } from './components/ActiveFiltersChips';
+import { AdvancedFiltersPanel } from './components/AdvancedFiltersPanel';
+import { ApplicationsHeader } from './components/ApplicationsHeader';
+import { BulkActionBar } from './components/BulkActionBar';
+import { CompactFilterBar } from './components/CompactFilterBar';
+import { ApplicationsLoadingSkeleton, EmptyState } from './components/EmptyStates';
+import { QuickFilterPills } from './components/QuickFilterPills';
+import { useApplicationFilters, useAvailableCohorts } from './hooks/useApplicationFilters';
+import { useApplicationSelection } from './hooks/useApplicationSelection';
+import { enrichApplicationsWithNeedAction } from './hooks/useNeedActionRules';
+import {
+  ApplicationScope,
+  ApplicationViewMode,
+  BaseEnrichedApplication,
+  EnrichedApplication,
+} from './types';
 
 export default function AdvisorApplicationsPage() {
   const { user } = useUser();
@@ -37,8 +44,8 @@ export default function AdvisorApplicationsPage() {
   // View State
   // ============================================================================
 
-  const [viewMode, setViewMode] = useState<ApplicationViewMode>("table");
-  const [scope, setScope] = useState<ApplicationScope>("my-students");
+  const [viewMode, setViewMode] = useState<ApplicationViewMode>('table');
+  const [scope, setScope] = useState<ApplicationScope>('my-students');
   const [showFilters, setShowFilters] = useState(false);
 
   // ============================================================================
@@ -47,12 +54,12 @@ export default function AdvisorApplicationsPage() {
 
   const applications = useQuery(
     api.advisor_applications.getApplicationsForCaseload,
-    clerkId ? { clerkId } : "skip"
+    clerkId ? { clerkId } : 'skip',
   );
 
   const stats = useQuery(
     api.advisor_applications.getApplicationStats,
-    clerkId ? { clerkId } : "skip"
+    clerkId ? { clerkId } : 'skip',
   );
 
   // ============================================================================
@@ -86,7 +93,7 @@ export default function AdvisorApplicationsPage() {
     // After filtering, we cast the type since the filter ensures stage exists
     type QueryApp = NonNullable<typeof applications>[number];
     const appsWithStage = applications.filter(
-      (app: QueryApp) => app.stage !== undefined && app.stage !== null
+      (app: QueryApp) => app.stage !== undefined && app.stage !== null,
     );
 
     // Map to BaseEnrichedApplication (backend data shape without computed fields)
@@ -131,7 +138,9 @@ export default function AdvisorApplicationsPage() {
     filterHook.setActiveOnly(false);
   };
 
-  const handleFilterByNeedActionReason = (reason: EnrichedApplication['needActionReasons'][number]) => {
+  const handleFilterByNeedActionReason = (
+    reason: EnrichedApplication['needActionReasons'][number],
+  ) => {
     filterHook.setNeedActionReason(reason);
   };
 
@@ -139,7 +148,11 @@ export default function AdvisorApplicationsPage() {
   // Bulk Actions
   // ============================================================================
 
-  const handleBulkChangeStage = async (newStage: EnrichedApplication['stage'], notes?: string, reasonCode?: string) => {
+  const handleBulkChangeStage = async (
+    newStage: EnrichedApplication['stage'],
+    notes?: string,
+    reasonCode?: string,
+  ) => {
     if (!clerkId) return;
 
     const selectedIds = selectionHook.getSelectedIds();
@@ -156,15 +169,15 @@ export default function AdvisorApplicationsPage() {
       // Show success/error feedback
       if (result.success > 0) {
         toast({
-          title: "Stage updated",
+          title: 'Stage updated',
           description: `Successfully updated ${result.success} application${result.success !== 1 ? 's' : ''}.`,
         });
       }
       if (result.failed > 0) {
         toast({
-          title: "Some updates failed",
+          title: 'Some updates failed',
           description: `Failed to update ${result.failed} application${result.failed !== 1 ? 's' : ''}.`,
-          variant: "destructive",
+          variant: 'destructive',
         });
       }
 
@@ -173,9 +186,9 @@ export default function AdvisorApplicationsPage() {
     } catch (error) {
       console.error('Bulk update failed:', error);
       toast({
-        title: "Update failed",
-        description: "Failed to update applications. Please try again.",
-        variant: "destructive",
+        title: 'Update failed',
+        description: 'Failed to update applications. Please try again.',
+        variant: 'destructive',
       });
       // Clear selection on error to prevent stale state
       selectionHook.clearSelection();
@@ -196,15 +209,15 @@ export default function AdvisorApplicationsPage() {
 
       if (result.success > 0) {
         toast({
-          title: "Applications archived",
+          title: 'Applications archived',
           description: `Successfully archived ${result.success} application${result.success !== 1 ? 's' : ''}.`,
         });
       }
       if (result.failed > 0) {
         toast({
-          title: "Some archives failed",
+          title: 'Some archives failed',
           description: `Failed to archive ${result.failed} application${result.failed !== 1 ? 's' : ''}.`,
-          variant: "destructive",
+          variant: 'destructive',
         });
       }
 
@@ -212,9 +225,9 @@ export default function AdvisorApplicationsPage() {
     } catch (error) {
       console.error('Bulk archive failed:', error);
       toast({
-        title: "Archive failed",
-        description: "Failed to archive applications. Please try again.",
-        variant: "destructive",
+        title: 'Archive failed',
+        description: 'Failed to archive applications. Please try again.',
+        variant: 'destructive',
       });
       // Clear selection on error to prevent stale state
       selectionHook.clearSelection();
@@ -236,15 +249,15 @@ export default function AdvisorApplicationsPage() {
 
       if (result.success > 0) {
         toast({
-          title: "Next steps updated",
+          title: 'Next steps updated',
           description: `Successfully updated ${result.success} application${result.success !== 1 ? 's' : ''}.`,
         });
       }
       if (result.failed > 0) {
         toast({
-          title: "Some updates failed",
+          title: 'Some updates failed',
           description: `Failed to update ${result.failed} application${result.failed !== 1 ? 's' : ''}.`,
-          variant: "destructive",
+          variant: 'destructive',
         });
       }
 
@@ -252,9 +265,9 @@ export default function AdvisorApplicationsPage() {
     } catch (error) {
       console.error('Bulk update next step failed:', error);
       toast({
-        title: "Update failed",
-        description: "Failed to update next steps. Please try again.",
-        variant: "destructive",
+        title: 'Update failed',
+        description: 'Failed to update next steps. Please try again.',
+        variant: 'destructive',
       });
       // Clear selection on error to prevent stale state
       selectionHook.clearSelection();
@@ -274,15 +287,15 @@ export default function AdvisorApplicationsPage() {
 
       if (result.success > 0) {
         toast({
-          title: "Marked as reviewed",
+          title: 'Marked as reviewed',
           description: `Successfully marked ${result.success} application${result.success !== 1 ? 's' : ''} as reviewed.`,
         });
       }
       if (result.failed > 0) {
         toast({
-          title: "Some updates failed",
+          title: 'Some updates failed',
           description: `Failed to mark ${result.failed} application${result.failed !== 1 ? 's' : ''} as reviewed.`,
-          variant: "destructive",
+          variant: 'destructive',
         });
       }
 
@@ -290,9 +303,9 @@ export default function AdvisorApplicationsPage() {
     } catch (error) {
       console.error('Bulk mark reviewed failed:', error);
       toast({
-        title: "Update failed",
-        description: "Failed to mark applications as reviewed. Please try again.",
-        variant: "destructive",
+        title: 'Update failed',
+        description: 'Failed to mark applications as reviewed. Please try again.',
+        variant: 'destructive',
       });
       // Clear selection on error to prevent stale state
       selectionHook.clearSelection();
@@ -328,8 +341,8 @@ export default function AdvisorApplicationsPage() {
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Error Loading Applications</AlertTitle>
               <AlertDescription>
-                There was an error loading application data. Please try refreshing the page.
-                If the problem persists, contact support.
+                There was an error loading application data. Please try refreshing the page. If the
+                problem persists, contact support.
               </AlertDescription>
             </Alert>
           </div>
@@ -337,9 +350,7 @@ export default function AdvisorApplicationsPage() {
       >
         <div className="container mx-auto p-6 space-y-6">
           {/* Loading State */}
-          {applications === undefined && (
-            <ApplicationsLoadingSkeleton viewMode={viewMode} />
-          )}
+          {applications === undefined && <ApplicationsLoadingSkeleton viewMode={viewMode} />}
 
           {/* Only show UI when data is loaded */}
           {applications !== undefined && (
@@ -390,10 +401,10 @@ export default function AdvisorApplicationsPage() {
               <ActiveFiltersChips
                 filters={filterHook.filters}
                 onRemoveStage={(stage) => {
-                  filterHook.setStages(filterHook.filters.stages.filter(s => s !== stage));
+                  filterHook.setStages(filterHook.filters.stages.filter((s) => s !== stage));
                 }}
                 onRemoveCohort={(cohort) => {
-                  filterHook.setCohorts(filterHook.filters.cohorts.filter(c => c !== cohort));
+                  filterHook.setCohorts(filterHook.filters.cohorts.filter((c) => c !== cohort));
                 }}
                 onRemoveNeedsAction={() => filterHook.setNeedsAction(false)}
                 onRemoveNeedActionReason={() => filterHook.setNeedActionReason(undefined)}
@@ -433,20 +444,15 @@ export default function AdvisorApplicationsPage() {
                 )}
 
                 {/* Empty State: No Action Needed (Positive!) */}
-                {!isEmpty && hasNoActionNeeded && (
-                  <EmptyState type="no-action-needed" />
-                )}
+                {!isEmpty && hasNoActionNeeded && <EmptyState type="no-action-needed" />}
 
                 {/* Empty State: No Results from Filters */}
                 {!isEmpty && hasNoResults && !hasNoActionNeeded && (
-                  <EmptyState
-                    type="no-results"
-                    onClearFilters={filterHook.clearFilters}
-                  />
+                  <EmptyState type="no-results" onClearFilters={filterHook.clearFilters} />
                 )}
 
                 {/* Kanban View */}
-                {!isEmpty && !hasNoResults && viewMode === "kanban" && (
+                {!isEmpty && !hasNoResults && viewMode === 'kanban' && (
                   <ApplicationKanbanEnhanced
                     applications={filteredApplications}
                     isLoading={false}
@@ -459,7 +465,7 @@ export default function AdvisorApplicationsPage() {
                 )}
 
                 {/* Table View */}
-                {!isEmpty && !hasNoResults && viewMode === "table" && (
+                {!isEmpty && !hasNoResults && viewMode === 'table' && (
                   <ApplicationTableEnhanced
                     applications={filteredApplications}
                     isLoading={false}

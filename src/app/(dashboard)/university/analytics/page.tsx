@@ -1,71 +1,69 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { useUser } from "@clerk/nextjs";
-import { useAuth } from "@/contexts/ClerkAuthProvider";
-import { useQuery } from "convex/react";
-import { api } from "convex/_generated/api";
+import { useUser } from '@clerk/nextjs';
+import { api } from 'convex/_generated/api';
+import { useQuery } from 'convex/react';
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardDescription,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+  Calendar,
+  ClipboardList,
+  Clock,
+  FileText,
+  GraduationCap,
+  LogIn,
+  Mail,
+  MousePointer,
+  RefreshCw,
+  Target,
+  TrendingUp,
+  Users,
+} from 'lucide-react';
+import React, { useState } from 'react';
 import {
-  BarChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-} from "recharts";
-import {
-  GraduationCap,
-  Users,
-  Target,
-  FileText,
-  Mail,
-  ClipboardList,
-  TrendingUp,
-  Calendar,
-  Clock,
-  RefreshCw,
-  MousePointer,
-  LogIn,
-} from "lucide-react";
+} from 'recharts';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/contexts/ClerkAuthProvider';
 
 export default function UniversityAnalyticsPage() {
   const { user: clerkUser } = useUser();
   const { user, isAdmin, subscription } = useAuth();
-  const [analyticsView, setAnalyticsView] = useState<"engagement" | "features" | "risk">("engagement");
-  const [activeUsersTimeRange, setActiveUsersTimeRange] = useState<"daily" | "weekly" | "monthly">("weekly");
+  const [analyticsView, setAnalyticsView] = useState<'engagement' | 'features' | 'risk'>(
+    'engagement',
+  );
+  const [activeUsersTimeRange, setActiveUsersTimeRange] = useState<'daily' | 'weekly' | 'monthly'>(
+    'weekly',
+  );
 
   // Access control: Only university_admin, advisor, or super_admin can access
   // subscription.isUniversity is NOT sufficient - it includes regular students
   const canAccess =
-    !!user &&
-    (isAdmin || user.role === 'university_admin' || user.role === 'advisor');
+    !!user && (isAdmin || user.role === 'university_admin' || user.role === 'advisor');
 
   const overview = useQuery(
     api.university_admin.getOverview,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip',
   );
   const students = useQuery(
     api.university_admin.listStudents,
-    clerkUser?.id ? { clerkId: clerkUser.id, limit: 200 } : "skip",
+    clerkUser?.id ? { clerkId: clerkUser.id, limit: 200 } : 'skip',
   );
   const departments = useQuery(
     api.university_admin.listDepartments,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
+    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip',
   );
 
   if (!canAccess) {
@@ -76,9 +74,7 @@ export default function UniversityAnalyticsPage() {
             <CardTitle>Unauthorized</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">
-              You do not have access to University Analytics.
-            </p>
+            <p className="text-muted-foreground">You do not have access to University Analytics.</p>
           </CardContent>
         </Card>
       </div>
@@ -122,9 +118,7 @@ export default function UniversityAnalyticsPage() {
     <div className="max-w-screen-2xl mx-auto p-4 md:p-6 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">
-            Usage Analytics
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Usage Analytics</h1>
           <p className="text-muted-foreground">
             Detailed insights into student engagement and platform usage.
           </p>
@@ -135,32 +129,32 @@ export default function UniversityAnalyticsPage() {
       <div className="flex gap-2">
         <Button
           size="sm"
-          variant={analyticsView === "engagement" ? "default" : "outline"}
-          onClick={() => setAnalyticsView("engagement")}
-          className={analyticsView === "engagement" ? "bg-[#0C29AB]" : ""}
+          variant={analyticsView === 'engagement' ? 'default' : 'outline'}
+          onClick={() => setAnalyticsView('engagement')}
+          className={analyticsView === 'engagement' ? 'bg-[#0C29AB]' : ''}
         >
           Student Engagement
         </Button>
         <Button
           size="sm"
-          variant={analyticsView === "features" ? "default" : "outline"}
-          onClick={() => setAnalyticsView("features")}
-          className={analyticsView === "features" ? "bg-[#0C29AB]" : ""}
+          variant={analyticsView === 'features' ? 'default' : 'outline'}
+          onClick={() => setAnalyticsView('features')}
+          className={analyticsView === 'features' ? 'bg-[#0C29AB]' : ''}
         >
           Feature Adoption
         </Button>
         <Button
           size="sm"
-          variant={analyticsView === "risk" ? "default" : "outline"}
-          onClick={() => setAnalyticsView("risk")}
-          className={analyticsView === "risk" ? "bg-[#0C29AB]" : ""}
+          variant={analyticsView === 'risk' ? 'default' : 'outline'}
+          onClick={() => setAnalyticsView('risk')}
+          className={analyticsView === 'risk' ? 'bg-[#0C29AB]' : ''}
         >
           At-Risk Analysis
         </Button>
       </div>
 
       {/* Student Engagement View */}
-      {analyticsView === "engagement" && (
+      {analyticsView === 'engagement' && (
         <>
           {/* Engagement Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -169,12 +163,8 @@ export default function UniversityAnalyticsPage() {
                 <CardTitle className="text-base font-medium">Daily Active Users</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {Math.floor(students.length * 0.35)}
-                </div>
-                <p className="text-xs text-green-600 mt-1">
-                  +12% from last week
-                </p>
+                <div className="text-2xl font-bold">{Math.floor(students.length * 0.35)}</div>
+                <p className="text-xs text-green-600 mt-1">+12% from last week</p>
               </CardContent>
             </Card>
 
@@ -184,9 +174,7 @@ export default function UniversityAnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">24 min</div>
-                <p className="text-xs text-green-600 mt-1">
-                  +3 min from last week
-                </p>
+                <p className="text-xs text-green-600 mt-1">+3 min from last week</p>
               </CardContent>
             </Card>
 
@@ -196,9 +184,7 @@ export default function UniversityAnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">68%</div>
-                <p className="text-xs text-green-600 mt-1">
-                  +5% from last week
-                </p>
+                <p className="text-xs text-green-600 mt-1">+5% from last week</p>
               </CardContent>
             </Card>
 
@@ -208,9 +194,7 @@ export default function UniversityAnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">8.4</div>
-                <p className="text-xs text-green-600 mt-1">
-                  +1.2 from last week
-                </p>
+                <p className="text-xs text-green-600 mt-1">+1.2 from last week</p>
               </CardContent>
             </Card>
           </div>
@@ -224,13 +208,9 @@ export default function UniversityAnalyticsPage() {
               <CardContent>
                 <div className="flex items-center">
                   <LogIn className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">
-                    {students.length * 12}
-                  </div>
+                  <div className="text-2xl font-bold">{students.length * 12}</div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  This month
-                </div>
+                <div className="text-xs text-muted-foreground mt-1">This month</div>
               </CardContent>
             </Card>
 
@@ -243,9 +223,7 @@ export default function UniversityAnalyticsPage() {
                   <MousePointer className="h-5 w-5 text-muted-foreground mr-2" />
                   <div className="text-2xl font-bold">85%</div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Average adoption rate
-                </div>
+                <div className="text-xs text-muted-foreground mt-1">Average adoption rate</div>
               </CardContent>
             </Card>
 
@@ -256,13 +234,9 @@ export default function UniversityAnalyticsPage() {
               <CardContent>
                 <div className="flex items-center">
                   <Target className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">
-                    {analyticsData.goals.completed}
-                  </div>
+                  <div className="text-2xl font-bold">{analyticsData.goals.completed}</div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Total goals completed
-                </div>
+                <div className="text-xs text-muted-foreground mt-1">Total goals completed</div>
               </CardContent>
             </Card>
 
@@ -273,13 +247,9 @@ export default function UniversityAnalyticsPage() {
               <CardContent>
                 <div className="flex items-center">
                   <ClipboardList className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">
-                    {analyticsData.applications.submitted}
-                  </div>
+                  <div className="text-2xl font-bold">{analyticsData.applications.submitted}</div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Total applications
-                </div>
+                <div className="text-xs text-muted-foreground mt-1">Total applications</div>
               </CardContent>
             </Card>
           </div>
@@ -295,25 +265,25 @@ export default function UniversityAnalyticsPage() {
                 <div className="flex gap-2">
                   <Button
                     size="sm"
-                    variant={activeUsersTimeRange === "daily" ? "default" : "outline"}
-                    onClick={() => setActiveUsersTimeRange("daily")}
-                    className={activeUsersTimeRange === "daily" ? "bg-[#0C29AB]" : ""}
+                    variant={activeUsersTimeRange === 'daily' ? 'default' : 'outline'}
+                    onClick={() => setActiveUsersTimeRange('daily')}
+                    className={activeUsersTimeRange === 'daily' ? 'bg-[#0C29AB]' : ''}
                   >
                     Daily
                   </Button>
                   <Button
                     size="sm"
-                    variant={activeUsersTimeRange === "weekly" ? "default" : "outline"}
-                    onClick={() => setActiveUsersTimeRange("weekly")}
-                    className={activeUsersTimeRange === "weekly" ? "bg-[#0C29AB]" : ""}
+                    variant={activeUsersTimeRange === 'weekly' ? 'default' : 'outline'}
+                    onClick={() => setActiveUsersTimeRange('weekly')}
+                    className={activeUsersTimeRange === 'weekly' ? 'bg-[#0C29AB]' : ''}
                   >
                     Weekly
                   </Button>
                   <Button
                     size="sm"
-                    variant={activeUsersTimeRange === "monthly" ? "default" : "outline"}
-                    onClick={() => setActiveUsersTimeRange("monthly")}
-                    className={activeUsersTimeRange === "monthly" ? "bg-[#0C29AB]" : ""}
+                    variant={activeUsersTimeRange === 'monthly' ? 'default' : 'outline'}
+                    onClick={() => setActiveUsersTimeRange('monthly')}
+                    className={activeUsersTimeRange === 'monthly' ? 'bg-[#0C29AB]' : ''}
                   >
                     Monthly
                   </Button>
@@ -328,17 +298,20 @@ export default function UniversityAnalyticsPage() {
                     const now = new Date();
                     const data = [];
 
-                    if (activeUsersTimeRange === "daily") {
+                    if (activeUsersTimeRange === 'daily') {
                       // Last 30 days
                       for (let i = 29; i >= 0; i--) {
                         const date = new Date(now);
                         date.setDate(date.getDate() - i);
-                        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        const dateStr = date.toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                        });
 
                         // Calculate based on student count with some variation
                         const studentCount = students.length;
-                        const studentFactor = 0.2 + (Math.sin(i / 5) * 0.15);
-                        const advisorFactor = 0.4 + (Math.sin(i / 7) * 0.2);
+                        const studentFactor = 0.2 + Math.sin(i / 5) * 0.15;
+                        const advisorFactor = 0.4 + Math.sin(i / 7) * 0.2;
 
                         data.push({
                           date: dateStr,
@@ -346,16 +319,16 @@ export default function UniversityAnalyticsPage() {
                           advisors: Math.floor(studentCount * 0.05 * advisorFactor), // ~5% advisors
                         });
                       }
-                    } else if (activeUsersTimeRange === "weekly") {
+                    } else if (activeUsersTimeRange === 'weekly') {
                       // Last 12 weeks
                       for (let i = 11; i >= 0; i--) {
                         const weekStart = new Date(now);
-                        weekStart.setDate(weekStart.getDate() - (i * 7));
+                        weekStart.setDate(weekStart.getDate() - i * 7);
                         const weekLabel = `Week ${12 - i}`;
 
                         const studentCount = students.length;
-                        const studentFactor = 0.25 + (Math.sin(i / 3) * 0.1);
-                        const advisorFactor = 0.5 + (Math.sin(i / 4) * 0.15);
+                        const studentFactor = 0.25 + Math.sin(i / 3) * 0.1;
+                        const advisorFactor = 0.5 + Math.sin(i / 4) * 0.15;
 
                         data.push({
                           date: weekLabel,
@@ -368,11 +341,14 @@ export default function UniversityAnalyticsPage() {
                       for (let i = 11; i >= 0; i--) {
                         const monthDate = new Date(now);
                         monthDate.setMonth(monthDate.getMonth() - i);
-                        const monthStr = monthDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+                        const monthStr = monthDate.toLocaleDateString('en-US', {
+                          month: 'short',
+                          year: '2-digit',
+                        });
 
                         const studentCount = students.length;
-                        const studentFactor = 0.3 + (i * 0.05); // Growth trend
-                        const advisorFactor = 0.6 + (i * 0.03);
+                        const studentFactor = 0.3 + i * 0.05; // Growth trend
+                        const advisorFactor = 0.6 + i * 0.03;
 
                         data.push({
                           date: monthStr,
@@ -390,9 +366,9 @@ export default function UniversityAnalyticsPage() {
                   <XAxis
                     dataKey="date"
                     tick={{ fontSize: 12 }}
-                    angle={activeUsersTimeRange === "daily" ? -45 : 0}
-                    textAnchor={activeUsersTimeRange === "daily" ? "end" : "middle"}
-                    height={activeUsersTimeRange === "daily" ? 70 : 30}
+                    angle={activeUsersTimeRange === 'daily' ? -45 : 0}
+                    textAnchor={activeUsersTimeRange === 'daily' ? 'end' : 'middle'}
+                    height={activeUsersTimeRange === 'daily' ? 70 : 30}
                   />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip
@@ -400,13 +376,10 @@ export default function UniversityAnalyticsPage() {
                       backgroundColor: 'white',
                       border: '1px solid #e5e7eb',
                       borderRadius: '6px',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                     }}
                   />
-                  <Legend
-                    wrapperStyle={{ paddingTop: '20px' }}
-                    iconType="line"
-                  />
+                  <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="line" />
                   <Line
                     type="monotone"
                     dataKey="students"
@@ -460,11 +433,11 @@ export default function UniversityAnalyticsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={[
-                      { activity: "Profile", count: Math.floor(students.length * 0.4) },
-                      { activity: "Applications", count: Math.floor(students.length * 0.6) },
-                      { activity: "Documents", count: Math.floor(students.length * 0.3) },
-                      { activity: "Goals", count: Math.floor(students.length * 0.25) },
-                      { activity: "Networking", count: Math.floor(students.length * 0.15) },
+                      { activity: 'Profile', count: Math.floor(students.length * 0.4) },
+                      { activity: 'Applications', count: Math.floor(students.length * 0.6) },
+                      { activity: 'Documents', count: Math.floor(students.length * 0.3) },
+                      { activity: 'Goals', count: Math.floor(students.length * 0.25) },
+                      { activity: 'Networking', count: Math.floor(students.length * 0.15) },
                     ]}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
@@ -481,7 +454,7 @@ export default function UniversityAnalyticsPage() {
       )}
 
       {/* Feature Adoption View */}
-      {analyticsView === "features" && (
+      {analyticsView === 'features' && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
@@ -491,9 +464,7 @@ export default function UniversityAnalyticsPage() {
               <CardContent>
                 <div className="flex items-center">
                   <Target className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">
-                    {analyticsData.goals.total}
-                  </div>
+                  <div className="text-2xl font-bold">{analyticsData.goals.total}</div>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
                   {analyticsData.goals.completed} completed
@@ -508,9 +479,7 @@ export default function UniversityAnalyticsPage() {
               <CardContent>
                 <div className="flex items-center">
                   <ClipboardList className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">
-                    {analyticsData.applications.total}
-                  </div>
+                  <div className="text-2xl font-bold">{analyticsData.applications.total}</div>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
                   {analyticsData.applications.submitted} submitted
@@ -525,13 +494,9 @@ export default function UniversityAnalyticsPage() {
               <CardContent>
                 <div className="flex items-center">
                   <FileText className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">
-                    {analyticsData.documents.total}
-                  </div>
+                  <div className="text-2xl font-bold">{analyticsData.documents.total}</div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Resumes & Cover Letters
-                </div>
+                <div className="text-xs text-muted-foreground mt-1">Resumes & Cover Letters</div>
               </CardContent>
             </Card>
 
@@ -554,9 +519,7 @@ export default function UniversityAnalyticsPage() {
                       : 0}
                   </div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Avg activities per student
-                </div>
+                <div className="text-xs text-muted-foreground mt-1">Avg activities per student</div>
               </CardContent>
             </Card>
           </div>
@@ -573,11 +536,27 @@ export default function UniversityAnalyticsPage() {
                   <PieChart>
                     <Pie
                       data={[
-                        { name: "Applications", value: analyticsData.applications.total, color: "#4F46E5" },
-                        { name: "Goals", value: analyticsData.goals.total, color: "#10B981" },
-                        { name: "Documents", value: analyticsData.documents.total, color: "#F59E0B" },
-                        { name: "Networking", value: Math.floor(students.length * 0.3), color: "#EC4899" },
-                        { name: "AI Coach", value: Math.floor(students.length * 0.2), color: "#8B5CF6" },
+                        {
+                          name: 'Applications',
+                          value: analyticsData.applications.total,
+                          color: '#4F46E5',
+                        },
+                        { name: 'Goals', value: analyticsData.goals.total, color: '#10B981' },
+                        {
+                          name: 'Documents',
+                          value: analyticsData.documents.total,
+                          color: '#F59E0B',
+                        },
+                        {
+                          name: 'Networking',
+                          value: Math.floor(students.length * 0.3),
+                          color: '#EC4899',
+                        },
+                        {
+                          name: 'AI Coach',
+                          value: Math.floor(students.length * 0.2),
+                          color: '#8B5CF6',
+                        },
                       ]}
                       dataKey="value"
                       nameKey="name"
@@ -588,11 +567,27 @@ export default function UniversityAnalyticsPage() {
                       labelLine
                     >
                       {[
-                        { name: "Applications", value: analyticsData.applications.total, color: "#4F46E5" },
-                        { name: "Goals", value: analyticsData.goals.total, color: "#10B981" },
-                        { name: "Documents", value: analyticsData.documents.total, color: "#F59E0B" },
-                        { name: "Networking", value: Math.floor(students.length * 0.3), color: "#EC4899" },
-                        { name: "AI Coach", value: Math.floor(students.length * 0.2), color: "#8B5CF6" },
+                        {
+                          name: 'Applications',
+                          value: analyticsData.applications.total,
+                          color: '#4F46E5',
+                        },
+                        { name: 'Goals', value: analyticsData.goals.total, color: '#10B981' },
+                        {
+                          name: 'Documents',
+                          value: analyticsData.documents.total,
+                          color: '#F59E0B',
+                        },
+                        {
+                          name: 'Networking',
+                          value: Math.floor(students.length * 0.3),
+                          color: '#EC4899',
+                        },
+                        {
+                          name: 'AI Coach',
+                          value: Math.floor(students.length * 0.2),
+                          color: '#8B5CF6',
+                        },
                       ].map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
@@ -634,7 +629,7 @@ export default function UniversityAnalyticsPage() {
                 <BarChart
                   data={[
                     {
-                      name: "Goals",
+                      name: 'Goals',
                       inProgress: analyticsData.goals.inProgress,
                       completed: analyticsData.goals.completed,
                     },
@@ -655,7 +650,7 @@ export default function UniversityAnalyticsPage() {
       )}
 
       {/* At-Risk Analysis View */}
-      {analyticsView === "risk" && (
+      {analyticsView === 'risk' && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
@@ -666,14 +661,11 @@ export default function UniversityAnalyticsPage() {
                 <div className="text-2xl font-bold text-orange-600">
                   {students?.filter(
                     (s: any) =>
-                      s.role === "user" &&
-                      (!s.last_active ||
-                        Date.now() - s.last_active > 60 * 24 * 60 * 60 * 1000)
+                      s.role === 'user' &&
+                      (!s.last_active || Date.now() - s.last_active > 60 * 24 * 60 * 60 * 1000),
                   ).length || 0}
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Inactive &gt;60 days
-                </div>
+                <div className="text-xs text-muted-foreground mt-1">Inactive &gt;60 days</div>
               </CardContent>
             </Card>
 
@@ -685,9 +677,7 @@ export default function UniversityAnalyticsPage() {
                 <div className="text-2xl font-bold text-amber-600">
                   {Math.floor(students.length * 0.15)}
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  &lt;2 sessions/week
-                </div>
+                <div className="text-xs text-muted-foreground mt-1">&lt;2 sessions/week</div>
               </CardContent>
             </Card>
 
@@ -699,9 +689,7 @@ export default function UniversityAnalyticsPage() {
                 <div className="text-2xl font-bold text-red-600">
                   {Math.floor(students.length * 0.08)}
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  No activity in 30 days
-                </div>
+                <div className="text-xs text-muted-foreground mt-1">No activity in 30 days</div>
               </CardContent>
             </Card>
 
@@ -713,9 +701,7 @@ export default function UniversityAnalyticsPage() {
                 <div className="text-2xl font-bold text-purple-600">
                   {Math.floor(students.length * 0.12)}
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Flagged for intervention
-                </div>
+                <div className="text-xs text-muted-foreground mt-1">Flagged for intervention</div>
               </CardContent>
             </Card>
           </div>
@@ -732,10 +718,32 @@ export default function UniversityAnalyticsPage() {
                   <PieChart>
                     <Pie
                       data={[
-                        { name: "Inactive >60d", value: students?.filter((s: any) => s.role === "user" && (!s.last_active || Date.now() - s.last_active > 60 * 24 * 60 * 60 * 1000)).length || 0, color: "#F97316" },
-                        { name: "Low Engagement", value: Math.floor(students.length * 0.15), color: "#F59E0B" },
-                        { name: "No Recent Activity", value: Math.floor(students.length * 0.08), color: "#EF4444" },
-                        { name: "Needs Support", value: Math.floor(students.length * 0.12), color: "#A855F7" },
+                        {
+                          name: 'Inactive >60d',
+                          value:
+                            students?.filter(
+                              (s: any) =>
+                                s.role === 'user' &&
+                                (!s.last_active ||
+                                  Date.now() - s.last_active > 60 * 24 * 60 * 60 * 1000),
+                            ).length || 0,
+                          color: '#F97316',
+                        },
+                        {
+                          name: 'Low Engagement',
+                          value: Math.floor(students.length * 0.15),
+                          color: '#F59E0B',
+                        },
+                        {
+                          name: 'No Recent Activity',
+                          value: Math.floor(students.length * 0.08),
+                          color: '#EF4444',
+                        },
+                        {
+                          name: 'Needs Support',
+                          value: Math.floor(students.length * 0.12),
+                          color: '#A855F7',
+                        },
                       ]}
                       dataKey="value"
                       nameKey="name"
@@ -746,10 +754,32 @@ export default function UniversityAnalyticsPage() {
                       labelLine
                     >
                       {[
-                        { name: "Inactive >60d", value: students?.filter((s: any) => s.role === "user" && (!s.last_active || Date.now() - s.last_active > 60 * 24 * 60 * 60 * 1000)).length || 0, color: "#F97316" },
-                        { name: "Low Engagement", value: Math.floor(students.length * 0.15), color: "#F59E0B" },
-                        { name: "No Recent Activity", value: Math.floor(students.length * 0.08), color: "#EF4444" },
-                        { name: "Needs Support", value: Math.floor(students.length * 0.12), color: "#A855F7" },
+                        {
+                          name: 'Inactive >60d',
+                          value:
+                            students?.filter(
+                              (s: any) =>
+                                s.role === 'user' &&
+                                (!s.last_active ||
+                                  Date.now() - s.last_active > 60 * 24 * 60 * 60 * 1000),
+                            ).length || 0,
+                          color: '#F97316',
+                        },
+                        {
+                          name: 'Low Engagement',
+                          value: Math.floor(students.length * 0.15),
+                          color: '#F59E0B',
+                        },
+                        {
+                          name: 'No Recent Activity',
+                          value: Math.floor(students.length * 0.08),
+                          color: '#EF4444',
+                        },
+                        {
+                          name: 'Needs Support',
+                          value: Math.floor(students.length * 0.12),
+                          color: '#A855F7',
+                        },
                       ].map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
@@ -770,9 +800,21 @@ export default function UniversityAnalyticsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={[
-                      { status: "Re-engaged", count: Math.floor(students.length * 0.18), color: "#10B981" },
-                      { status: "Partially Active", count: Math.floor(students.length * 0.09), color: "#F59E0B" },
-                      { status: "Still At-Risk", count: Math.floor(students.length * 0.05), color: "#EF4444" },
+                      {
+                        status: 'Re-engaged',
+                        count: Math.floor(students.length * 0.18),
+                        color: '#10B981',
+                      },
+                      {
+                        status: 'Partially Active',
+                        count: Math.floor(students.length * 0.09),
+                        color: '#F59E0B',
+                      },
+                      {
+                        status: 'Still At-Risk',
+                        count: Math.floor(students.length * 0.05),
+                        color: '#EF4444',
+                      },
                     ]}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
@@ -781,9 +823,21 @@ export default function UniversityAnalyticsPage() {
                     <Tooltip />
                     <Bar dataKey="count" name="Students">
                       {[
-                        { status: "Re-engaged", count: Math.floor(students.length * 0.18), color: "#10B981" },
-                        { status: "Partially Active", count: Math.floor(students.length * 0.09), color: "#F59E0B" },
-                        { status: "Still At-Risk", count: Math.floor(students.length * 0.05), color: "#EF4444" },
+                        {
+                          status: 'Re-engaged',
+                          count: Math.floor(students.length * 0.18),
+                          color: '#10B981',
+                        },
+                        {
+                          status: 'Partially Active',
+                          count: Math.floor(students.length * 0.09),
+                          color: '#F59E0B',
+                        },
+                        {
+                          status: 'Still At-Risk',
+                          count: Math.floor(students.length * 0.05),
+                          color: '#EF4444',
+                        },
                       ].map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
@@ -823,7 +877,7 @@ export default function UniversityAnalyticsPage() {
                 <BarChart
                   data={[
                     {
-                      name: "Applications",
+                      name: 'Applications',
                       inProgress: analyticsData.applications.inProgress,
                       submitted: analyticsData.applications.submitted,
                       interviewing: analyticsData.applications.interviewing,
@@ -838,11 +892,7 @@ export default function UniversityAnalyticsPage() {
                   <Legend />
                   <Bar dataKey="inProgress" fill="#4F46E5" name="In Progress" />
                   <Bar dataKey="submitted" fill="#F59E0B" name="Submitted" />
-                  <Bar
-                    dataKey="interviewing"
-                    fill="#EF4444"
-                    name="Interviewing"
-                  />
+                  <Bar dataKey="interviewing" fill="#EF4444" name="Interviewing" />
                   <Bar dataKey="offers" fill="#8B5CF6" name="Offers" />
                 </BarChart>
               </ResponsiveContainer>
@@ -855,16 +905,12 @@ export default function UniversityAnalyticsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Department Performance</CardTitle>
-          <CardDescription>
-            Usage metrics by academic department
-          </CardDescription>
+          <CardDescription>Usage metrics by academic department</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {departments.map((d: any) => {
-              const deptStudents = students.filter(
-                (s: any) => s.department_id === d._id,
-              );
+              const deptStudents = students.filter((s: any) => s.department_id === d._id);
               // Calculate mock data based on department size
               const deptGoals = Math.floor(deptStudents.length * 0.7); // 70% have goals
               const deptApps = Math.floor(deptStudents.length * 0.5); // 50% have applications
@@ -874,33 +920,21 @@ export default function UniversityAnalyticsPage() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between gap-2">
                       <CardTitle className="text-lg">{d.name}</CardTitle>
-                      {d.code && (
-                        <span className="text-xs text-muted-foreground">
-                          {d.code}
-                        </span>
-                      )}
+                      {d.code && <span className="text-xs text-muted-foreground">{d.code}</span>}
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
-                          Students
-                        </span>
-                        <span className="font-medium">
-                          {deptStudents.length}
-                        </span>
+                        <span className="text-sm text-muted-foreground">Students</span>
+                        <span className="font-medium">{deptStudents.length}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
-                          Goals Set
-                        </span>
+                        <span className="text-sm text-muted-foreground">Goals Set</span>
                         <span className="font-medium">{deptGoals}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
-                          Applications
-                        </span>
+                        <span className="text-sm text-muted-foreground">Applications</span>
                         <span className="font-medium">{deptApps}</span>
                       </div>
                     </div>

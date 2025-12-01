@@ -1,32 +1,33 @@
-import { v } from "convex/values";
-import { mutation } from "./_generated/server";
-import { isServiceRequest } from "./lib/roles";
+import { v } from 'convex/values';
+
+import { mutation } from './_generated/server';
+import { isServiceRequest } from './lib/roles';
 
 // DEPRECATED: Legacy Stripe integration - Use Clerk Billing instead
 export const setStripeCustomer = mutation({
   args: { clerkId: v.string(), stripeCustomerId: v.string() },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
+    if (!identity) throw new Error('Unauthorized');
 
     const actingUser = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
       .unique();
 
-    if (!actingUser) throw new Error("Unauthorized");
+    if (!actingUser) throw new Error('Unauthorized');
 
     const isSelf = actingUser.clerkId === args.clerkId;
-    if (!isSelf && actingUser.role !== "super_admin") {
-      throw new Error("Unauthorized");
+    if (!isSelf && actingUser.role !== 'super_admin') {
+      throw new Error('Unauthorized');
     }
 
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
       .unique();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     await ctx.db.patch(user._id, {
       stripe_customer_id: args.stripeCustomerId,
@@ -43,16 +44,12 @@ export const updateSubscriptionByIdentifier = mutation({
     clerkId: v.optional(v.string()),
     email: v.optional(v.string()),
     serviceToken: v.optional(v.string()),
-    subscription_plan: v.union(
-      v.literal("free"),
-      v.literal("premium"),
-      v.literal("university"),
-    ),
+    subscription_plan: v.union(v.literal('free'), v.literal('premium'), v.literal('university')),
     subscription_status: v.union(
-      v.literal("active"),
-      v.literal("inactive"),
-      v.literal("cancelled"),
-      v.literal("past_due"),
+      v.literal('active'),
+      v.literal('inactive'),
+      v.literal('cancelled'),
+      v.literal('past_due'),
     ),
     onboarding_completed: v.optional(v.boolean()),
   },
@@ -60,17 +57,17 @@ export const updateSubscriptionByIdentifier = mutation({
     const identity = await ctx.auth.getUserIdentity();
     const isService = isServiceRequest(args.serviceToken);
     if (!identity && !isService) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     let actingUser = null as any;
     if (!isService) {
       actingUser = await ctx.db
-        .query("users")
-        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity!.subject))
+        .query('users')
+        .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity!.subject))
         .unique();
       if (!actingUser) {
-        throw new Error("Unauthorized");
+        throw new Error('Unauthorized');
       }
     }
 
@@ -78,23 +75,23 @@ export const updateSubscriptionByIdentifier = mutation({
 
     if (args.clerkId) {
       user = await ctx.db
-        .query("users")
-        .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId!))
+        .query('users')
+        .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId!))
         .unique();
     }
 
-    if (!user && args.email && (isService || actingUser?.role === "super_admin")) {
+    if (!user && args.email && (isService || actingUser?.role === 'super_admin')) {
       user = await ctx.db
-        .query("users")
-        .withIndex("by_email", (q) => q.eq("email", args.email!))
+        .query('users')
+        .withIndex('by_email', (q) => q.eq('email', args.email!))
         .unique();
     }
 
-    if (!user) throw new Error("User not found for subscription update");
+    if (!user) throw new Error('User not found for subscription update');
 
     const isSelf = !isService && actingUser.clerkId === user.clerkId;
-    if (!isService && !isSelf && actingUser.role !== "super_admin") {
-      throw new Error("Unauthorized");
+    if (!isService && !isSelf && actingUser.role !== 'super_admin') {
+      throw new Error('Unauthorized');
     }
 
     await ctx.db.patch(user._id, {

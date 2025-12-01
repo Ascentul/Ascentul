@@ -2,8 +2,9 @@
  * Avatar upload and management functions
  */
 
-import { mutation, query } from "./_generated/server"
-import { v } from "convex/values"
+import { v } from 'convex/values';
+
+import { mutation, query } from './_generated/server';
 
 /**
  * Generate an upload URL for avatar image
@@ -14,21 +15,21 @@ export const generateAvatarUploadUrl = mutation({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
-    return await ctx.storage.generateUploadUrl()
+    return await ctx.storage.generateUploadUrl();
   },
-})
+});
 
 /**
  * Update user's profile image after successful upload
@@ -42,36 +43,36 @@ export const updateUserAvatar = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     const actor = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
       .unique();
 
     if (!actor) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
-    if (actor.clerkId !== args.clerkId && actor.role !== "super_admin") {
-      throw new Error("Unauthorized");
+    if (actor.clerkId !== args.clerkId && actor.role !== 'super_admin') {
+      throw new Error('Unauthorized');
     }
 
     // Find user by Clerk ID
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique()
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
+      .unique();
 
     if (!user) {
-      throw new Error("User not found")
+      throw new Error('User not found');
     }
 
     // Verify the storage ID is valid
-    const imageUrl = await ctx.storage.getUrl(args.storageId)
+    const imageUrl = await ctx.storage.getUrl(args.storageId);
     if (!imageUrl) {
-      throw new Error("Invalid storage ID")
+      throw new Error('Invalid storage ID');
     }
 
     // Store the permanent storageId (not the temporary URL)
@@ -79,15 +80,15 @@ export const updateUserAvatar = mutation({
     await ctx.db.patch(user._id, {
       profile_image: args.storageId,
       updated_at: Date.now(),
-    })
+    });
 
     return {
       success: true,
       storageId: args.storageId,
       imageUrl, // Return URL for immediate display
-    }
+    };
   },
-})
+});
 
 /**
  * Get user's profile image URL from storage ID
@@ -98,10 +99,10 @@ export const getUserProfileImageUrl = query({
     storageId: v.string(),
   },
   handler: async (ctx, args) => {
-    const url = await ctx.storage.getUrl(args.storageId)
-    return url
+    const url = await ctx.storage.getUrl(args.storageId);
+    return url;
   },
-})
+});
 
 /**
  * Delete user's avatar and revert to default
@@ -113,37 +114,37 @@ export const deleteUserAvatar = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
     const actor = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
       .unique();
 
     if (!actor) {
-      throw new Error("Unauthorized");
+      throw new Error('Unauthorized');
     }
 
-    if (actor.clerkId !== args.clerkId && actor.role !== "super_admin") {
-      throw new Error("Unauthorized");
+    if (actor.clerkId !== args.clerkId && actor.role !== 'super_admin') {
+      throw new Error('Unauthorized');
     }
 
     const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique()
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkId', args.clerkId))
+      .unique();
 
     if (!user) {
-      throw new Error("User not found")
+      throw new Error('User not found');
     }
 
     // Clear profile image
     await ctx.db.patch(user._id, {
       profile_image: undefined,
       updated_at: Date.now(),
-    })
+    });
 
-    return { success: true }
+    return { success: true };
   },
-})
+});
