@@ -499,6 +499,7 @@ export async function logAuthAction(
     entity_id: params.entityId,
     previous_value: params.previousValue,
     new_value: params.newValue,
+    metadata: params.metadata,
     created_at: Date.now(),
   });
 }
