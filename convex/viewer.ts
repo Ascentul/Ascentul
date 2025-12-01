@@ -61,7 +61,25 @@ export const getViewer = query({
     const isStudent = user.role === "student" ||
                      (user.role === "user" && user.university_id);
 
+    // Check if user is university-affiliated (student, advisor, or university_admin)
+    const isUniversityAffiliated = ["student", "advisor", "university_admin"].includes(user.role) ||
+                                    (user.role === "user" && user.university_id);
+
     let studentContext = null;
+    let universityContext = null;
+
+    // Get university context for all university-affiliated users
+    if (isUniversityAffiliated && user.university_id) {
+      const university = await ctx.db.get(user.university_id);
+
+      if (university) {
+        universityContext = {
+          universityName: university.name,
+          universityId: university._id,
+          universityLogo: university.logo_url || null,
+        };
+      }
+    }
 
     if (isStudent && user.university_id) {
       // Get student profile (if exists)
@@ -79,6 +97,7 @@ export const getViewer = query({
         studentContext = {
           universityName: university.name,
           universityId: university._id,
+          universityLogo: university.logo_url || null,
           studentProfile: studentProfile ? {
             major: studentProfile.major,
             year: studentProfile.year,
@@ -95,6 +114,7 @@ export const getViewer = query({
       name: user.name,
       email: user.email,
       student: studentContext,
+      university: universityContext,
     };
   },
 });

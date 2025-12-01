@@ -65,8 +65,8 @@ export default function StatCard({
       <div className={cn(
         "flex h-full items-center justify-between rounded-xl border border-slate-200 px-4 py-3",
         variant === 'priority'
-          ? "bg-white shadow-md"
-          : "bg-slate-50 shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
+          ? "bg-white shadow-sm"
+          : "bg-white shadow-sm"
       )}>
         <div className="flex items-center gap-3">
           <span className={cn("inline-flex h-9 w-9 items-center justify-center rounded-full", iconBgColor, iconColor)}>

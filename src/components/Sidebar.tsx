@@ -806,43 +806,31 @@ const Sidebar = React.memo(function Sidebar({
             </div>
           )}
 
-          {/* User Profile - at bottom */}
-          {clerkUser && (
-            <div className="mb-4 rounded-xl bg-white p-4 shadow-sm">
-              <div
-                className={`flex items-center ${expanded ? "space-x-3" : "justify-center"}`}
-              >
-                <Link href="/account" className="flex-shrink-0 cursor-pointer" aria-label="Account settings">
-                  <div className="relative h-10 w-10 rounded-full ring-2 ring-primary-500 hover:ring-primary-600 transition-all overflow-hidden">
-                    <Image
-                      src={
-                        user?.profile_image ||
-                        clerkUser.imageUrl ||
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(clerkUser.firstName || user?.name || "User")}&background=0C29AB&color=fff`
-                      }
-                      alt="Profile"
-                      width={40}
-                      height={40}
-                      className="h-full w-full object-cover"
-                    />
+          {/* University Badge - for university-affiliated users */}
+          {viewer?.university && (
+            <div className={`mb-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm ${expanded ? "" : "flex justify-center"}`}>
+              <div className={`flex items-center ${expanded ? "gap-3" : ""}`}>
+                {viewer.university.universityLogo ? (
+                  <Image
+                    src={viewer.university.universityLogo}
+                    alt={viewer.university.universityName}
+                    width={expanded ? 36 : 32}
+                    height={expanded ? 36 : 32}
+                    className="rounded-lg object-contain"
+                  />
+                ) : (
+                  <div className={`flex items-center justify-center rounded-lg bg-primary-100 ${expanded ? "h-9 w-9" : "h-8 w-8"}`}>
+                    <School className={`text-primary-500 ${expanded ? "h-5 w-5" : "h-4 w-4"}`} />
                   </div>
-                </Link>
+                )}
                 {expanded && (
-                  <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-900 truncate">
-                      {clerkUser.firstName ||
-                        clerkUser.emailAddresses[0]?.emailAddress?.split(
-                          "@",
-                        )[0] ||
-                        "User"}
+                      {viewer.university.universityName}
                     </p>
-                    {!effectiveIsAdmin && (
-                      <span className="inline-flex items-center self-start rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600 truncate max-w-full">
-                        {impersonation.isImpersonating
-                          ? (impersonation.universityName || effectivePlan || effectiveRole)
-                          : (viewer?.student?.universityName || subscription.planName || "Free plan")}
-                      </span>
-                    )}
+                    <p className="text-xs text-slate-500">
+                      {effectiveRole === "university_admin" ? "Administrator" : effectiveRole === "advisor" ? "Advisor" : "Student"}
+                    </p>
                   </div>
                 )}
               </div>

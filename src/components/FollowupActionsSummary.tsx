@@ -114,7 +114,7 @@ export function FollowupActionsSummary() {
       className="mb-6 h-full"
     >
       <Card
-        className="h-full flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-0 shadow-[0_6px_18px_rgba(0,0,0,0.05)]"
+        className="h-full flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-0 shadow-sm"
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 px-5 py-3">
           <div>

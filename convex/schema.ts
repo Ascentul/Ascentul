@@ -147,6 +147,7 @@ export default defineSchema({
   universities: defineTable({
     name: v.string(),
     slug: v.string(),
+    logo_url: v.optional(v.string()), // URL to university logo image
     description: v.optional(v.string()),
     website: v.optional(v.string()),
     contact_email: v.optional(v.string()),

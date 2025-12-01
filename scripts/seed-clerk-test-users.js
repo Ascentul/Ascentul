@@ -110,14 +110,20 @@ async function main() {
   const prefix = process.env.SEED_TEST_PREFIX || 'test.user'
 
   const accounts = [
-    // Base free user (will remain free)
-    { role: 'user', email: `${prefix}+user@${domain}` },
-    // Dedicated pro user account (role remains 'user'; we'll set subscription to premium in Convex)
-    { role: 'user', email: `${prefix}+pro@${domain}` },
-    { role: 'staff', email: `${prefix}+staff@${domain}` },
-    { role: 'university_admin', email: `${prefix}+uadmin@${domain}` },
-    { role: 'admin', email: `${prefix}+admin@${domain}` },
+    // Platform admin
     { role: 'super_admin', email: `${prefix}+super@${domain}` },
+    // University admin
+    { role: 'university_admin', email: `${prefix}+uadmin@${domain}` },
+    // Advisor
+    { role: 'advisor', email: `${prefix}+advisor@${domain}` },
+    // Student (university-affiliated)
+    { role: 'student', email: `${prefix}+student@${domain}` },
+    // Individual user (non-university)
+    { role: 'individual', email: `${prefix}+individual@${domain}` },
+    // Staff
+    { role: 'staff', email: `${prefix}+staff@${domain}` },
+    // Legacy user role
+    { role: 'user', email: `${prefix}+user@${domain}` },
   ]
 
   const results = []

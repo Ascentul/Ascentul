@@ -9,12 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { QuickActionChips } from "@/components/dashboard/QuickActionChips";
 import { useAuth } from "@/contexts/ClerkAuthProvider";
+import { useUser } from "@clerk/nextjs";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
+import Image from "next/image";
+import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "convex/_generated/api";
 import { useToast } from "@/hooks/use-toast";
-import { hasPlatformAdminAccess } from "@/lib/constants/roles";
 
 type IconButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   hasUnread?: boolean;
@@ -41,8 +43,31 @@ function IconButton({ hasUnread, isActive, className = "", children, ...rest }: 
 
 export default function AppTopBar() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, subscription, isAdmin } = useAuth();
+  const { user: clerkUser } = useUser();
   const { toast } = useToast();
+  const { impersonation, getEffectiveRole, getEffectivePlan } = useImpersonation();
+
+  // Get effective role/plan for badge display
+  const effectiveRole = getEffectiveRole();
+  const effectivePlan = getEffectivePlan();
+  const effectiveIsAdmin = effectiveRole === "super_admin";
+
+  // Fetch viewer data to get student context (university name)
+  const viewer = useQuery(
+    api.viewer.getViewer,
+    clerkUser ? {} : "skip"
+  );
+
+  // Check if user is university-affiliated (they have a dedicated badge in sidebar)
+  const isUniversityAffiliated = viewer?.university != null;
+
+  // Compute badge text - only for non-university users (university users have sidebar badge)
+  const badgeText = effectiveIsAdmin || isUniversityAffiliated
+    ? null
+    : impersonation.isImpersonating
+      ? (effectivePlan || effectiveRole)
+      : (subscription.planName || "Free plan");
   const [openPanel, setOpenPanel] = useState<null | "search" | "messages" | "notifications">(null);
   const [unreadMessages, setUnreadMessages] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -52,8 +77,6 @@ export default function AppTopBar() {
   const [issueType, setIssueType] = useState("Other");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Hide quick action chips for super_admin
-  const isSuperAdmin = hasPlatformAdminAccess(user?.role);
 
   // Fetch notification count from Convex
   const unreadCount = useQuery(
@@ -139,32 +162,28 @@ export default function AppTopBar() {
   };
 
   return (
-    <header className="relative z-20 bg-app-bg/70 backdrop-blur">
-      <div className="relative flex w-full items-center justify-between gap-3 px-4 md:px-6" style={{ minHeight: "56px" }}>
-        {!isSuperAdmin && (
-          <div className="hidden md:flex items-center gap-2.5 flex-nowrap">
-            <QuickActionChips />
-          </div>
-        )}
+    <header className="relative z-20">
+      <div className="relative flex w-full items-center justify-end gap-3 px-4 md:px-6 h-[74px]">
+        {/* Centered Search Bar - fixed position relative to viewport center */}
+        <div className="hidden md:flex items-center gap-3 w-full max-w-md rounded-full border border-slate-200/80 bg-white/90 backdrop-blur-sm px-4 py-2.5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200 group fixed left-1/2 -translate-x-1/2 top-[17px]">
+          <Search className="h-4 w-4 text-slate-400 group-hover:text-slate-500 transition-colors" />
+          <Input
+            placeholder="Search applications, resumes, goals..."
+            className="h-6 border-0 bg-transparent p-0 text-sm text-slate-700 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
+          <kbd className="hidden lg:inline-flex h-5 items-center gap-1 rounded border border-slate-200 bg-slate-100 px-1.5 font-mono text-[10px] font-medium text-slate-500">
+            ⌘K
+          </kbd>
+        </div>
 
-        <div className="flex flex-1 items-center justify-end gap-2.5" ref={panelRef}>
-          {openPanel === "search" && (
-            <div className="hidden md:flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
-              <Search className="h-4 w-4 text-slate-500" />
-              <Input
-                placeholder="Search across apps..."
-                className="h-8 border-0 bg-transparent p-0 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-500 focus-visible:ring-offset-0"
-                autoFocus
-              />
-            </div>
+        {/* Right side icons */}
+        <div className="flex items-center gap-2.5" ref={panelRef}>
+          {/* Plan/University Badge */}
+          {badgeText && (
+            <span className="hidden md:inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+              {badgeText}
+            </span>
           )}
-          <IconButton
-            aria-label="Search"
-            isActive={openPanel === "search"}
-            onClick={() => togglePanel("search")}
-          >
-            <Search className="h-4 w-4" />
-          </IconButton>
           <IconButton
             aria-label="Messages"
             hasUnread={unreadMessages}
@@ -242,6 +261,25 @@ export default function AppTopBar() {
           >
             <Bell className="h-4 w-4" />
           </IconButton>
+
+          {/* Profile Avatar */}
+          {clerkUser && (
+            <Link href="/account" className="flex-shrink-0" aria-label="Account settings">
+              <div className="relative h-10 w-10 rounded-full ring-2 ring-primary-500/50 hover:ring-primary-500 transition-all overflow-hidden shadow-sm">
+                <Image
+                  src={
+                    user?.profile_image ||
+                    clerkUser.imageUrl ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(clerkUser.firstName || user?.name || "User")}&background=5371FF&color=fff`
+                  }
+                  alt="Profile"
+                  width={40}
+                  height={40}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            </Link>
+          )}
         </div>
 
         {openPanel === "messages" && (

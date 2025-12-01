@@ -7,19 +7,18 @@ import { useImpersonation } from '@/contexts/ImpersonationContext'
 import { useQuery } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { OnboardingGuard } from '@/components/OnboardingGuard'
-import { SimpleOnboardingChecklist } from '@/components/SimpleOnboardingChecklist'
 import { CareerGoalsSummary } from '@/components/CareerGoalsSummary'
 import { ActiveInterviewsSummary } from '@/components/ActiveInterviewsSummary'
 import { FollowupActionsSummary } from '@/components/FollowupActionsSummary'
 import { TodaysRecommendations } from '@/components/TodaysRecommendations'
-import { AICareerCoach } from '@/components/AICareerCoach'
-import { UsageProgressCard } from '@/components/UsageProgressCard'
 import { HeatmapCard } from '@/components/streak/HeatmapCard'
+import { NextBestStepHero } from '@/components/NextBestStepHero'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { useRouter } from 'next/navigation'
 import StatCard from '@/components/StatCard'
 import { Card, CardContent } from '@/components/ui/card'
-import { Target, Clock, Users } from 'lucide-react'
+import { Target, Clock, Briefcase, TrendingUp } from 'lucide-react'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { hasAdvisorAccess, hasUniversityAdminAccess, hasPlatformAdminAccess } from '@/lib/constants/roles'
 
@@ -58,7 +57,7 @@ const activityTypeColors: Record<string, string> = {
 
 export default function DashboardPage() {
   const { user: clerkUser, isLoaded } = useUser()
-  const { user, hasPremium } = useAuth()
+  const { user } = useAuth()
   const { impersonation, getEffectiveRole } = useImpersonation()
   const router = useRouter()
 
@@ -71,11 +70,6 @@ export default function DashboardPage() {
     clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
   )
 
-  // Get user data to check if progress card is hidden
-  const userData = useQuery(
-    api.users.getUserByClerkId,
-    clerkUser?.id ? { clerkId: clerkUser.id } : 'skip'
-  )
 
   // Redirect admin users immediately to prevent flash of dashboard content
   // Skip redirect if impersonating a non-admin role
@@ -138,6 +132,9 @@ export default function DashboardPage() {
     return <LoadingSpinner message={message} />
   }
 
+  // Show dashboard for students and individual users only
+  const showStudentDashboard = effectiveRole === 'student' || effectiveRole === 'individual' || effectiveRole === 'user' || user?.role === 'student' || user?.role === 'individual' || user?.role === 'user'
+
   // Use real data or fallback to default values
   const stats = {
     nextInterview: dashboardData?.nextInterview || 'No Interviews',
@@ -145,7 +142,21 @@ export default function DashboardPage() {
     pendingTasks: dashboardData?.pendingTasks || 0,
     activeGoals: dashboardData?.activeGoals || 0,
     upcomingInterviews: dashboardData?.upcomingInterviews || 0,
-    interviewRate: dashboardData?.interviewRate || 0
+    interviewRate: dashboardData?.interviewRate || 0,
+    thisWeekActions: dashboardData?.thisWeek?.totalActions || 0,
+    applicationsThisWeek: dashboardData?.thisWeek?.applicationsAdded || 0,
+    overdueFollowups: dashboardData?.overdueFollowups || 0,
+  }
+
+  // Determine user status message
+  const getStatusMessage = () => {
+    if (stats.thisWeekActions > 0) {
+      return 'You are on track this week'
+    }
+    if (stats.pendingTasks > 0) {
+      return `${stats.pendingTasks} follow-up${stats.pendingTasks !== 1 ? 's' : ''} waiting for you`
+    }
+    return null
   }
 
   const fadeIn = {
@@ -155,23 +166,23 @@ export default function DashboardPage() {
 
   const subtleUp = {
     hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      transition: { 
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
         duration: 0.4
-      } 
+      }
     }
   }
 
   const cardAnimation = {
     hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      transition: { 
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
         duration: 0.4
-      } 
+      }
     }
   }
 
@@ -194,26 +205,44 @@ export default function DashboardPage() {
           animate="visible"
           variants={fadeIn}
         >
-          <motion.div variants={subtleUp}>
-            <header className="mb-4 flex items-center justify-between">
+          {/* Row 1: Page Header */}
+          <motion.div variants={subtleUp} className="mb-2">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              {/* Left side - Header with status */}
               <div>
-                <h1 className="text-xl font-semibold text-slate-900">Dashboard</h1>
-                <p className="text-sm text-slate-600">
-                  Welcome back, {user.name}! Here's your career progress.
+                <h1 className="text-xl font-semibold text-slate-900 tracking-tight">Hello, {user.name?.split(' ')[0] || 'there'}</h1>
+                <p className="text-base text-primary-600 mt-0.5 tracking-tight">
+                  How can I help you today?
                 </p>
               </div>
-            </header>
-            <div className="rounded-md border bg-white px-4 py-3">
-              <p className="font-medium">Quick Actions</p>
-            </div>
-            <div className="mt-4">
-              <AICareerCoach />
+
+              {/* Right side - This week chip */}
+              {showStudentDashboard && (
+                <div className="flex-shrink-0">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-primary-600">
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    This week: {stats.thisWeekActions} action{stats.thisWeekActions !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
             </div>
           </motion.div>
 
-          {/* Row 1: Stats Overview - Removed Interview Rate card */}
+          {/* Row 2: Next Best Step Hero */}
+          {showStudentDashboard && (
+            <motion.div variants={cardAnimation}>
+              <NextBestStepHero
+                hasApplications={(dashboardData?.applicationStats?.total || 0) > 0}
+                hasGoals={(dashboardData?.activeGoals || 0) > 0}
+                nextInterviewDetails={dashboardData?.nextInterviewDetails}
+                userName={user.name?.split(' ')[0]}
+              />
+            </motion.div>
+          )}
+
+          {/* Row 3: Stats Overview */}
           <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
             variants={staggeredContainer}
           >
             <motion.div variants={cardAnimation}>
@@ -231,21 +260,23 @@ export default function DashboardPage() {
                 }
                 change={{
                   type: 'no-change',
-                  text: 'TechCorp Inc.'
+                  text: dashboardData?.nextInterviewDetails?.company || 'Schedule one today'
                 }}
               />
             </motion.div>
 
             <motion.div variants={cardAnimation}>
               <StatCard
-                icon={<Users className="h-4 w-4" />}
-                iconBgColor="bg-[#EEF1FF]"
-                iconColor="text-[#5371FF]"
+                icon={<Briefcase className="h-4 w-4" />}
+                iconBgColor="bg-blue-50"
+                iconColor="text-blue-600"
                 label="Active Applications"
                 value={stats.activeApplications}
                 change={{
-                  type: 'increase',
-                  text: '+4 this week'
+                  type: stats.applicationsThisWeek > 0 ? 'increase' : 'no-change',
+                  text: stats.applicationsThisWeek > 0
+                    ? `+${stats.applicationsThisWeek} this week`
+                    : 'No new this week'
                 }}
               />
             </motion.div>
@@ -255,13 +286,15 @@ export default function DashboardPage() {
                 icon={<Clock className="h-4 w-4" />}
                 iconBgColor="bg-amber-50"
                 iconColor="text-[#F59E0B]"
-                label="Pending Follow ups"
+                label="Follow-up Actions"
                 value={stats.pendingTasks}
                 change={{
-                  type: stats.pendingTasks > 0 ? 'increase' : 'no-change',
-                  text: stats.pendingTasks > 0
-                    ? `${stats.pendingTasks} item${stats.pendingTasks !== 1 ? 's' : ''} need attention`
-                    : 'No pending follow ups'
+                  type: stats.overdueFollowups > 0 ? 'increase' : 'no-change',
+                  text: stats.overdueFollowups > 0
+                    ? `${stats.overdueFollowups} overdue`
+                    : stats.pendingTasks > 0
+                      ? 'On track'
+                      : 'All caught up'
                 }}
               />
             </motion.div>
@@ -274,16 +307,18 @@ export default function DashboardPage() {
                 label="Active Goals"
                 value={stats.activeGoals}
                 change={{
-                  type: 'increase',
-                  text: '+1 from last month'
+                  type: 'no-change',
+                  text: stats.activeGoals > 0
+                    ? 'Keep pushing forward'
+                    : 'Set your first goal'
                 }}
               />
             </motion.div>
           </motion.div>
 
-          {/* Row 2: Active Interviews, Follow-up Actions, Goals */}
+          {/* Row 5: Today Board (3-column grid) */}
           <motion.div
-            className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6"
+            className="grid grid-cols-1 lg:grid-cols-3 gap-6"
             variants={staggeredContainer}
           >
             <motion.div variants={cardAnimation}>
@@ -299,29 +334,18 @@ export default function DashboardPage() {
             </motion.div>
           </motion.div>
 
-          {/* Row 3: Today's Recommendations - full width */}
-          <motion.div variants={cardAnimation} className="mb-6">
+          {/* Row 6: Smart Recommendations */}
+          <motion.div variants={cardAnimation} id="recommendations">
             <TodaysRecommendations />
           </motion.div>
 
-          {/* Row 4: Usage Progress / Onboarding Checklist - only show if not hidden */}
-          {!hasPremium && userData && !userData.hide_progress_card && (
-            <motion.div variants={cardAnimation} className="mb-6">
-              <UsageProgressCard dashboardData={dashboardData} />
-            </motion.div>
-          )}
-          {hasPremium && (
-            <motion.div variants={cardAnimation} className="mb-6">
-              <SimpleOnboardingChecklist dashboardData={dashboardData} />
-            </motion.div>
-          )}
 
-          {/* Row 4: Activity Streak Heatmap */}
-          <motion.div variants={cardAnimation} className="mb-6">
+          {/* Row 8: Activity Streak Heatmap */}
+          <motion.div variants={cardAnimation}>
             <HeatmapCard />
           </motion.div>
 
-          {/* Row 6: Recent Activity */}
+          {/* Row 9: Recent Activity */}
           <motion.div variants={cardAnimation}>
             <Card className="overflow-hidden p-0 shadow-sm">
               <div className="flex items-center justify-between px-5 py-3">
