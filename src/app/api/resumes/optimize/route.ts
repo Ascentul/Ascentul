@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+import { evaluate } from '@/lib/ai-evaluation';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -257,6 +259,27 @@ CRITICAL FORMATTING RULES:
       if (resumeData.personalInfo) {
         if (!resumeData.personalInfo.linkedin) delete resumeData.personalInfo.linkedin;
         if (!resumeData.personalInfo.github) delete resumeData.personalInfo.github;
+      }
+
+      // Evaluate AI-optimized resume (non-blocking for now)
+      try {
+        const evalResult = await evaluate({
+          tool_id: 'resume-optimization',
+          input: { originalResumeText, analysisRecommendations, jobDescription, userProfile },
+          output: resumeData,
+          user_id: userId,
+        });
+
+        if (!evalResult.passed) {
+          console.warn('[AI Evaluation] Resume optimization failed evaluation:', {
+            score: evalResult.overall_score,
+            risk_flags: evalResult.risk_flags,
+            explanation: evalResult.explanation,
+          });
+        }
+      } catch (evalError) {
+        // Don't block on evaluation failures
+        console.error('[AI Evaluation] Error evaluating resume optimization:', evalError);
       }
 
       return NextResponse.json({

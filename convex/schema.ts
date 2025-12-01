@@ -1312,6 +1312,65 @@ export default defineSchema({
     .index('by_university_role', ['university_id', 'role'])
     .index('by_university', ['university_id']),
 
+  // ========================================
+  // AI EVALUATION TABLES
+  // ========================================
+  //
+  // Centralized AI evaluation framework for quality assessment, safety guardrails,
+  // and audit capabilities across all AI-powered tools.
+  //
+  // @see docs/AI_EVALUATOR_STRATEGY.md for governance and policies
+  // ========================================
+
+  // AI evaluation results - stores evaluation outcomes for all AI outputs
+  // v2.0: Uses 1-5 scale with standardized dimensions and safety gate
+  ai_evaluations: defineTable({
+    // Identity
+    tool_id: v.string(), // Which AI tool generated the content (e.g., 'resume-generation')
+    tool_version: v.optional(v.string()), // Version of the tool if tracked
+    evaluator_model: v.string(), // Model used for evaluation (e.g., 'gpt-4o-mini')
+    rubric_version: v.string(), // Version of the rubric used (v2.0.0 = 1-5 scale)
+
+    // Scores (v2.0: 1-5 scale for 5 standardized dimensions)
+    overall_score: v.number(), // 1-5 average of dimension scores (or 0-100 for legacy)
+    dimension_scores: v.any(), // Record<StandardizedDimension, DimensionScore>
+    risk_flags: v.array(v.string()), // Array of risk flag identifiers
+    explanation: v.string(), // Short rationale for audit/debugging
+    passed: v.boolean(), // Whether evaluation passed
+
+    // Safety gate (v2.0: binary pass/fail for safety dimension)
+    safety_score: v.optional(v.number()), // 1-5 safety dimension score
+    safety_passed: v.optional(v.boolean()), // true if safety >= 3
+    is_safety_hard_failure: v.optional(v.boolean()), // true if safety <= 2
+
+    // Context
+    user_id: v.optional(v.string()), // Clerk user ID (if authenticated)
+    input_hash: v.string(), // Hash of input for deduplication
+    output_hash: v.string(), // Hash of output
+
+    // Metadata
+    environment: v.union(v.literal('dev'), v.literal('staging'), v.literal('production')),
+    evaluation_duration_ms: v.number(), // How long evaluation took
+    created_at: v.number(),
+  })
+    .index('by_tool', ['tool_id'])
+    .index('by_user', ['user_id'])
+    .index('by_created', ['created_at'])
+    .index('by_tool_and_passed', ['tool_id', 'passed'])
+    .index('by_tool_and_created', ['tool_id', 'created_at'])
+    .index('by_safety_failed', ['is_safety_hard_failure', 'created_at']),
+
+  // AI evaluation configuration - stores rubric overrides and settings per tool
+  ai_evaluation_config: defineTable({
+    tool_id: v.string(), // Which AI tool this config applies to
+    rubric: v.optional(v.any()), // ToolRubric override (null = use default)
+    pass_threshold: v.optional(v.number()), // Override pass threshold
+    enabled: v.boolean(), // Whether evaluation is enabled for this tool
+    block_on_fail: v.boolean(), // Whether to block output on evaluation failure
+    updated_at: v.number(),
+    updated_by: v.string(), // Clerk user ID of admin who updated
+  }).index('by_tool', ['tool_id']),
+
   // Notifications table for in-app notifications
   notifications: defineTable({
     user_id: v.id('users'), // User who should see this notification

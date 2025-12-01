@@ -1,9 +1,5 @@
 {
-  "*.{ts,tsx}": [
-    "eslint --fix",
-    "prettier --write"
-  ],
-  "*.{json,css}": [
-    "prettier --write"
-  ]
+  "src/**/*.{ts,tsx}": ["eslint --fix", "prettier --write"],
+  "convex/**/*.ts": ["prettier --write"],
+  "*.{json,css}": ["prettier --write"]
 }

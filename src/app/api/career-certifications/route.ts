@@ -2,6 +2,8 @@ import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+import { evaluate } from '@/lib/ai-evaluation';
+
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
@@ -93,6 +95,27 @@ export async function POST(request: NextRequest) {
     // Try AI-powered certification extraction with better prompting
     const aiResults = await extractCertificationsFromWeb(role, level, skillNames);
     if (aiResults) {
+      // Evaluate AI-generated certifications (non-blocking for now)
+      try {
+        const evalResult = await evaluate({
+          tool_id: 'career-certifications',
+          input: { role, level, skills: skillNames },
+          output: aiResults,
+          user_id: userId,
+        });
+
+        if (!evalResult.passed) {
+          console.warn('[AI Evaluation] Career certifications failed evaluation:', {
+            score: evalResult.overall_score,
+            risk_flags: evalResult.risk_flags,
+            explanation: evalResult.explanation,
+          });
+        }
+      } catch (evalError) {
+        // Don't block on evaluation failures
+        console.error('[AI Evaluation] Error evaluating career certifications:', evalError);
+      }
+
       return NextResponse.json(aiResults);
     }
 

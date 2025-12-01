@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+import { evaluate } from '@/lib/ai-evaluation';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +46,27 @@ RESUME TEXT:\n${resumeText}\n\nJOB DESCRIPTION:\n${jobDescription || ''}`;
         });
         const content = response.choices[0]?.message?.content || '{}';
         const parsed = JSON.parse(content);
+
+        // Evaluate AI-generated suggestions (non-blocking for now)
+        try {
+          const evalResult = await evaluate({
+            tool_id: 'resume-suggestions',
+            input: { resumeText, jobDescription },
+            output: parsed,
+          });
+
+          if (!evalResult.passed) {
+            console.warn('[AI Evaluation] Resume suggestions failed evaluation:', {
+              score: evalResult.overall_score,
+              risk_flags: evalResult.risk_flags,
+              explanation: evalResult.explanation,
+            });
+          }
+        } catch (evalError) {
+          // Don't block on evaluation failures
+          console.error('[AI Evaluation] Error evaluating resume suggestions:', evalError);
+        }
+
         return NextResponse.json(parsed);
       } catch (e) {
         // fallback

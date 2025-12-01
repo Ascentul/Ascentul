@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 import { buildUserContext } from '@/lib/ai-coach-helpers';
+import { evaluate } from '@/lib/ai-evaluation';
 import { convexServer } from '@/lib/convex-server';
 
 const openai = process.env.OPENAI_API_KEY
@@ -109,6 +110,27 @@ ${userContext ? `\n--- USER CONTEXT (Use this to personalize your advice) ---\n$
         response =
           completion.choices[0]?.message?.content ||
           'I apologize, but I was unable to generate a response. Please try again.';
+
+        // Evaluate AI Coach response (non-blocking for now)
+        try {
+          const evalResult = await evaluate({
+            tool_id: 'ai-coach-response',
+            input: { query, conversationHistory, userContext },
+            output: { response },
+            user_id: userId,
+          });
+
+          if (!evalResult.passed) {
+            console.warn('[AI Evaluation] AI Coach response failed evaluation:', {
+              score: evalResult.overall_score,
+              risk_flags: evalResult.risk_flags,
+              explanation: evalResult.explanation,
+            });
+          }
+        } catch (evalError) {
+          // Don't block on evaluation failures
+          console.error('[AI Evaluation] Error evaluating AI Coach response:', evalError);
+        }
       } catch (openaiError) {
         console.error('OpenAI API error:', openaiError);
         response =

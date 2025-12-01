@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+import { evaluate } from '@/lib/ai-evaluation';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -382,7 +384,7 @@ Keep suggestions practical, encouraging, and human.`;
           ? sanitizeTokens(parsed.gaps as string[])
           : [];
 
-        return NextResponse.json({
+        const analysisResult = {
           ...parsed,
           strengths: cleanedStrengths.slice(0, 12),
           gaps: cleanedGaps.slice(0, 12),
@@ -390,7 +392,29 @@ Keep suggestions practical, encouraging, and human.`;
             Array.isArray(parsed.strengthHighlights) && parsed.strengthHighlights.length > 0
               ? parsed.strengthHighlights.slice(0, 6)
               : deriveHighlights(resumeText),
-        });
+        };
+
+        // Evaluate AI-generated analysis (non-blocking for now)
+        try {
+          const evalResult = await evaluate({
+            tool_id: 'resume-analysis',
+            input: { resumeText, jobDescription },
+            output: analysisResult,
+          });
+
+          if (!evalResult.passed) {
+            console.warn('[AI Evaluation] Resume analysis failed evaluation:', {
+              score: evalResult.overall_score,
+              risk_flags: evalResult.risk_flags,
+              explanation: evalResult.explanation,
+            });
+          }
+        } catch (evalError) {
+          // Don't block on evaluation failures
+          console.error('[AI Evaluation] Error evaluating resume analysis:', evalError);
+        }
+
+        return NextResponse.json(analysisResult);
       } catch (e) {
         // Fallback to heuristic if OpenAI fails
         const result = simpleAnalyze(resumeText, jobDescription);

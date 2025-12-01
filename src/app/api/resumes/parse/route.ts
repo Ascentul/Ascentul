@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+import { evaluate } from '@/lib/ai-evaluation';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -445,6 +447,26 @@ IMPORTANT FORMATTING RULES:
 
         const content = response.choices[0]?.message?.content || '{}';
         const parsedData = JSON.parse(content);
+
+        // Evaluate AI-parsed resume (non-blocking for now)
+        try {
+          const evalResult = await evaluate({
+            tool_id: 'resume-parse',
+            input: { resumeText },
+            output: parsedData,
+          });
+
+          if (!evalResult.passed) {
+            console.warn('[AI Evaluation] Resume parsing failed evaluation:', {
+              score: evalResult.overall_score,
+              risk_flags: evalResult.risk_flags,
+              explanation: evalResult.explanation,
+            });
+          }
+        } catch (evalError) {
+          // Don't block on evaluation failures
+          console.error('[AI Evaluation] Error evaluating resume parsing:', evalError);
+        }
 
         return NextResponse.json({
           success: true,
