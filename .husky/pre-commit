@@ -1,1 +1,78 @@
+#!/bin/sh
+
+# =============================================================================
+# Secret Detection
+# Scans staged files for potential secrets before allowing commit
+# See docs/SECRETS_MANAGEMENT.md for policies
+# =============================================================================
+
+echo "🔍 Checking for potential secrets in staged files..."
+
+# Get list of staged files (excluding deleted files)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -z "$STAGED_FILES" ]; then
+  echo "✅ No staged files to check"
+else
+  # Common secret patterns to detect
+  # These patterns catch most accidental secret commits
+  SECRET_PATTERNS=(
+    # API Keys (generic patterns)
+    'sk_live_[a-zA-Z0-9]{20,}'          # Stripe live keys
+    'sk_test_[a-zA-Z0-9]{20,}'          # Stripe test keys
+    'pk_live_[a-zA-Z0-9]{20,}'          # Stripe publishable live
+    'whsec_[a-zA-Z0-9]{20,}'            # Stripe webhook secrets
+    'sk-[a-zA-Z0-9]{40,}'               # OpenAI API keys
+    'key-[a-zA-Z0-9]{32}'               # Mailgun keys
+
+    # AWS patterns
+    'AKIA[0-9A-Z]{16}'                  # AWS Access Key ID
+
+    # Generic secrets
+    'password\s*[=:]\s*["\047][^"\047]{8,}'  # password = "..." or password: "..."
+    'secret\s*[=:]\s*["\047][^"\047]{8,}'    # secret = "..." patterns
+    'api_key\s*[=:]\s*["\047][^"\047]{8,}'   # api_key = "..." patterns
+
+    # Private keys
+    '-----BEGIN (RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----'
+    '-----BEGIN PGP PRIVATE KEY BLOCK-----'
+  )
+
+  FOUND_SECRETS=0
+
+  for file in $STAGED_FILES; do
+    # Skip binary files, .env.example, and documentation
+    if [[ "$file" == *.env.example ]] || [[ "$file" == *.md ]] || [[ "$file" == *.png ]] || [[ "$file" == *.jpg ]] || [[ "$file" == *.ico ]]; then
+      continue
+    fi
+
+    # Check each pattern
+    for pattern in "${SECRET_PATTERNS[@]}"; do
+      if git show ":$file" 2>/dev/null | grep -qE "$pattern"; then
+        echo "⚠️  Potential secret detected in: $file"
+        echo "   Pattern: $pattern"
+        FOUND_SECRETS=1
+      fi
+    done
+  done
+
+  if [ $FOUND_SECRETS -eq 1 ]; then
+    echo ""
+    echo "❌ COMMIT BLOCKED: Potential secrets detected!"
+    echo ""
+    echo "If this is a false positive, you can:"
+    echo "  1. Add the pattern to .gitignore if it's a secret file"
+    echo "  2. Use 'git commit --no-verify' to bypass (NOT recommended)"
+    echo ""
+    echo "See docs/SECRETS_MANAGEMENT.md for proper secret handling."
+    exit 1
+  fi
+
+  echo "✅ No secrets detected in staged files"
+fi
+
+# =============================================================================
+# Lint Staged Files
+# =============================================================================
+
 npx lint-staged
