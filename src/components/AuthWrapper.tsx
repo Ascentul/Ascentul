@@ -45,14 +45,15 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
 
   // Show loading while determining redirect
   if (!clerkLoaded || !authLoaded || (clerkUser && !userProfile)) {
-    // Debug info to help diagnose loading issues
-    const debugInfo = {
-      clerkLoaded,
-      authLoaded,
-      hasClerkUser: !!clerkUser,
-      hasUserProfile: !!userProfile,
+    // Debug info to help diagnose loading issues (development only)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[AuthWrapper] Waiting for auth:', {
+        clerkLoaded,
+        authLoaded,
+        hasClerkUser: !!clerkUser,
+        hasUserProfile: !!userProfile,
+      })
     }
-    console.log('[AuthWrapper] Waiting for auth:', debugInfo)
 
     return (
       <div className="flex items-center justify-center min-h-screen">

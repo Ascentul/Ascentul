@@ -128,34 +128,36 @@ export function useUpcomingItems(): UseUpcomingItemsReturn {
     }
 
     // Process follow-ups
+    // Note: follow_ups table uses 'status' ('open'|'done') and 'due_at' fields
     if (followupActions) {
-      for (const action of followupActions as Array<{
+      for (const action of followupActions as unknown as Array<{
         _id: string
+        title?: string
         description?: string
         notes?: string
-        due_date?: number
-        completed: boolean
+        due_at?: number
+        status: 'open' | 'done'
         application?: { _id: string; company: string; status: string } | null
       }>) {
-        // Only include incomplete follow-ups with due dates in the next 7 days (or overdue)
+        // Only include open follow-ups with due dates in the next 7 days (or overdue)
         if (
-          !action.completed &&
-          action.due_date &&
-          action.due_date <= sevenDaysFromNow &&
+          action.status === 'open' &&
+          action.due_at &&
+          action.due_at <= sevenDaysFromNow &&
           // Exclude follow-ups for closed applications
           (!action.application || (action.application.status !== 'offer' && action.application.status !== 'rejected'))
         ) {
-          const title = action.description || action.notes || 'Follow-up action'
+          const title = action.title || action.description || action.notes || 'Follow-up action'
           const companyNote = action.application?.company ? ` (${action.application.company})` : ''
 
           result.push({
             id: `followup-${action._id}`,
             type: 'followUp',
             title: title + companyNote,
-            date: action.due_date,
-            displayDate: formatUpcomingDate(action.due_date, false),
+            date: action.due_at,
+            displayDate: formatUpcomingDate(action.due_at, false),
             href: action.application ? `/applications/${action.application._id}` : '/applications',
-            isOverdue: action.due_date < now
+            isOverdue: action.due_at < now
           })
         }
       }
@@ -229,15 +231,15 @@ export function useUpcomingItems(): UseUpcomingItemsReturn {
 
     // Count follow-ups
     if (followupActions) {
-      for (const action of followupActions as Array<{
-        due_date?: number
-        completed: boolean
+      for (const action of followupActions as unknown as Array<{
+        due_at?: number
+        status: 'open' | 'done'
         application?: { status: string } | null
       }>) {
         if (
-          !action.completed &&
-          action.due_date &&
-          action.due_date <= sevenDaysFromNow &&
+          action.status === 'open' &&
+          action.due_at &&
+          action.due_at <= sevenDaysFromNow &&
           (!action.application || (action.application.status !== 'offer' && action.application.status !== 'rejected'))
         ) {
           count++

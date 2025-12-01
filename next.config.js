@@ -7,10 +7,11 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.supabase.co',
       },
-      // UI Avatars (fallback avatars)
+      // UI Avatars (fallback avatars - restricted to API endpoint)
       {
         protocol: 'https',
         hostname: 'ui-avatars.com',
+        pathname: '/api/**',
       },
       // Clerk profile images (img.clerk.com is the only official Clerk image CDN)
       {
