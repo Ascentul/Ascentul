@@ -55,7 +55,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      log.warn('Invalid JSON in request body', {
+        event: 'validation.failed',
+        errorCode: 'BAD_REQUEST',
+      });
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
+    }
     const { studentEmail, universityId } = body;
 
     if (!studentEmail || !universityId) {

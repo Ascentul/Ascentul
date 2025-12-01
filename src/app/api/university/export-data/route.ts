@@ -24,7 +24,22 @@ export async function POST(request: NextRequest) {
     const { userId, token } = await requireConvexToken();
     log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
 
-    const body = await request.json();
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      log.warn('Invalid JSON in request body', {
+        event: 'validation.failed',
+        errorCode: 'BAD_REQUEST',
+      });
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        {
+          status: 400,
+          headers: { 'x-correlation-id': correlationId },
+        },
+      );
+    }
     const { clerkId } = body;
 
     if (!clerkId) {

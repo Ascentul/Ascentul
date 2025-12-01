@@ -361,15 +361,16 @@ export async function POST(request: NextRequest) {
     );
   } catch (err) {
     const durationMs = Date.now() - startTime;
+    // Internal errors should return 500, not 400
     log.error('Clerk webhook error', toErrorCode(err), {
       event: 'request.error',
-      httpStatus: 400,
+      httpStatus: 500,
       durationMs,
     });
     return NextResponse.json(
       { error: 'Webhook error' },
       {
-        status: 400,
+        status: 500,
         headers: { 'x-correlation-id': correlationId },
       },
     );

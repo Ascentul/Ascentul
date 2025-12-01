@@ -32,6 +32,8 @@ export async function POST(request: NextRequest) {
     const form = await request.formData();
     const file = form.get('file') as File | null;
     const userId = (form.get('userId') as string) || 'anonymous';
+    // Sanitize userId to prevent path traversal attacks
+    const safeUserId = userId.replace(/[^a-zA-Z0-9_-]/g, '_');
 
     if (!file) {
       log.warn('Missing file field', { event: 'validation.failed', errorCode: 'BAD_REQUEST' });
@@ -48,7 +50,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
 
     const ext = getExtFromFilename(file.name, '.jpg');
-    const filename = `profile_${userId}_${Date.now()}${ext}`;
+    const filename = `profile_${safeUserId}_${Date.now()}${ext}`;
     const dir = ensureUploadsPath('images');
     const fullPath = path.join(dir, filename);
 

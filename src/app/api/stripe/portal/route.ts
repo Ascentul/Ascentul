@@ -23,21 +23,11 @@ export async function POST(request: NextRequest) {
   log.info('Stripe portal request started', { event: 'request.start' });
 
   try {
+    // requireConvexToken throws if userId is missing or token fails
     const { userId, token } = await requireConvexToken();
     log.debug('User authenticated', { event: 'auth.success', clerkId: userId });
 
     const origin = request.headers.get('origin') || new URL(request.url).origin;
-
-    if (!userId) {
-      log.warn('User not authenticated', { event: 'auth.failed', errorCode: 'UNAUTHORIZED' });
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        {
-          status: 401,
-          headers: { 'x-correlation-id': correlationId },
-        },
-      );
-    }
 
     if (!stripeSecret) {
       // Mock manage billing URL when Stripe is not configured
