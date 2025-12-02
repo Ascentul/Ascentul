@@ -27,6 +27,7 @@
 
 import { api } from 'convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
+import * as React from 'react';
 
 import { useAuth } from '@/contexts/ClerkAuthProvider';
 import {
@@ -208,9 +209,6 @@ export function useTenantSettingMutable<T>(
     clearUpdateError,
   };
 }
-
-// Need React import for hooks
-import * as React from 'react';
 
 // ============================================================================
 // BATCH HOOK
