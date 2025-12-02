@@ -163,10 +163,10 @@ export function hasPermission(
   permission: Permission,
   context?: PermissionContext,
 ): boolean {
-  const allowedRoles = PERMISSIONS[permission];
+  const allowedRoles = PERMISSIONS[permission] as readonly string[];
 
   // Check if user's role is in allowed roles
-  if (!allowedRoles.includes(user.role as (typeof allowedRoles)[number])) {
+  if (!allowedRoles.includes(user.role)) {
     return false;
   }
 
