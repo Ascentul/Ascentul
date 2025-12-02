@@ -1223,6 +1223,26 @@ export default defineSchema({
     user_agent: v.optional(v.string()), // Browser/client info for security tracking
     created_at: v.optional(v.number()), // Timestamp for retention policy enforcement (optional for legacy records)
 
+    // Category and enhanced actor context (enterprise audit support)
+    category: v.optional(
+      v.union(
+        v.literal('user_action'), // User-initiated data changes
+        v.literal('permission_change'), // Role, membership, access changes
+        v.literal('sso_event'), // SSO login/logout events (future)
+        v.literal('system'), // System-initiated actions
+      ),
+    ),
+    actor_type: v.optional(
+      v.union(
+        v.literal('user'), // Human user action
+        v.literal('system'), // Automated system action
+        v.literal('integration'), // External integration/webhook
+      ),
+    ),
+    actor_role: v.optional(v.string()), // Role at time of action (student, advisor, admin, etc.)
+    target_university_id: v.optional(v.id('universities')), // University of the target entity
+    request_id: v.optional(v.string()), // Correlation ID for request tracing
+
     // Legacy format (backward compatibility - deprecated)
     performed_by_id: v.optional(v.string()), // Legacy: actor_id
     performed_by_name: v.optional(v.string()), // Legacy: actor name (PII - subject to redaction)
@@ -1241,6 +1261,7 @@ export default defineSchema({
     .index('by_university', ['university_id', 'created_at']) // Tenant-scoped queries
     .index('by_action', ['action', 'created_at']) // Find all instances of a specific action type
     .index('by_created_at', ['created_at']) // Retention policy: find old logs for archival
+    .index('by_category', ['category', 'created_at']) // Filter by audit category (user_action, permission_change, etc.)
     .index('by_timestamp', ['timestamp']) // Legacy: retention policy for old logs
     .index('by_target', ['target_type', 'target_id', 'timestamp']) // Legacy: Find logs by target (user-specific queries)
     .index('by_target_email', ['target_email', 'timestamp']), // Legacy: Find logs by target email

@@ -136,6 +136,31 @@ export async function POST(request: NextRequest) {
           userId: userId as string,
         });
 
+        // Audit log: user created (fire-and-forget, don't fail webhook on audit failure)
+        try {
+          await convexServer.mutation(api.audit_logs.logAuthEvent, {
+            action: 'auth.user_created',
+            clerkId: userData.id,
+            userId: userId as Id<'users'>,
+            role: validatedRole || undefined,
+            newValue: {
+              subscriptionPlan,
+              subscriptionStatus,
+              role: validatedRole,
+            },
+            metadata: {
+              source: 'clerk_webhook',
+              hasUniversityId: !!metadata.university_id,
+            },
+            serviceToken: convexServiceToken,
+          });
+        } catch (auditError) {
+          log.warn('Failed to create audit log for user creation', {
+            event: 'audit.error',
+            clerkId: userData.id,
+          });
+        }
+
         // Check if this user was a pending university student
         // If so, sync university_id to Clerk metadata
         const convexUser = await convexServer.query(api.users.getUserByClerkId, {
@@ -294,6 +319,33 @@ export async function POST(request: NextRequest) {
           clerkId: userData.id,
           extra: { subscriptionPlan, subscriptionStatus, role: validatedRole },
         });
+
+        // Audit log: user updated (fire-and-forget)
+        try {
+          await convexServer.mutation(api.audit_logs.logAuthEvent, {
+            action: 'auth.user_updated',
+            clerkId: userData.id,
+            role: validatedRole || undefined,
+            universityId: universityIdString as Id<'universities'> | undefined,
+            newValue: {
+              subscriptionPlan,
+              subscriptionStatus,
+              role: validatedRole,
+              hasUniversityId: !!universityIdString,
+            },
+            metadata: {
+              source: 'clerk_webhook',
+              isBanned: !!userData.banned,
+            },
+            serviceToken: convexServiceToken,
+          });
+        } catch (auditError) {
+          log.warn('Failed to create audit log for user update', {
+            event: 'audit.error',
+            clerkId: userData.id,
+          });
+        }
+
         break;
       }
 
@@ -332,6 +384,23 @@ export async function POST(request: NextRequest) {
         } catch (error) {
           log.error('Error handling user deletion', toErrorCode(error), {
             event: 'user.delete.error',
+            clerkId: userData.id,
+          });
+        }
+
+        // Audit log: user deleted (fire-and-forget)
+        try {
+          await convexServer.mutation(api.audit_logs.logAuthEvent, {
+            action: 'auth.user_deleted',
+            clerkId: userData.id,
+            metadata: {
+              source: 'clerk_webhook',
+            },
+            serviceToken: convexServiceToken,
+          });
+        } catch (auditError) {
+          log.warn('Failed to create audit log for user deletion', {
+            event: 'audit.error',
             clerkId: userData.id,
           });
         }

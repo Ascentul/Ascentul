@@ -397,6 +397,13 @@ export function canViewPrivateContent(
 /**
  * Audit log helper - create audit entry for sensitive actions
  * Must be called for: stage changes, review status changes, visibility changes, student assignments
+ *
+ * Note: This is the legacy advisor audit log helper. For new code, prefer using
+ * the typed audit logger from './lib/auditLogger' which supports categories.
+ *
+ * This function auto-categorizes based on action prefix:
+ * - 'student.' or 'advisor.' actions → permission_change (assignment-related)
+ * - Other actions → user_action (general advisor operations)
  */
 export async function createAuditLog(
   ctx: MutationCtx,
@@ -413,6 +420,17 @@ export async function createAuditLog(
     userAgent?: string;
   },
 ): Promise<Id<'audit_logs'>> {
+  // Auto-categorize based on action type
+  // Assignment-related actions are permission changes, others are user actions
+  const isPermissionAction =
+    params.action.startsWith('student.advisor') ||
+    params.action.startsWith('student.owner') ||
+    params.action.includes('assignment') ||
+    params.action.includes('assigned') ||
+    params.action.includes('removed');
+
+  const category = isPermissionAction ? 'permission_change' : 'user_action';
+
   return await ctx.db.insert('audit_logs', {
     actor_id: params.actorId,
     university_id: params.universityId,
@@ -425,5 +443,8 @@ export async function createAuditLog(
     ip_address: params.ipAddress,
     user_agent: params.userAgent,
     created_at: Date.now(),
+    // New fields for enterprise audit
+    category,
+    actor_type: 'user',
   });
 }

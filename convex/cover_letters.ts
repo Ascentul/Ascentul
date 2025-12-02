@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 
 import { mutation, query } from './_generated/server';
+import { safeLogAudit } from './lib/auditLogger';
 import { requireMembership } from './lib/roles';
 
 // Get cover letters for a user
@@ -78,6 +79,22 @@ export const createCoverLetter = mutation({
       updated_at: Date.now(),
     });
 
+    // Audit log: cover letter created
+    await safeLogAudit(ctx, {
+      category: 'user_action',
+      action: 'cover_letter.created',
+      actorUserId: user._id,
+      actorRole: user.role,
+      actorUniversityId: user.university_id,
+      targetType: 'cover_letter',
+      targetId: coverLetterId,
+      metadata: {
+        name: args.name,
+        job_title: args.job_title,
+        source: args.source ?? 'manual',
+      },
+    });
+
     const doc = await ctx.db.get(coverLetterId);
     return doc;
   },
@@ -138,6 +155,21 @@ export const updateCoverLetter = mutation({
       updated_at: Date.now(),
     });
 
+    // Audit log: cover letter updated
+    await safeLogAudit(ctx, {
+      category: 'user_action',
+      action: 'cover_letter.updated',
+      actorUserId: user._id,
+      actorRole: user.role,
+      actorUniversityId: user.university_id,
+      targetType: 'cover_letter',
+      targetId: args.coverLetterId,
+      metadata: {
+        name: coverLetter.name,
+        updatedFields: Object.keys(args.updates),
+      },
+    });
+
     return args.coverLetterId;
   },
 });
@@ -193,6 +225,22 @@ export const deleteCoverLetter = mutation({
     }
 
     await ctx.db.delete(args.coverLetterId);
+
+    // Audit log: cover letter deleted
+    await safeLogAudit(ctx, {
+      category: 'user_action',
+      action: 'cover_letter.deleted',
+      actorUserId: user._id,
+      actorRole: user.role,
+      actorUniversityId: user.university_id,
+      targetType: 'cover_letter',
+      targetId: args.coverLetterId,
+      previousValue: {
+        name: coverLetter.name,
+        job_title: coverLetter.job_title,
+      },
+    });
+
     return args.coverLetterId;
   },
 });
