@@ -34,6 +34,7 @@ import { RoleDiagnostics } from '@/components/admin/RoleDiagnostics';
 import { RoleHistoryView } from '@/components/admin/RoleHistoryView';
 import { RoleManagementTable } from '@/components/admin/RoleManagementTable';
 import { RolePermissionsGuide } from '@/components/admin/RolePermissionsGuide';
+import { TenantSettingsAdmin } from '@/components/admin/TenantSettingsAdmin';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -304,12 +305,13 @@ export default function AdminSettingsPage() {
         </div>
 
         <Tabs defaultValue="general" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="ai">AI & OpenAI</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="roles">User Roles</TabsTrigger>
+            <TabsTrigger value="tenants">Tenants</TabsTrigger>
             <TabsTrigger value="system">System</TabsTrigger>
           </TabsList>
 
@@ -1081,6 +1083,10 @@ export default function AdminSettingsPage() {
 
             {/* Role Diagnostics */}
             <RoleDiagnostics />
+          </TabsContent>
+
+          <TabsContent value="tenants" className="space-y-6">
+            <TenantSettingsAdmin />
           </TabsContent>
         </Tabs>
       </div>

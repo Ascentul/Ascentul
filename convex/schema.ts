@@ -1413,4 +1413,91 @@ export default defineSchema({
     .index('by_user', ['user_id'])
     .index('by_user_read', ['user_id', 'read'])
     .index('by_created_at', ['created_at']),
+
+  // ========================================
+  // TENANT SETTINGS & FEATURE FLAGS
+  // ========================================
+  //
+  // Infrastructure for per-tenant configuration, feature flags with tenant overrides,
+  // and A/B experiments. Supports both university tenants and B2C (individual) users.
+  //
+  // B2C users use 'b2c_default' as their tenant_id for unified handling.
+  // ========================================
+
+  // Tenant Settings - Per-tenant configuration with optimistic locking
+  // Supports: Feature toggles, SLA settings, notification defaults, branding
+  tenant_settings: defineTable({
+    // Tenant identifier - either university ID or 'b2c_default' for B2C users
+    tenant_id: v.union(v.id('universities'), v.literal('b2c_default')),
+    // Namespaced setting key (e.g., "features.ai_coach.enabled", "sla.resume_review_hours")
+    settings_key: v.string(),
+    // JSON-compatible value
+    settings_value: v.any(),
+    // Type hint for admin UI and validation
+    value_type: v.optional(
+      v.union(v.literal('boolean'), v.literal('string'), v.literal('number'), v.literal('json')),
+    ),
+    // Optimistic locking version - starts at 1, increments on each update
+    version: v.number(),
+    // Audit trail
+    updated_by: v.optional(v.id('users')),
+    updated_by_role: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index('by_tenant', ['tenant_id'])
+    .index('by_tenant_key', ['tenant_id', 'settings_key']),
+
+  // Tenant Feature Flag Overrides
+  // Allows per-tenant overrides of platform-wide feature flags
+  // Resolution order: tenant_flag_overrides → platform_settings → false
+  tenant_flag_overrides: defineTable({
+    tenant_id: v.union(v.id('universities'), v.literal('b2c_default')),
+    flag_key: v.string(),
+    enabled: v.boolean(),
+    updated_by: v.optional(v.id('users')),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index('by_tenant', ['tenant_id'])
+    .index('by_tenant_flag', ['tenant_id', 'flag_key']),
+
+  // Experiment Configs - A/B test configuration
+  // Initially code-defined; this table supports future DB-driven experiments
+  experiment_configs: defineTable({
+    // Unique experiment identifier (e.g., "onboarding_v2", "advisor_dashboard_layout")
+    experiment_id: v.string(),
+    name: v.string(),
+    description: v.optional(v.string()),
+    status: v.union(
+      v.literal('draft'), // Not active
+      v.literal('running'), // Currently active
+      v.literal('paused'), // Temporarily paused
+      v.literal('concluded'), // Finished, winner selected
+    ),
+    // Variant definitions with weights (must sum to 100)
+    variants: v.array(
+      v.object({
+        id: v.string(), // e.g., "control", "treatment_a"
+        name: v.string(),
+        weight: v.number(), // 0-100
+      }),
+    ),
+    // Optional targeting: null = all tenants
+    tenant_ids: v.optional(v.array(v.id('universities'))),
+    // Percentage of eligible users to include (0-100)
+    user_percentage: v.number(),
+    // Random salt for deterministic bucketing
+    salt: v.string(),
+    // Lifecycle timestamps
+    started_at: v.optional(v.number()),
+    concluded_at: v.optional(v.number()),
+    winning_variant: v.optional(v.string()),
+    created_by: v.optional(v.id('users')),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index('by_experiment_id', ['experiment_id'])
+    .index('by_status', ['status']),
 });
