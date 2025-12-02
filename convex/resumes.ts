@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 
 import { mutation, query } from './_generated/server';
+import { safeLogAudit } from './lib/auditLogger';
 import { requireMembership } from './lib/roles';
 
 // Get resumes for a user
@@ -78,6 +79,22 @@ export const createResume = mutation({
       updated_at: Date.now(),
     });
 
+    // Audit log: resume created
+    await safeLogAudit(ctx, {
+      category: 'user_action',
+      action: 'resume.created',
+      actorUserId: user._id,
+      actorRole: user.role,
+      actorUniversityId: user.university_id,
+      targetType: 'resume',
+      targetId: resumeId,
+      metadata: {
+        title: args.title,
+        source: args.source,
+        visibility: args.visibility,
+      },
+    });
+
     return resumeId;
   },
 });
@@ -127,6 +144,21 @@ export const updateResume = mutation({
     await ctx.db.patch(resumeId, {
       ...updates,
       updated_at: Date.now(),
+    });
+
+    // Audit log: resume updated
+    await safeLogAudit(ctx, {
+      category: 'user_action',
+      action: 'resume.updated',
+      actorUserId: user._id,
+      actorRole: user.role,
+      actorUniversityId: user.university_id,
+      targetType: 'resume',
+      targetId: resumeId,
+      metadata: {
+        title: resume.title,
+        updatedFields: Object.keys(updates),
+      },
     });
 
     return { success: true };
@@ -180,6 +212,22 @@ export const deleteResume = mutation({
     }
 
     await ctx.db.delete(args.resumeId);
+
+    // Audit log: resume deleted
+    await safeLogAudit(ctx, {
+      category: 'user_action',
+      action: 'resume.deleted',
+      actorUserId: user._id,
+      actorRole: user.role,
+      actorUniversityId: user.university_id,
+      targetType: 'resume',
+      targetId: args.resumeId,
+      previousValue: {
+        title: resume.title,
+        source: resume.source,
+      },
+    });
+
     return args.resumeId;
   },
 });

@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 
 import { api } from './_generated/api';
 import { mutation, query } from './_generated/server';
+import { safeLogAudit } from './lib/auditLogger';
 import { log, createLogContext, toErrorCode } from './lib/logger';
 import { requireMembership } from './lib/roles';
 
@@ -156,6 +157,22 @@ export const createGoal = mutation({
       extra: { goalId: id, status: args.status ?? 'not_started' },
     });
 
+    // Audit log: goal created
+    await safeLogAudit(ctx, {
+      category: 'user_action',
+      action: 'goal.created',
+      actorUserId: user._id,
+      actorRole: user.role,
+      actorUniversityId: user.university_id,
+      targetType: 'goal',
+      targetId: id,
+      metadata: {
+        title: args.title,
+        category: args.category,
+        status: args.status ?? 'not_started',
+      },
+    });
+
     return id;
   },
 });
@@ -267,6 +284,24 @@ export const updateGoal = mutation({
       },
     });
 
+    // Audit log: goal updated (track completion specifically)
+    const wasCompleted = goal.status !== 'completed' && args.updates.status === 'completed';
+    await safeLogAudit(ctx, {
+      category: 'user_action',
+      action: wasCompleted ? 'goal.completed' : 'goal.updated',
+      actorUserId: user._id,
+      actorRole: user.role,
+      actorUniversityId: user.university_id,
+      targetType: 'goal',
+      targetId: args.goalId,
+      previousValue: args.updates.status ? { status: goal.status } : undefined,
+      newValue: args.updates.status ? { status: args.updates.status } : undefined,
+      metadata: {
+        title: goal.title,
+        updatedFields: Object.keys(restUpdates),
+      },
+    });
+
     return args.goalId;
   },
 });
@@ -338,6 +373,22 @@ export const deleteGoal = mutation({
       event: 'operation.success',
       userId: user._id,
       extra: { goalId: args.goalId },
+    });
+
+    // Audit log: goal deleted
+    await safeLogAudit(ctx, {
+      category: 'user_action',
+      action: 'goal.deleted',
+      actorUserId: user._id,
+      actorRole: user.role,
+      actorUniversityId: user.university_id,
+      targetType: 'goal',
+      targetId: args.goalId,
+      previousValue: {
+        title: goal.title,
+        status: goal.status,
+        category: goal.category,
+      },
     });
 
     return args.goalId;

@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 
 import { api } from './_generated/api';
 import { mutation, query } from './_generated/server';
+import { safeLogAudit } from './lib/auditLogger';
 import { requireMembership } from './lib/roles';
 import { mapStatusToStage } from './migrate_application_status_to_stage';
 
@@ -110,6 +111,22 @@ export const createApplication = mutation({
     // Track activity for streak (fire-and-forget)
     await ctx.scheduler.runAfter(0, api.activity.markActionForToday, {});
 
+    // Audit log: application created
+    await safeLogAudit(ctx, {
+      category: 'user_action',
+      action: 'application.created',
+      actorUserId: user._id,
+      actorRole: user.role,
+      actorUniversityId: user.university_id,
+      targetType: 'application',
+      targetId: applicationId,
+      metadata: {
+        company: args.company,
+        job_title: args.job_title,
+        status: args.status,
+      },
+    });
+
     return applicationId;
   },
 });
@@ -189,6 +206,24 @@ export const updateApplication = mutation({
 
     await ctx.db.patch(args.applicationId, patchData);
 
+    // Audit log: application updated (track status changes specifically)
+    const action = args.updates.status ? 'application.status_changed' : 'application.updated';
+    await safeLogAudit(ctx, {
+      category: 'user_action',
+      action,
+      actorUserId: user._id,
+      actorRole: user.role,
+      actorUniversityId: user.university_id,
+      targetType: 'application',
+      targetId: args.applicationId,
+      previousValue: args.updates.status ? { status: application.status } : undefined,
+      newValue: args.updates.status ? { status: args.updates.status } : undefined,
+      metadata: {
+        company: application.company,
+        updatedFields: Object.keys(args.updates),
+      },
+    });
+
     return args.applicationId;
   },
 });
@@ -228,6 +263,23 @@ export const deleteApplication = mutation({
     }
 
     await ctx.db.delete(args.applicationId);
+
+    // Audit log: application deleted
+    await safeLogAudit(ctx, {
+      category: 'user_action',
+      action: 'application.deleted',
+      actorUserId: user._id,
+      actorRole: user.role,
+      actorUniversityId: user.university_id,
+      targetType: 'application',
+      targetId: args.applicationId,
+      previousValue: {
+        company: application.company,
+        job_title: application.job_title,
+        status: application.status,
+      },
+    });
+
     return args.applicationId;
   },
 });

@@ -2,6 +2,7 @@ import { ConvexError, v } from 'convex/values';
 
 import { api } from './_generated/api';
 import { mutation, MutationCtx, query } from './_generated/server';
+import { logPermissionChange } from './lib/auditLogger';
 import { isServiceRequest } from './lib/roles';
 
 // Roles that require university_id (university-affiliated roles)
@@ -25,6 +26,7 @@ function isIndividualRole(role: string): role is IndividualRole {
 /**
  * Internal helper: Log role changes to audit_logs
  * Logs changes by super_admin users and service-initiated changes (webhooks, migrations)
+ * Uses the centralized audit logger with permission_change category
  * Gracefully handles errors without failing the parent operation
  */
 async function logRoleChange(
@@ -39,16 +41,16 @@ async function logRoleChange(
 
     // Handle service-initiated changes (webhooks, migrations)
     if (isServiceInitiated || !identity) {
-      await ctx.db.insert('audit_logs', {
-        action: 'user.role_changed',
-        actor_id: undefined, // No actor for system changes
-        university_id: targetUser.university_id,
-        entity_type: 'user',
-        entity_id: targetUser._id,
-        student_id: newRole === 'student' ? targetUser._id : undefined,
-        previous_value: { role: oldRole, source: 'system' },
-        new_value: { role: newRole, source: isServiceInitiated ? 'webhook' : 'system' },
-        created_at: Date.now(),
+      await logPermissionChange(ctx, {
+        action: 'role.changed',
+        actorType: isServiceInitiated ? 'integration' : 'system',
+        actorUniversityId: targetUser.university_id,
+        targetType: 'user',
+        targetId: targetUser._id,
+        targetUniversityId: targetUser.university_id,
+        studentId: newRole === 'student' ? targetUser._id : undefined,
+        previousValue: { role: oldRole, source: 'system' },
+        newValue: { role: newRole, source: isServiceInitiated ? 'webhook' : 'system' },
       });
       return;
     }
@@ -60,16 +62,17 @@ async function logRoleChange(
 
     // Log if performed by super_admin
     if (admin && admin.role === 'super_admin') {
-      await ctx.db.insert('audit_logs', {
-        action: 'user.role_changed',
-        actor_id: admin._id,
-        university_id: targetUser.university_id,
-        entity_type: 'user',
-        entity_id: targetUser._id,
-        student_id: newRole === 'student' ? targetUser._id : undefined,
-        previous_value: { role: oldRole },
-        new_value: { role: newRole },
-        created_at: Date.now(),
+      await logPermissionChange(ctx, {
+        action: 'role.changed',
+        actorUserId: admin._id,
+        actorRole: admin.role,
+        actorUniversityId: admin.university_id,
+        targetType: 'user',
+        targetId: targetUser._id,
+        targetUniversityId: targetUser.university_id,
+        studentId: newRole === 'student' ? targetUser._id : undefined,
+        previousValue: { role: oldRole },
+        newValue: { role: newRole },
       });
     }
   } catch (auditError) {

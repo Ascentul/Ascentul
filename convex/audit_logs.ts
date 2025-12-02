@@ -432,13 +432,25 @@ export const createAuditLogInternal = internalMutation({
 });
 
 /**
- * Get audit logs with pagination (for admin UI)
+ * Get audit logs with pagination and filtering (for admin UI)
  * Requires super_admin role
+ *
+ * Supports filtering by:
+ * - category: user_action, permission_change, sso_event, system
+ * - action: specific action type (e.g., "application.created")
+ * - actorId: filter by who performed the action
+ * - entityType: filter by target entity type
+ * - dateFrom/dateTo: date range filtering
  */
 export const getAuditLogsPaginated = query({
   args: {
     clerkId: v.string(),
+    category: v.optional(v.string()),
     action: v.optional(v.string()),
+    actorId: v.optional(v.id('users')),
+    entityType: v.optional(v.string()),
+    dateFrom: v.optional(v.number()),
+    dateTo: v.optional(v.number()),
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
@@ -449,20 +461,129 @@ export const getAuditLogsPaginated = query({
       return { page: [], isDone: true, continueCursor: '' };
     }
 
-    // Use by_action index when filtering by action type for correct pagination
-    const logsQuery = args.action
-      ? ctx.db.query('audit_logs').withIndex('by_action', (q) => q.eq('action', args.action!))
-      : ctx.db.query('audit_logs');
+    // Determine which index to use based on filters
+    // Priority: category > action > actor > default (by_created_at)
+    let logsQuery;
+
+    if (args.category) {
+      // Use category index for category filtering
+      logsQuery = ctx.db
+        .query('audit_logs')
+        .withIndex('by_category', (q) => q.eq('category', args.category as any));
+    } else if (args.action) {
+      // Use action index for action filtering
+      logsQuery = ctx.db
+        .query('audit_logs')
+        .withIndex('by_action', (q) => q.eq('action', args.action!));
+    } else if (args.actorId) {
+      // Use actor index for actor filtering
+      logsQuery = ctx.db
+        .query('audit_logs')
+        .withIndex('by_actor', (q) => q.eq('actor_id', args.actorId!));
+    } else {
+      // Default: use created_at index for efficient ordering
+      logsQuery = ctx.db.query('audit_logs').withIndex('by_created_at');
+    }
+
     const result = await logsQuery.order('desc').paginate(args.paginationOpts);
+
+    // Apply additional filters that aren't covered by index
+    let filteredPage = result.page;
+
+    // Filter by entity type if specified and not already filtered
+    if (args.entityType) {
+      filteredPage = filteredPage.filter((log) => log.entity_type === args.entityType);
+    }
+
+    // Filter by date range
+    if (args.dateFrom) {
+      filteredPage = filteredPage.filter((log) => {
+        const ts = log.created_at ?? log.timestamp;
+        return ts !== undefined && ts >= args.dateFrom!;
+      });
+    }
+    if (args.dateTo) {
+      filteredPage = filteredPage.filter((log) => {
+        const ts = log.created_at ?? log.timestamp;
+        return ts !== undefined && ts <= args.dateTo!;
+      });
+    }
+
+    // If we had secondary filters (action when category is primary, etc.)
+    if (args.category && args.action) {
+      filteredPage = filteredPage.filter((log) => log.action === args.action);
+    }
+    if ((args.category || args.action) && args.actorId) {
+      filteredPage = filteredPage.filter((log) => log.actor_id === args.actorId);
+    }
 
     // Apply PII redaction before returning to client
     // FERPA/GDPR: Audit logs maintain action records but PII is redacted on read
-    const redactedPage = result.page.map(redactAuditLogForRead);
+    const redactedPage = filteredPage.map(redactAuditLogForRead);
 
     return {
       ...result,
       page: redactedPage,
     };
+  },
+});
+
+/**
+ * Log an authentication event from webhook
+ * Called by Clerk webhook when users are created or updated
+ *
+ * Protected by service token - only webhook handlers with valid service token can call this
+ */
+export const logAuthEvent = mutation({
+  args: {
+    action: v.union(
+      v.literal('auth.login'),
+      v.literal('auth.user_created'),
+      v.literal('auth.user_updated'),
+      v.literal('auth.user_deleted'),
+      v.literal('subscription.changed'),
+    ),
+    clerkId: v.string(),
+    userId: v.optional(v.id('users')),
+    universityId: v.optional(v.id('universities')),
+    role: v.optional(v.string()),
+    previousValue: v.optional(v.any()),
+    newValue: v.optional(v.any()),
+    metadata: v.optional(v.any()),
+    serviceToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Verify service token for webhook calls, or require admin auth
+    const expectedToken = process.env.CONVEX_INTERNAL_SERVICE_TOKEN;
+    const hasValidServiceToken = expectedToken && args.serviceToken === expectedToken;
+
+    if (!hasValidServiceToken) {
+      // If no valid service token, require admin authentication
+      const currentUser = await getCurrentUser(ctx);
+      if (!currentUser || currentUser.role !== 'super_admin') {
+        throw new Error('Unauthorized: Service token or super_admin role required');
+      }
+    }
+
+    // Determine category based on action
+    const isPermissionAction = args.action === 'subscription.changed';
+    const category = isPermissionAction ? 'permission_change' : 'user_action';
+
+    return await ctx.db.insert('audit_logs', {
+      category,
+      action: args.action,
+      actor_type: 'integration', // Webhook/integration initiated
+      actor_id: args.userId,
+      actor_role: args.role,
+      university_id: args.universityId,
+      entity_type: 'user',
+      entity_id: args.clerkId, // Store clerkId as entity reference
+      previous_value: args.previousValue,
+      new_value: args.newValue,
+      metadata: args.metadata,
+      created_at: Date.now(),
+      timestamp: Date.now(),
+    });
   },
 });
 
