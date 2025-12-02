@@ -297,7 +297,7 @@ export function TenantSettingsAdmin() {
         <div className="space-y-0.5 flex-1">
           <Label className={hasConflict ? 'text-destructive' : ''}>{setting.label}</Label>
           <p className="text-xs text-muted-foreground font-mono">{setting.key}</p>
-          {localSettings[setting.key]?.version && (
+          {localSettings[setting.key]?.version !== undefined && (
             <p className="text-xs text-muted-foreground">v{localSettings[setting.key].version}</p>
           )}
         </div>
