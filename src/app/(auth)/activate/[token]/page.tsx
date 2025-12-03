@@ -104,29 +104,11 @@ export default function ActivateAccountPage({ params }: PageProps) {
 
       if (!clerkUserId) {
         console.error('No createdUserId found after verification');
-        // If still no user ID but status is complete, try to set the session anyway
-        if (verifyResponse.createdSessionId || signUp.createdSessionId) {
-          const sessionId = verifyResponse.createdSessionId || signUp.createdSessionId;
-          console.log('Setting session without user ID:', sessionId);
-          await setActive({ session: sessionId! });
-
-          // The user should now be logged in, redirect them
-          const userRole = userWithToken?.role || 'user';
-          setTimeout(() => {
-            switch (userRole) {
-              case 'super_admin':
-                router.push('/admin');
-                break;
-              case 'university_admin':
-                router.push('/university');
-                break;
-              default:
-                router.push('/dashboard');
-            }
-          }, 500);
-          return;
-        }
-        throw new Error('Failed to complete account creation. Please contact support.');
+        // This is an unexpected state - verification completed but no user ID
+        // Don't proceed without proper Convex activation as it would leave data inconsistent
+        throw new Error(
+          'Account verification completed but user ID was not returned. Please contact support or try signing in directly.',
+        );
       }
 
       // Update the user record in Convex
