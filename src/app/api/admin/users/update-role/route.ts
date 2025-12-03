@@ -323,11 +323,20 @@ export async function POST(request: NextRequest) {
           : null;
 
       // Build updates object - only include university_id if it's a valid ID
+      type ValidRole =
+        | 'individual'
+        | 'user'
+        | 'student'
+        | 'staff'
+        | 'university_admin'
+        | 'advisor'
+        | 'super_admin';
+
       const updates: {
-        role: string;
+        role: ValidRole;
         university_id?: Id<'universities'>;
       } = {
-        role: newRole,
+        role: newRole as ValidRole,
       };
 
       if (requiresUniversity && universityId) {
