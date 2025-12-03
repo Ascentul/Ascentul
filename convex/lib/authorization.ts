@@ -19,7 +19,8 @@ import { DataModel, Id } from '../_generated/dataModel';
 import { VALID_ROLES, UserRole } from './roleValidation';
 
 // Re-export types for convenience
-export { VALID_ROLES, UserRole };
+export { VALID_ROLES };
+export type { UserRole };
 export type { RoleValidationResult } from './roleValidation';
 
 type QueryCtx = GenericQueryCtx<DataModel>;

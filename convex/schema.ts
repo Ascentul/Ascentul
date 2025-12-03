@@ -1392,6 +1392,252 @@ export default defineSchema({
     updated_by: v.string(), // Clerk user ID of admin who updated
   }).index('by_tool', ['tool_id']),
 
+  // ========================================
+  // AI QUALITY CENTER TABLES
+  // ========================================
+  //
+  // Centralized prompt versioning, governance, and evaluation for AI tools.
+  // Prompts are Git-first (markdown files are source of truth) with Convex mirroring.
+  //
+  // @see docs/AI_QUALITY_CENTER.md for governance model
+  // ========================================
+
+  // Prompt versions - stores prompt text with versioning (Git-mirrored or dev draft)
+  //
+  // VERSIONING: Uses semantic versioning (MAJOR.MINOR.PATCH)
+  // - MAJOR: Behavior change affecting safety posture or core role
+  // - MINOR: Quality improvements without changing role
+  // - PATCH: Small wording/formatting fixes
+  //
+  // RISK LEVELS:
+  // - low: Typos, minor clarifications (patch-level)
+  // - medium: Better examples, structure changes (minor-level)
+  // - high: Safety rule changes, new capabilities (major-level)
+  //
+  // SOURCE TYPES:
+  // - git_synced: Mirrored from repo markdown files (read-only in UI for prod)
+  // - dev_draft: Created in UI for experimentation (editable, dev-only)
+  prompt_versions: defineTable({
+    tool_id: v.string(), // e.g., 'resume-generation', 'ai-coach-response'
+    kind: v.union(v.literal('system'), v.literal('rubric'), v.literal('other')),
+    version_major: v.number(),
+    version_minor: v.number(),
+    version_patch: v.number(),
+    version_string: v.string(), // Cached "1.2.3" for display
+    risk_level: v.union(v.literal('low'), v.literal('medium'), v.literal('high')),
+    status: v.union(
+      v.literal('draft'), // Initial state, being edited
+      v.literal('in_review'), // Ready for approval
+      v.literal('active'), // Currently in use
+      v.literal('inactive'), // Previously active, now replaced
+      v.literal('rolled_back'), // Rolled back from active
+      v.literal('archived'), // No longer relevant
+    ),
+    env_scope: v.union(
+      v.literal('dev'), // Dev-only
+      v.literal('prod'), // Prod-eligible
+      v.literal('any'), // Any environment
+    ),
+    prompt_text: v.string(), // The actual prompt content
+    model: v.optional(v.string()), // e.g., 'gpt-4o', 'gpt-4o-mini'
+    temperature: v.optional(v.number()),
+    max_tokens: v.optional(v.number()),
+    pcr_link: v.optional(v.string()), // Prompt Change Request URL (GitHub PR, etc.)
+    notes: v.optional(v.string()), // Internal notes about this version
+    base_version_id: v.optional(v.id('prompt_versions')), // For diff tracking
+    approvals: v.optional(
+      v.array(
+        v.object({
+          role: v.string(), // e.g., 'Head of AI', 'Engineering Lead'
+          user_id: v.id('users'),
+          approved_at: v.number(),
+        }),
+      ),
+    ),
+    // Git-first tracking
+    source: v.union(v.literal('git_synced'), v.literal('dev_draft')),
+    git_file_path: v.optional(v.string()), // e.g., 'prompts/resume_studio/system_v1.0.0.md'
+    git_commit_sha: v.optional(v.string()),
+    synced_at: v.optional(v.number()),
+    // Audit
+    created_by_user_id: v.id('users'),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index('by_tool_id', ['tool_id'])
+    .index('by_tool_and_status', ['tool_id', 'status'])
+    .index('by_tool_and_version', ['tool_id', 'version_string'])
+    .index('by_status', ['status'])
+    .index('by_source', ['source'])
+    .index('by_created_at', ['created_at']),
+
+  // Prompt bindings - maps {tool, env, scope} to version(s)
+  //
+  // Bindings determine which prompt version is served for a given tool in a given environment.
+  // Supports two strategies:
+  // - single: One version is active
+  // - experiment: Multiple variants with allocation percentages (A/B testing)
+  //
+  // SCOPE TYPES:
+  // - all: Applies to all tenants in the environment
+  // - ring: Applies to a specific rollout ring (future)
+  // - tenant: Applies to a specific university/tenant
+  prompt_bindings: defineTable({
+    tool_id: v.string(),
+    env: v.union(v.literal('dev'), v.literal('prod')),
+    scope_type: v.union(v.literal('all'), v.literal('ring'), v.literal('tenant')),
+    scope_value: v.optional(v.string()), // ring name or tenant_id when scope_type != 'all'
+    strategy: v.union(v.literal('single'), v.literal('experiment')),
+    // For 'single' strategy
+    active_version_id: v.optional(v.id('prompt_versions')),
+    // For 'experiment' strategy
+    variants: v.optional(
+      v.array(
+        v.object({
+          version_id: v.id('prompt_versions'),
+          traffic_pct: v.number(), // 0-100, must sum to 100
+          variant_name: v.string(), // 'control', 'variant_a', etc.
+        }),
+      ),
+    ),
+    // Experiment metadata
+    experiment_name: v.optional(v.string()),
+    experiment_hypothesis: v.optional(v.string()),
+    experiment_started_at: v.optional(v.number()),
+    experiment_ended_at: v.optional(v.number()),
+    is_active: v.boolean(),
+    created_by_user_id: v.id('users'),
+    updated_by_user_id: v.optional(v.id('users')),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index('by_tool_env', ['tool_id', 'env'])
+    .index('by_tool_env_scope', ['tool_id', 'env', 'scope_type', 'scope_value'])
+    .index('by_active', ['is_active']),
+
+  // AI test cases - golden and adversarial test inputs
+  //
+  // Test cases are Git-first (defined in prompts/_evals/) and mirrored to Convex.
+  // They define inputs and expected behaviors for evaluating prompt performance.
+  ai_test_cases: defineTable({
+    tool_id: v.string(),
+    suite_name: v.string(), // e.g., 'Resume: Career Changer', 'AI Coach: At-Risk Scenarios'
+    name: v.string(), // e.g., 'Teacher to Tech PM'
+    description: v.optional(v.string()),
+    input_payload: v.any(), // Tool-specific input (job description, user profile, etc.)
+    expected_behavior: v.optional(v.string()), // Human description of expected output
+    tags: v.optional(v.array(v.string())), // ['career_change', 'education_to_tech']
+    is_active: v.boolean(),
+    // Git-first tracking
+    source: v.optional(v.union(v.literal('git_synced'), v.literal('manual'))),
+    git_file_path: v.optional(v.string()),
+    synced_at: v.optional(v.number()),
+    created_by_user_id: v.id('users'),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index('by_tool_id', ['tool_id'])
+    .index('by_suite', ['suite_name'])
+    .index('by_tool_and_suite', ['tool_id', 'suite_name'])
+    .index('by_active', ['is_active']),
+
+  // AI eval runs - results of running evaluations
+  //
+  // Records the output and scores from running a prompt version against test cases
+  // or production traffic. Links to the existing ai_evaluations scoring.
+  ai_eval_runs: defineTable({
+    tool_id: v.string(),
+    prompt_version_id: v.id('prompt_versions'),
+    env: v.union(v.literal('dev'), v.literal('prod')),
+    suite_name: v.optional(v.string()), // null for ad-hoc or production evals
+    test_case_id: v.optional(v.id('ai_test_cases')), // null for production evals
+    status: v.union(
+      v.literal('pending'),
+      v.literal('running'),
+      v.literal('success'),
+      v.literal('error'),
+    ),
+    model: v.string(), // Model used for generation
+    // Input/output snapshots
+    input_snapshot: v.optional(v.any()),
+    output_snapshot: v.optional(v.any()),
+    // Evaluation scores (aligned with ai_evaluations)
+    auto_score: v.optional(v.number()), // 1-5 overall score
+    dimension_scores: v.optional(v.any()), // Record<dimension, score>
+    risk_flags: v.optional(v.array(v.string())),
+    passed: v.optional(v.boolean()),
+    output_summary: v.optional(v.string()), // AI-generated summary of output
+    evaluator_version: v.optional(v.string()), // Version of evaluator used
+    // Performance metrics
+    latency_ms: v.optional(v.number()),
+    error_message: v.optional(v.string()),
+    // Experiment tracking
+    experiment_variant: v.optional(v.string()), // If part of an A/B test
+    // Audit
+    created_by_user_id: v.optional(v.id('users')), // null for automated runs
+    created_at: v.number(),
+    completed_at: v.optional(v.number()),
+  })
+    .index('by_version', ['prompt_version_id'])
+    .index('by_tool', ['tool_id'])
+    .index('by_test_case', ['test_case_id'])
+    .index('by_suite', ['suite_name'])
+    .index('by_status', ['status'])
+    .index('by_created_at', ['created_at']),
+
+  // AI eval feedback - manual feedback on eval runs
+  //
+  // Allows super admins to provide qualitative feedback on AI outputs
+  // for training data collection and quality monitoring.
+  ai_eval_feedback: defineTable({
+    eval_run_id: v.id('ai_eval_runs'),
+    rating: v.union(v.literal('good'), v.literal('bad'), v.literal('neutral')),
+    tags: v.optional(v.array(v.string())), // ['too_generic', 'hallucination', 'great_coaching']
+    note: v.optional(v.string()),
+    created_by_user_id: v.id('users'),
+    created_at: v.number(),
+  })
+    .index('by_eval_run', ['eval_run_id'])
+    .index('by_user', ['created_by_user_id'])
+    .index('by_rating', ['rating']),
+
+  // AI prompt events - audit trail for prompt lifecycle
+  //
+  // Logs all significant events for governance, rollback, and debugging.
+  // Required for FERPA compliance and AI governance auditing.
+  ai_prompt_events: defineTable({
+    event_type: v.union(
+      v.literal('activation'), // Version activated for an env/scope
+      v.literal('deactivation'), // Version deactivated
+      v.literal('rollback'), // Rolled back to previous version
+      v.literal('edit'), // Version text/metadata edited (dev drafts only)
+      v.literal('hotfix'), // Low-risk hotfix applied in prod
+      v.literal('experiment_start'), // A/B experiment started
+      v.literal('experiment_stop'), // A/B experiment ended
+      v.literal('approval_added'), // Approval added to version
+      v.literal('version_created'), // New version created
+      v.literal('version_cloned'), // Version cloned from another
+      v.literal('binding_created'), // New binding created
+      v.literal('sync_completed'), // Git sync completed
+    ),
+    tool_id: v.string(),
+    version_id: v.optional(v.id('prompt_versions')),
+    previous_version_id: v.optional(v.id('prompt_versions')), // For rollback tracking
+    binding_id: v.optional(v.id('prompt_bindings')),
+    env: v.optional(v.string()),
+    scope_type: v.optional(v.string()),
+    scope_value: v.optional(v.string()),
+    user_id: v.id('users'), // Actor who triggered the event
+    reason: v.optional(v.string()), // Reason for the action (required for hotfixes)
+    metadata: v.optional(v.any()), // Additional context
+    timestamp: v.number(),
+  })
+    .index('by_tool', ['tool_id'])
+    .index('by_version', ['version_id'])
+    .index('by_timestamp', ['timestamp'])
+    .index('by_user', ['user_id'])
+    .index('by_event_type', ['event_type', 'timestamp']),
+
   // Notifications table for in-app notifications
   notifications: defineTable({
     user_id: v.id('users'), // User who should see this notification

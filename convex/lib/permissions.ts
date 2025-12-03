@@ -166,7 +166,7 @@ export function hasPermission(
   const allowedRoles = PERMISSIONS[permission];
 
   // Check if user's role is in allowed roles
-  if (!allowedRoles.includes(user.role as (typeof allowedRoles)[number])) {
+  if (!(allowedRoles as readonly string[]).includes(user.role)) {
     return false;
   }
 

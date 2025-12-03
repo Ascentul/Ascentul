@@ -35,6 +35,7 @@ import {
   Search,
   Settings,
   ShieldCheck,
+  Sparkles,
   Target,
   Trophy,
   User as UserIcon,
@@ -285,6 +286,12 @@ const Sidebar = React.memo(function Sidebar({ isOpen, onToggle }: SidebarProps =
         title: 'Support Tickets',
         icon: <HelpCircle className="h-5 w-5" />,
         href: '/admin/support',
+      },
+      {
+        id: 'admin-ai-quality',
+        title: 'AI Quality',
+        icon: <Sparkles className="h-5 w-5" />,
+        href: '/admin/ai-quality',
       },
       {
         id: 'admin-settings',

@@ -44,8 +44,12 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     }
   }, [redirectPath, router]);
 
-  // Show loading while determining redirect
-  if (!clerkLoaded || !authLoaded || (clerkUser && !userProfile)) {
+  // Show loading only while Clerk is initializing OR if user is signed in but profile not loaded
+  // Don't block rendering for unauthenticated users
+  const isAuthenticating = !clerkLoaded || !authLoaded;
+  const needsProfileLoading = clerkUser && !userProfile;
+
+  if (isAuthenticating || needsProfileLoading) {
     // Debug info to help diagnose loading issues (development only)
     if (process.env.NODE_ENV === 'development') {
       console.log('[AuthWrapper] Waiting for auth:', {
