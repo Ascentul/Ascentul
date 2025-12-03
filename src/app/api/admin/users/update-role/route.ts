@@ -314,6 +314,36 @@ export async function POST(request: NextRequest) {
       publicMetadata: newMetadata,
     });
 
+    // Also update Convex directly since webhooks may not work in local development
+    // This ensures the role change is reflected immediately
+    try {
+      const convexServiceToken = process.env.CONVEX_INTERNAL_SERVICE_TOKEN;
+      const membershipRole =
+        newRole === 'student' || newRole === 'advisor' || newRole === 'university_admin'
+          ? newRole
+          : null;
+
+      await convexServer.mutation(api.users_profile.updateUserWithMembership, {
+        clerkId: targetUserId,
+        updates: {
+          role: newRole,
+          university_id: requiresUniversity && universityId ? universityId : null,
+        },
+        membership:
+          membershipRole && universityId
+            ? { role: membershipRole, universityId: universityId as Id<'universities'> }
+            : undefined,
+        serviceToken: convexServiceToken,
+      });
+      log.info('Convex sync completed directly', { event: 'convex.sync.success' });
+    } catch (convexError) {
+      // Log but don't fail - webhook will eventually sync
+      log.warn('Direct Convex sync failed, relying on webhook', {
+        event: 'convex.sync.failed',
+        errorCode: toErrorCode(convexError),
+      });
+    }
+
     const durationMs = Date.now() - startTime;
     log.info('Role updated successfully', {
       event: 'admin.role.updated',
@@ -331,7 +361,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: 'Role updated in Clerk. Convex will sync via webhook.',
+        message: 'Role updated successfully.',
         user: {
           id: targetUser.id,
           email: targetUser.emailAddresses[0]?.emailAddress || 'no-email',
