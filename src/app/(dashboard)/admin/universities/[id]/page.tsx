@@ -865,7 +865,7 @@ export default function UniversityDetailPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredUsers
-                      .filter((u) => u.role === 'user')
+                      .filter((u) => u.role === 'user' || u.role === 'student')
                       .map((student) => (
                         <TableRow key={student._id}>
                           <TableCell className="font-medium">
