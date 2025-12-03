@@ -118,9 +118,9 @@ export default function ActivateAccountPage({ params }: PageProps) {
 
       if (!clerkUserId) {
         console.error('No createdUserId found after verification');
-        // Redirect to sign-in - Clerk account was created, they just need to sign in
-        // The webhook will handle syncing when they sign in
-        setError('Account created successfully! Please sign in with your new password.');
+        // Show success message and redirect to sign-in
+        // The webhook will handle syncing the Convex user when they sign in
+        setSuccessMessage('Account created successfully! Redirecting to sign in...');
         setTimeout(() => {
           router.push('/sign-in');
         }, 2000);
