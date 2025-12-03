@@ -54,7 +54,12 @@ export default function ActivateAccountPage({ params }: PageProps) {
   const handleVerifyEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clerkLoaded || !signUp || !tokenValid) {
-      setError('Please try again.');
+      console.error('Verification pre-check failed:', {
+        clerkLoaded,
+        hasSignUp: !!signUp,
+        tokenValid,
+      });
+      setError('Authentication not ready. Please refresh the page and try again.');
       return;
     }
 
@@ -67,15 +72,61 @@ export default function ActivateAccountPage({ params }: PageProps) {
       setIsLoading(true);
       setError('');
 
+      console.log('Attempting email verification with code:', verificationCode);
+      console.log('SignUp status before verification:', signUp.status);
+
       // Attempt email verification
       const verifyResponse = await signUp.attemptEmailAddressVerification({
         code: verificationCode,
       });
 
-      // Get the Clerk user ID
-      const clerkUserId = verifyResponse.createdUserId;
+      console.log('Verification response:', {
+        status: verifyResponse.status,
+        createdUserId: verifyResponse.createdUserId,
+        createdSessionId: verifyResponse.createdSessionId,
+      });
+
+      // Check if verification was successful
+      if (verifyResponse.status !== 'complete') {
+        console.error('Verification not complete, status:', verifyResponse.status);
+        throw new Error('Email verification incomplete. Please try again.');
+      }
+
+      // Get the Clerk user ID - it may be on the signUp object after verification
+      const clerkUserId = verifyResponse.createdUserId || signUp.createdUserId;
+
+      console.log('Clerk user ID:', clerkUserId);
+      console.log('SignUp object after verify:', {
+        status: signUp.status,
+        createdUserId: signUp.createdUserId,
+        createdSessionId: signUp.createdSessionId,
+      });
+
       if (!clerkUserId) {
-        throw new Error('Failed to verify email. Please try again.');
+        console.error('No createdUserId found after verification');
+        // If still no user ID but status is complete, try to set the session anyway
+        if (verifyResponse.createdSessionId || signUp.createdSessionId) {
+          const sessionId = verifyResponse.createdSessionId || signUp.createdSessionId;
+          console.log('Setting session without user ID:', sessionId);
+          await setActive({ session: sessionId! });
+
+          // The user should now be logged in, redirect them
+          const userRole = userWithToken?.role || 'user';
+          setTimeout(() => {
+            switch (userRole) {
+              case 'super_admin':
+                router.push('/admin');
+                break;
+              case 'university_admin':
+                router.push('/university');
+                break;
+              default:
+                router.push('/dashboard');
+            }
+          }, 500);
+          return;
+        }
+        throw new Error('Failed to complete account creation. Please contact support.');
       }
 
       // Update the user record in Convex
@@ -85,8 +136,9 @@ export default function ActivateAccountPage({ params }: PageProps) {
       });
 
       // Set the session as active
-      if (verifyResponse.createdSessionId) {
-        await setActive({ session: verifyResponse.createdSessionId });
+      const sessionId = verifyResponse.createdSessionId || signUp.createdSessionId;
+      if (sessionId) {
+        await setActive({ session: sessionId });
       }
 
       // Redirect based on user role
@@ -105,8 +157,24 @@ export default function ActivateAccountPage({ params }: PageProps) {
       }, 1500);
     } catch (err: any) {
       console.error('Verification error:', err);
-      if (err?.errors?.[0]?.code === 'form_code_incorrect') {
+      console.error('Full error object:', JSON.stringify(err, null, 2));
+
+      const errorCode = err?.errors?.[0]?.code;
+      const errorMessage = err?.errors?.[0]?.message || err?.errors?.[0]?.longMessage;
+
+      console.error('Error code:', errorCode);
+      console.error('Error message:', errorMessage);
+
+      if (errorCode === 'form_code_incorrect') {
         setError('Incorrect verification code. Please try again.');
+      } else if (errorCode === 'verification_expired') {
+        setError('Verification code has expired. Click "Resend Code" to get a new one.');
+      } else if (errorCode === 'verification_failed') {
+        setError(
+          'Verification failed. Please click "Resend Code" and try again with the new code.',
+        );
+      } else if (errorMessage) {
+        setError(errorMessage);
       } else {
         setError(err.message || 'Failed to verify email. Please try again.');
       }
@@ -144,17 +212,26 @@ export default function ActivateAccountPage({ params }: PageProps) {
 
     try {
       // Step 1: Create Clerk account with the password
+      console.log('Creating Clerk account for email:', email);
       const signUpResponse = await signUp.create({
         emailAddress: email,
         password: password,
       });
 
+      console.log('SignUp create response:', {
+        status: signUpResponse.status,
+        missingFields: signUpResponse.missingFields,
+        unverifiedFields: signUpResponse.unverifiedFields,
+      });
+
       // Step 2: Handle email verification if required
       if (signUpResponse.status === 'missing_requirements') {
+        console.log('Email verification required, preparing...');
         // Prepare email verification
         await signUp.prepareEmailAddressVerification({
           strategy: 'email_code',
         });
+        console.log('Verification email sent successfully');
 
         // Show verification code input
         setNeedsVerification(true);
