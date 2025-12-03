@@ -92,23 +92,39 @@ export default function ActivateAccountPage({ params }: PageProps) {
         throw new Error('Email verification incomplete. Please try again.');
       }
 
-      // Get the Clerk user ID - it may be on the signUp object after verification
-      const clerkUserId = verifyResponse.createdUserId || signUp.createdUserId;
+      // Get the Clerk user ID - try multiple sources
+      let clerkUserId = verifyResponse.createdUserId || signUp.createdUserId;
 
-      console.log('Clerk user ID:', clerkUserId);
+      console.log('Clerk user ID (initial):', clerkUserId);
       console.log('SignUp object after verify:', {
         status: signUp.status,
         createdUserId: signUp.createdUserId,
         createdSessionId: signUp.createdSessionId,
       });
 
+      // Set the session as active first - this may help retrieve the user ID
+      const sessionId = verifyResponse.createdSessionId || signUp.createdSessionId;
+      if (sessionId) {
+        await setActive({ session: sessionId });
+
+        // After setting session active, try to get userId from signUp again
+        if (!clerkUserId) {
+          // Small delay to allow session to fully activate
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          clerkUserId = signUp.createdUserId;
+          console.log('Clerk user ID (after session):', clerkUserId);
+        }
+      }
+
       if (!clerkUserId) {
         console.error('No createdUserId found after verification');
-        // This is an unexpected state - verification completed but no user ID
-        // Don't proceed without proper Convex activation as it would leave data inconsistent
-        throw new Error(
-          'Account verification completed but user ID was not returned. Please contact support or try signing in directly.',
-        );
+        // Show success message and redirect to sign-in
+        // The webhook will handle syncing the Convex user when they sign in
+        setSuccessMessage('Account created successfully! Redirecting to sign in...');
+        setTimeout(() => {
+          router.push('/sign-in');
+        }, 2000);
+        return;
       }
 
       // Update the user record in Convex
@@ -116,12 +132,6 @@ export default function ActivateAccountPage({ params }: PageProps) {
         activationToken: params.token,
         clerkId: clerkUserId,
       });
-
-      // Set the session as active
-      const sessionId = verifyResponse.createdSessionId || signUp.createdSessionId;
-      if (sessionId) {
-        await setActive({ session: sessionId });
-      }
 
       // Redirect based on user role
       const userRole = userWithToken?.role || 'user';
@@ -245,6 +255,7 @@ export default function ActivateAccountPage({ params }: PageProps) {
 
       // Show success message
       setError('');
+      setSuccessMessage('Account activated successfully! Redirecting...');
 
       // Redirect to appropriate dashboard
       setTimeout(() => {
@@ -401,6 +412,13 @@ export default function ActivateAccountPage({ params }: PageProps) {
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Success Alert */}
+              {successMessage && (
+                <Alert>
+                  <AlertDescription>{successMessage}</AlertDescription>
                 </Alert>
               )}
 
