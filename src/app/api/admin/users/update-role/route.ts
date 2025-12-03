@@ -317,30 +317,42 @@ export async function POST(request: NextRequest) {
     // Also update Convex directly since webhooks may not work in local development
     // This ensures the role change is reflected immediately
     try {
-      const convexServiceToken = process.env.CONVEX_INTERNAL_SERVICE_TOKEN;
       const membershipRole =
         newRole === 'student' || newRole === 'advisor' || newRole === 'university_admin'
           ? newRole
           : null;
 
-      await convexServer.mutation(api.users_profile.updateUserWithMembership, {
-        clerkId: targetUserId,
-        updates: {
-          role: newRole,
-          university_id: requiresUniversity && universityId ? universityId : null,
+      // Build updates object - only include university_id if it's a valid ID
+      const updates: {
+        role: string;
+        university_id?: Id<'universities'>;
+      } = {
+        role: newRole,
+      };
+
+      if (requiresUniversity && universityId) {
+        updates.university_id = universityId as Id<'universities'>;
+      }
+
+      // Pass the caller's JWT token to authenticate the Convex mutation
+      await convexServer.mutation(
+        api.users_profile.updateUserWithMembership,
+        {
+          clerkId: targetUserId,
+          updates,
+          membership:
+            membershipRole && universityId
+              ? { role: membershipRole, universityId: universityId as Id<'universities'> }
+              : undefined,
         },
-        membership:
-          membershipRole && universityId
-            ? { role: membershipRole, universityId: universityId as Id<'universities'> }
-            : undefined,
-        serviceToken: convexServiceToken,
-      });
+        token, // Pass JWT token for authentication
+      );
       log.info('Convex sync completed directly', { event: 'convex.sync.success' });
-    } catch (convexError) {
-      // Log but don't fail - webhook will eventually sync
-      log.warn('Direct Convex sync failed, relying on webhook', {
+    } catch (convexError: any) {
+      // Log the actual error for debugging
+      log.error('Direct Convex sync failed', toErrorCode(convexError), {
         event: 'convex.sync.failed',
-        errorCode: toErrorCode(convexError),
+        extra: { message: convexError?.message, stack: convexError?.stack },
       });
     }
 
