@@ -72,7 +72,7 @@ export default function ActivateAccountPage({ params }: PageProps) {
       setIsLoading(true);
       setError('');
 
-      console.log('Attempting email verification with code:', verificationCode);
+      console.log('Attempting email verification with code length:', verificationCode.length);
       console.log('SignUp status before verification:', signUp.status);
 
       // Attempt email verification
