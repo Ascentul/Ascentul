@@ -527,8 +527,8 @@ export const listStudents = query({
       .withIndex('by_university', (q) => q.eq('university_id', user.university_id!))
       .take(limit * 2); // Take 2x limit to account for filtering
 
-    // Filter to only actual students (role === "user")
-    const students = allUsers.filter((s: any) => s.role === 'user');
+    // Filter to only actual students (role === "user" or "student")
+    const students = allUsers.filter((s: any) => s.role === 'user' || s.role === 'student');
 
     return students.slice(0, limit);
   },
@@ -823,5 +823,129 @@ export const getStudentProgress = query({
         completion,
       };
     });
+  },
+});
+
+/**
+ * Universal search across students, advisors, departments, and courses
+ * for the university admin search bar
+ */
+export const universitySearch = query({
+  args: {
+    clerkId: v.string(),
+    query: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx, args.clerkId);
+    requireAdmin(user, { allowMissingUniversity: true });
+
+    if (!user.university_id) {
+      return {
+        students: [],
+        advisors: [],
+        departments: [],
+        courses: [],
+      };
+    }
+
+    const searchTerm = args.query.toLowerCase().trim();
+    const limit = Math.min(args.limit ?? 5, 10); // Max 10 results per category
+
+    if (!searchTerm) {
+      return {
+        students: [],
+        advisors: [],
+        departments: [],
+        courses: [],
+      };
+    }
+
+    // Fetch all data for the university (limited)
+    const [allUsers, departments, courses] = await Promise.all([
+      ctx.db
+        .query('users')
+        .withIndex('by_university', (q: any) => q.eq('university_id', user.university_id!))
+        .take(500),
+      ctx.db
+        .query('departments')
+        .withIndex('by_university', (q: any) => q.eq('university_id', user.university_id!))
+        .take(100),
+      ctx.db
+        .query('courses')
+        .withIndex('by_university', (q: any) => q.eq('university_id', user.university_id!))
+        .take(200),
+    ]);
+
+    // Search students (role === 'user' or 'student')
+    const students = allUsers
+      .filter(
+        (u: any) =>
+          (u.role === 'user' || u.role === 'student') &&
+          (u.name?.toLowerCase().includes(searchTerm) ||
+            u.email?.toLowerCase().includes(searchTerm)),
+      )
+      .slice(0, limit)
+      .map((s: any) => ({
+        _id: s._id,
+        name: s.name || 'Unnamed',
+        email: s.email,
+        role: s.role,
+        department_id: s.department_id,
+        last_active: s.last_active,
+        clerkId: s.clerkId,
+      }));
+
+    // Search advisors
+    const advisors = allUsers
+      .filter(
+        (u: any) =>
+          u.role === 'advisor' &&
+          (u.name?.toLowerCase().includes(searchTerm) ||
+            u.email?.toLowerCase().includes(searchTerm)),
+      )
+      .slice(0, limit)
+      .map((a: any) => ({
+        _id: a._id,
+        name: a.name || 'Unnamed',
+        email: a.email,
+        clerkId: a.clerkId,
+      }));
+
+    // Search departments
+    const filteredDepartments = departments
+      .filter(
+        (d: any) =>
+          d.name?.toLowerCase().includes(searchTerm) || d.code?.toLowerCase().includes(searchTerm),
+      )
+      .slice(0, limit)
+      .map((d: any) => ({
+        _id: d._id,
+        name: d.name,
+        code: d.code,
+      }));
+
+    // Search courses
+    const filteredCourses = courses
+      .filter(
+        (c: any) =>
+          c.title?.toLowerCase().includes(searchTerm) ||
+          c.category?.toLowerCase().includes(searchTerm),
+      )
+      .slice(0, limit)
+      .map((c: any) => ({
+        _id: c._id,
+        title: c.title,
+        category: c.category,
+        department_id: c.department_id,
+        published: c.published,
+      }));
+
+    return {
+      students,
+      advisors,
+      departments: filteredDepartments,
+      courses: filteredCourses,
+    };
   },
 });

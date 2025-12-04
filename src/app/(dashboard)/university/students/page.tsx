@@ -68,6 +68,7 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { UniversitySearchCommand } from '@/components/university/UniversitySearchCommand';
 import { useAuth } from '@/contexts/ClerkAuthProvider';
 import { useToast } from '@/hooks/use-toast';
 
@@ -486,14 +487,15 @@ export default function UniversityStudentsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-[#0C29AB]">Students</h1>
           <p className="text-muted-foreground">
             Manage student accounts, track progress, and invite new students
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <UniversitySearchCommand />
           <Button variant="outline" onClick={() => setInviteDialogOpen(true)}>
             <UserPlus className="h-4 w-4 mr-2" />
             Invite Student
@@ -854,7 +856,7 @@ export default function UniversityStudentsPage() {
                   <div className="text-2xl font-bold">
                     {students?.filter(
                       (s: any) =>
-                        s.role === 'user' &&
+                        (s.role === 'user' || s.role === 'student') &&
                         s.last_active &&
                         Date.now() - s.last_active < 30 * 24 * 60 * 60 * 1000,
                     ).length || 0}
@@ -875,7 +877,7 @@ export default function UniversityStudentsPage() {
                   <Target className="h-5 w-5 text-muted-foreground mr-2" />
                   <div className="text-2xl font-bold text-muted-foreground">--</div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">Asset tracking coming soon</div>
+                <div className="text-xs text-muted-foreground mt-1">Coming soon</div>
               </CardContent>
             </Card>
 
@@ -886,15 +888,9 @@ export default function UniversityStudentsPage() {
               <CardContent>
                 <div className="flex items-center">
                   <Calendar className="h-5 w-5 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">
-                    {Math.floor(
-                      (students?.filter((s: any) => s.role === 'user').length || 0) * 2.3,
-                    )}
-                  </div>
+                  <div className="text-2xl font-bold text-muted-foreground">--</div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Advising interactions recorded
-                </div>
+                <div className="text-xs text-muted-foreground mt-1">Coming soon</div>
               </CardContent>
             </Card>
 
@@ -908,21 +904,23 @@ export default function UniversityStudentsPage() {
                   <div className="text-2xl font-bold text-orange-600">
                     {students?.filter(
                       (s: any) =>
-                        s.role === 'user' &&
+                        (s.role === 'user' || s.role === 'student') &&
                         (!s.last_active || Date.now() - s.last_active > 60 * 24 * 60 * 60 * 1000),
                     ).length || 0}
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  {students?.filter((s: any) => s.role === 'user').length > 0
+                  {students?.filter((s: any) => s.role === 'user' || s.role === 'student').length >
+                  0
                     ? Math.round(
                         ((students?.filter(
                           (s: any) =>
-                            s.role === 'user' &&
+                            (s.role === 'user' || s.role === 'student') &&
                             (!s.last_active ||
                               Date.now() - s.last_active > 60 * 24 * 60 * 60 * 1000),
                         ).length || 0) /
-                          students?.filter((s: any) => s.role === 'user').length) *
+                          students?.filter((s: any) => s.role === 'user' || s.role === 'student')
+                            .length) *
                           100,
                       )
                     : 0}
@@ -941,41 +939,11 @@ export default function UniversityStudentsPage() {
                   Progress across different career development tools
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium">Resumes Created</span>
-                    <span className="text-muted-foreground">73%</span>
-                  </div>
-                  <Progress value={73} />
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium">Goals Set</span>
-                    <span className="text-muted-foreground">65%</span>
-                  </div>
-                  <Progress value={65} />
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium">Cover Letters Written</span>
-                    <span className="text-muted-foreground">58%</span>
-                  </div>
-                  <Progress value={58} />
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium">Applications Tracked</span>
-                    <span className="text-muted-foreground">82%</span>
-                  </div>
-                  <Progress value={82} />
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium">Network Contacts Added</span>
-                    <span className="text-muted-foreground">41%</span>
-                  </div>
-                  <Progress value={41} />
+              <CardContent>
+                <div className="text-center py-8 text-muted-foreground">
+                  <Target className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                  <p className="font-medium">Coming Soon</p>
+                  <p className="text-sm mt-1">Asset completion tracking will be available soon</p>
                 </div>
               </CardContent>
             </Card>
@@ -986,39 +954,10 @@ export default function UniversityStudentsPage() {
                 <CardDescription>Student activity over the past 30 days</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-green-600" />
-                      <span className="text-sm font-medium">Daily Logins</span>
-                    </div>
-                    <span className="text-lg font-bold text-green-600">+18%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-green-600" />
-                      <span className="text-sm font-medium">Goals Completed</span>
-                    </div>
-                    <span className="text-lg font-bold text-green-600">+24%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-green-600" />
-                      <span className="text-sm font-medium">Applications Submitted</span>
-                    </div>
-                    <span className="text-lg font-bold text-green-600">+12%</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-4 pt-4 border-t">
-                    <p>
-                      Average session duration: <strong>14 minutes</strong>
-                    </p>
-                    <p className="mt-1">
-                      Most active day: <strong>Wednesday</strong>
-                    </p>
-                    <p className="mt-1">
-                      Peak usage time: <strong>2:00 PM - 4:00 PM</strong>
-                    </p>
-                  </div>
+                <div className="text-center py-8 text-muted-foreground">
+                  <TrendingUp className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                  <p className="font-medium">Coming Soon</p>
+                  <p className="text-sm mt-1">Engagement analytics will be available soon</p>
                 </div>
               </CardContent>
             </Card>
@@ -1037,8 +976,8 @@ export default function UniversityStudentsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>Last Active</TableHead>
-                    <TableHead>Assets Completed</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1046,7 +985,7 @@ export default function UniversityStudentsPage() {
                   {students
                     ?.filter(
                       (s: any) =>
-                        s.role === 'user' &&
+                        (s.role === 'user' || s.role === 'student') &&
                         (!s.last_active || Date.now() - s.last_active > 60 * 24 * 60 * 60 * 1000),
                     )
                     .slice(0, 5)
@@ -1056,12 +995,10 @@ export default function UniversityStudentsPage() {
                         className="cursor-pointer hover:bg-gray-50"
                         onClick={() => handleViewProfile(s.clerkId)}
                       >
-                        <TableCell className="font-medium">{s.name}</TableCell>
+                        <TableCell className="font-medium">{s.name || 'Unnamed'}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{s.email}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {s.last_active ? new Date(s.last_active).toLocaleDateString() : 'Never'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">0 / 5</Badge>
                         </TableCell>
                         <TableCell>
                           <Badge variant="destructive" className="bg-orange-500">
@@ -1075,7 +1012,7 @@ export default function UniversityStudentsPage() {
               </Table>
               {students?.filter(
                 (s: any) =>
-                  s.role === 'user' &&
+                  (s.role === 'user' || s.role === 'student') &&
                   (!s.last_active || Date.now() - s.last_active > 60 * 24 * 60 * 60 * 1000),
               ).length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
