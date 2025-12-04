@@ -192,6 +192,7 @@ export const getUserByActivationToken = query({
       university_id: user.university_id,
       account_status: user.account_status,
       temp_password: user.temp_password, // Needed for verification
+      clerkId: user.clerkId, // To check if already activated
     };
   },
 });
