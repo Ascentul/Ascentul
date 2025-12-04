@@ -26,6 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { UniversitySearchCommand } from '@/components/university/UniversitySearchCommand';
 import { useAuth } from '@/contexts/ClerkAuthProvider';
 import { useToast } from '@/hooks/use-toast';
 
@@ -204,10 +205,13 @@ export default function UniversityDepartmentsPage() {
             Manage academic departments and track student distribution.
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Add Department
-        </Button>
+        <div className="flex items-center gap-2">
+          <UniversitySearchCommand />
+          <Button onClick={() => setCreateOpen(true)} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add Department
+          </Button>
+        </div>
       </div>
 
       {/* Key Metrics */}

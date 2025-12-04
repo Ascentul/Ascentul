@@ -99,6 +99,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { UniversitySearchCommand } from '@/components/university/UniversitySearchCommand';
 import { useAuth } from '@/contexts/ClerkAuthProvider';
 import { useImpersonation } from '@/contexts/ImpersonationContext';
 import { useToast } from '@/hooks/use-toast';
@@ -751,7 +752,8 @@ export default function UniversityDashboardPage() {
             Manage student licenses and performance analytics.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
+          <UniversitySearchCommand />
           <button
             className="inline-flex items-center rounded-md border px-3 py-2 text-sm hover:bg-gray-50"
             onClick={() => {
